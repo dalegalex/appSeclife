@@ -1,0 +1,219 @@
+<ion-content class="login-content" fullscreen>
+  <main class="login-shell">
+    <section class="brand-panel">
+      <img src="assets/brand/brand-seclife-symbol.png" alt="Seclife" />
+      <div>
+        <h1>Seclife</h1>
+        <p>Control Escolar</p>
+      </div>
+    </section>
+
+    <section class="login-panel">
+      <ion-segment [value]="mode" (ionChange)="setMode($event.detail.value === 'register' ? 'register' : ($event.detail.value === 'local' ? 'local' : 'login'))">
+        <ion-segment-button value="login">
+          <ion-label>Google</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="local">
+          <ion-label>Correo</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="register">
+          <ion-label>Usuario nuevo</ion-label>
+        </ion-segment-button>
+      </ion-segment>
+
+      @if (mode === 'login') {
+        <h2>Ingresar</h2>
+        <p>Utiliza la cuenta Google asociada a tu registro Seclife.</p>
+
+        @if (showNativeGoogleButton()) {
+          <ion-button expand="block" class="native-google-button" (click)="signInWithNativeGoogle()">
+            Ingresar con Google
+          </ion-button>
+        }
+
+        @if (showWebGoogleButton()) {
+          <div id="googleLoginButton" class="google-button"></div>
+        }
+      } @else if (mode === 'local') {
+        <h2>Ingresar con correo</h2>
+        <p>Captura tu correo personal y el codigo de verificacion.</p>
+
+        <ion-item lines="none" class="form-field">
+          <ion-label position="stacked">Correo</ion-label>
+          <ion-input
+            [(ngModel)]="localLoginEmail"
+            inputmode="email"
+            type="email"
+            autocomplete="email"
+            [disabled]="loading || localLoginCodeSent"
+          ></ion-input>
+        </ion-item>
+
+        <ion-button
+          expand="block"
+          fill="outline"
+          (click)="startLocalLogin()"
+          [disabled]="loading || localLoginCodeSent"
+        >
+          Enviar codigo
+        </ion-button>
+
+        @if (localLoginCodeSent) {
+          <ion-item lines="none" class="form-field">
+            <ion-label position="stacked">Codigo de verificacion</ion-label>
+            <ion-input
+              [(ngModel)]="localLoginCode"
+              inputmode="numeric"
+              maxlength="6"
+              [disabled]="loading"
+            ></ion-input>
+          </ion-item>
+
+          <ion-button expand="block" (click)="verifyLocalLogin()" [disabled]="loading">
+            Verificar e ingresar
+          </ion-button>
+        }
+      } @else {
+        <h2>Registro con codigo</h2>
+        <p>Valida el codigo del Colegio y despues asocia tu cuenta.</p>
+
+        <ion-item lines="none" class="form-field">
+          <ion-label position="stacked">Codigo de registro</ion-label>
+          <ion-input
+            [(ngModel)]="codereg"
+            inputmode="text"
+            maxlength="30"
+            autocapitalize="characters"
+            [disabled]="previewLoading || loading"
+          ></ion-input>
+        </ion-item>
+
+        <ion-button expand="block" fill="outline" (click)="previewCode()" [disabled]="previewLoading || loading">
+          Validar codigo
+        </ion-button>
+
+        @if (registrationPreview) {
+          <section class="preview-panel">
+            <div class="preview-header">
+              <span>{{ registrationPreview.perfil }}</span>
+              <strong>{{ getRegistrationTitle() }}</strong>
+              <small>{{ getRegistrationOrganization() }}</small>
+            </div>
+
+            @if (registrationPreview.requiereDatos) {
+              <ion-item lines="none" class="form-field">
+                <ion-label position="stacked">Nombre</ion-label>
+                <ion-input
+                  [(ngModel)]="registrationName"
+                  autocapitalize="characters"
+                  [disabled]="loading"
+                  (ionInput)="normalizeUpperField('registrationName'); scheduleGoogleButtonRender()"
+                ></ion-input>
+              </ion-item>
+
+              <ion-item lines="none" class="form-field">
+                <ion-label position="stacked">Apellidos</ion-label>
+                <ion-input
+                  [(ngModel)]="registrationLastName"
+                  autocapitalize="characters"
+                  [disabled]="loading"
+                  (ionInput)="normalizeUpperField('registrationLastName'); scheduleGoogleButtonRender()"
+                ></ion-input>
+              </ion-item>
+            }
+
+            @if (shouldShowFamilyNameField()) {
+              <ion-item lines="none" class="form-field">
+                <ion-label position="stacked">Nombre de familia</ion-label>
+                <ion-input
+                  [(ngModel)]="registrationFamilyName"
+                  autocapitalize="characters"
+                  [disabled]="loading"
+                  (ionInput)="normalizeUpperField('registrationFamilyName'); scheduleGoogleButtonRender()"
+                ></ion-input>
+              </ion-item>
+            }
+
+            @if (registrationPreview.requiereDatos) {
+              <ion-item lines="none" class="form-field">
+                <ion-label position="stacked">Celular</ion-label>
+                <ion-input
+                  [(ngModel)]="registrationPhone"
+                  inputmode="tel"
+                  [disabled]="loading"
+                  (ionInput)="scheduleGoogleButtonRender()"
+                ></ion-input>
+              </ion-item>
+            }
+
+            @if (showNativeGoogleButton()) {
+              <ion-button
+                expand="block"
+                class="native-google-button"
+                (click)="signInWithNativeGoogle()"
+                [disabled]="!canAssociateAccount()"
+              >
+                Asociar con Google
+              </ion-button>
+            }
+
+            @if (showWebGoogleButton() && canAssociateAccount()) {
+              <div id="googleLoginButton" class="google-button"></div>
+            }
+
+            <div class="local-register-panel">
+              <ion-item lines="none" class="form-field">
+                <ion-label position="stacked">Correo personal</ion-label>
+                <ion-input
+                  [(ngModel)]="localRegisterEmail"
+                  inputmode="email"
+                  type="email"
+                  autocomplete="email"
+                  [disabled]="loading || localRegisterCodeSent"
+                ></ion-input>
+              </ion-item>
+
+              <ion-button
+                expand="block"
+                fill="outline"
+                (click)="startLocalRegister()"
+                [disabled]="!canAssociateAccount() || loading || localRegisterCodeSent"
+              >
+                Asociar con correo
+              </ion-button>
+
+              @if (localRegisterCodeSent) {
+                <ion-item lines="none" class="form-field">
+                  <ion-label position="stacked">Codigo de verificacion</ion-label>
+                  <ion-input
+                    [(ngModel)]="localRegisterCode"
+                    inputmode="numeric"
+                    maxlength="6"
+                    [disabled]="loading"
+                  ></ion-input>
+                </ion-item>
+
+                <ion-button expand="block" (click)="verifyLocalRegister()" [disabled]="loading">
+                  Verificar e ingresar
+                </ion-button>
+              }
+            </div>
+          </section>
+        }
+      }
+
+      @if (loading || previewLoading) {
+        <ion-spinner name="crescent"></ion-spinner>
+      }
+
+      @if (errorMessage) {
+        <div class="auth-alert" role="alert">
+          <strong>{{ errorTitle }}</strong>
+          <span>{{ errorMessage }}</span>
+        </div>
+      }
+    </section>
+
+    <footer>A &amp; F Seclife</footer>
+  </main>
+</ion-content>

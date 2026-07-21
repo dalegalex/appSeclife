@@ -1,0 +1,146 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Bitacora de acceso</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="bitacora-shell">
+    <ion-card class="filter-card">
+      <ion-card-content>
+        <div class="filter-heading">
+          <div>
+            <span class="eyebrow">Consulta</span>
+            <h2>Entradas y salidas</h2>
+          </div>
+          <ion-button fill="clear" size="small" (click)="cargarAlumnos()" [disabled]="loadingAlumnos || loadingBitacora">
+            <ion-icon slot="icon-only" name="refresh-outline"></ion-icon>
+          </ion-button>
+        </div>
+
+        @if (loadingAlumnos) {
+          <div class="loading-state">
+            <ion-spinner name="crescent"></ion-spinner>
+            <span>Cargando alumnos...</span>
+          </div>
+        } @else {
+          <ion-item lines="none" class="form-item">
+            <ion-label position="stacked">Alumno</ion-label>
+            <ion-select
+              [(ngModel)]="selectedIdmatricula"
+              interface="action-sheet"
+              placeholder="Selecciona alumno"
+              (ionChange)="onAlumnoChange($event.detail.value)">
+              @for (alumno of alumnos; track alumno.idmatricula) {
+                <ion-select-option [value]="alumno.idmatricula">
+                  {{ alumno.alumno }}
+                </ion-select-option>
+              }
+            </ion-select>
+          </ion-item>
+
+          <div class="date-grid">
+            <ion-item lines="none" class="form-item">
+              <ion-label position="stacked">Fecha inicial</ion-label>
+              <ion-input type="date" [(ngModel)]="fechaInicio" (ionChange)="onPeriodoChange()"></ion-input>
+            </ion-item>
+
+            <ion-item lines="none" class="form-item">
+              <ion-label position="stacked">Fecha final</ion-label>
+              <ion-input type="date" [(ngModel)]="fechaFin" (ionChange)="onPeriodoChange()"></ion-input>
+            </ion-item>
+          </div>
+
+          <ion-button expand="block" (click)="consultar()" [disabled]="loadingBitacora || !selectedIdmatricula">
+            @if (loadingBitacora) {
+              <ion-spinner name="crescent"></ion-spinner>
+            } @else {
+              <ion-icon slot="start" name="search-outline"></ion-icon>
+            }
+            Consultar bitacora
+          </ion-button>
+        }
+      </ion-card-content>
+    </ion-card>
+
+    @if (bitacora?.alumno) {
+      <section class="student-summary">
+        <div>
+          <span class="eyebrow">Alumno</span>
+          <h3>{{ bitacora?.alumno?.alumno }}</h3>
+          <p>
+            {{ bitacora?.alumno?.matricula || 'Sin matricula' }}
+            @if (bitacora?.alumno?.gradoGrupo) {
+              <span>| {{ bitacora?.alumno?.gradoGrupo }}</span>
+            }
+          </p>
+        </div>
+        <ion-chip color="primary">
+          <ion-icon name="calendar-outline"></ion-icon>
+          <ion-label>{{ fechaInicio | date:'dd/MM/yyyy' }} - {{ fechaFin | date:'dd/MM/yyyy' }}</ion-label>
+        </ion-chip>
+      </section>
+    }
+
+    @if (loadingBitacora) {
+      <div class="loading-state block">
+        <ion-spinner name="crescent"></ion-spinner>
+        <span>Consultando bitacora...</span>
+      </div>
+    } @else if (eventos.length > 0) {
+      <section class="timeline">
+        @for (evento of eventos; track trackEvento($index, evento)) {
+          <ion-card class="event-card" [class.exit-card]="evento.sentido === 'SALIDA'">
+            <ion-card-content>
+              <div class="event-main">
+                <div class="event-icon" [class.exit-icon]="evento.sentido === 'SALIDA'">
+                  <ion-icon [name]="evento.sentido === 'ENTRADA' ? 'log-in-outline' : 'log-out-outline'"></ion-icon>
+                </div>
+                <div class="event-text">
+                  <div class="event-header">
+                    <ion-badge [color]="sentidoColor(evento)">{{ evento.sentido }}</ion-badge>
+                    <strong>{{ evento.fechaHoraEvento | date:'dd/MM/yyyy HH:mm' }}</strong>
+                  </div>
+                  <h3>{{ modoLabel(evento) }}</h3>
+                  @if (evento.recogio) {
+                    <p>Recogio: {{ evento.recogio }}</p>
+                  }
+                  @if (evento.familiaRecoge) {
+                    <p>Familia: {{ evento.familiaRecoge }}</p>
+                  }
+                </div>
+              </div>
+
+              <div class="detail-grid">
+                @if (evento.medioIdentificacion) {
+                  <span><ion-icon name="id-card-outline"></ion-icon>{{ evento.medioIdentificacion }}</span>
+                }
+                @if (evento.auto) {
+                  <span><ion-icon name="car-outline"></ion-icon>{{ evento.auto }}</span>
+                }
+                @if (evento.puerta) {
+                  <span><ion-icon name="business-outline"></ion-icon>{{ evento.puerta }}</span>
+                }
+                @if (evento.dispositivo) {
+                  <span><ion-icon name="phone-portrait-outline"></ion-icon>{{ evento.dispositivo }}</span>
+                }
+              </div>
+
+              @if (evento.comentarios) {
+                <p class="comments">{{ evento.comentarios }}</p>
+              }
+            </ion-card-content>
+          </ion-card>
+        }
+      </section>
+    } @else if (bitacora) {
+      <div class="empty-state">
+        <ion-icon name="calendar-clear-outline"></ion-icon>
+        <strong>No hay registros en el periodo seleccionado.</strong>
+      </div>
+    }
+  </div>
+</ion-content>

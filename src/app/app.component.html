@@ -1,3 +1,72 @@
 <ion-app>
-  <ion-router-outlet></ion-router-outlet>
+  <ion-menu contentId="main-content" type="overlay">
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Seclife</ion-title>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content>
+      <section class="menu-profile">
+        @if (!authService.isAuthenticated() || !userPhoto) {
+          <img
+            class="brand-symbol"
+            src="assets/brand/brand-seclife-symbol.png"
+            alt="Seclife"
+          />
+        } @else {
+          <img
+            class="user-photo"
+            [src]="userPhoto"
+            alt="Usuario"
+          />
+        }
+        <div>
+          <strong>{{ authService.isAuthenticated() ? authService.getDisplayName() : 'Seclife' }}</strong>
+          <span>{{ authService.isAuthenticated() ? userEmail : 'Control Escolar' }}</span>
+        </div>
+      </section>
+
+      <ion-list lines="none">
+        @for (item of menuItems; track item.url) {
+          <ion-menu-toggle autoHide="false">
+            <ion-item
+              routerDirection="root"
+              [routerLink]="item.enabled ? item.url : null"
+              [disabled]="!item.enabled"
+              detail="false"
+            >
+              <ion-icon slot="start" [name]="item.icon"></ion-icon>
+              <ion-label>
+                <h2>{{ item.title }}</h2>
+                <p>{{ item.subtitle }}</p>
+              </ion-label>
+            </ion-item>
+          </ion-menu-toggle>
+        }
+      </ion-list>
+
+      <section class="company-mark">
+        <img src="assets/brand/brand-af-seclife-symbol.png" alt="A & F Seclife" />
+        <span>Desarrollado por A &amp; F Seclife</span>
+      </section>
+
+      <section class="app-version">
+        {{ appVersionLabel }}
+      </section>
+
+      @if (authService.isAuthenticated()) {
+        <ion-menu-toggle autoHide="false">
+          <ion-button class="signout-button" fill="clear" expand="block" (click)="signOut()">
+            <ion-icon slot="start" name="log-out-outline"></ion-icon>
+            Cerrar sesion
+          </ion-button>
+        </ion-menu-toggle>
+      }
+    </ion-content>
+  </ion-menu>
+
+  <div class="ion-page" id="main-content">
+    <ion-router-outlet></ion-router-outlet>
+  </div>
 </ion-app>

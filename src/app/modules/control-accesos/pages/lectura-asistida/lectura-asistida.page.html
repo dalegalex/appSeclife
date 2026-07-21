@@ -1,0 +1,226 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Lectura asistida</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <section class="access-shell">
+    <div class="mode-bar">
+      <ion-segment [value]="sentido" (ionChange)="cambiarSentido($any($event.detail.value))">
+        <ion-segment-button value="ENTRADA">
+          <ion-icon name="log-in-outline"></ion-icon>
+          <ion-label>Entrada</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="SALIDA">
+          <ion-icon name="log-out-outline"></ion-icon>
+          <ion-label>Salida</ion-label>
+        </ion-segment-button>
+      </ion-segment>
+    </div>
+
+    <div class="tool-row">
+      <ion-button fill="clear" [class.active]="mostrarFoto" (click)="mostrarFoto = !mostrarFoto">
+        <ion-icon slot="icon-only" name="image-outline"></ion-icon>
+      </ion-button>
+      <ion-button fill="clear" [disabled]="sentido === 'ENTRADA'" [class.active]="modoAviso" [class.aviso-active]="modoAviso" (click)="toggleModoAviso()">
+        <ion-icon slot="icon-only" name="megaphone-outline"></ion-icon>
+      </ion-button>
+      <ion-button fill="clear" [class.active]="nfcActivo" (click)="activarNfc()">
+        <ion-icon slot="icon-only" name="radio-outline"></ion-icon>
+      </ion-button>
+      <ion-button fill="clear" [class.active]="qrActivo" (click)="activarQr()">
+        <ion-icon slot="icon-only" name="qr-code-outline"></ion-icon>
+      </ion-button>
+      <ion-button fill="clear" [class.active]="unidadesFiltroActivo" (click)="abrirFiltroUa()" [disabled]="cargandoUnidades">
+        <ion-spinner *ngIf="cargandoUnidades" name="crescent"></ion-spinner>
+        <ion-icon *ngIf="!cargandoUnidades" slot="icon-only" name="school-outline"></ion-icon>
+      </ion-button>
+    </div>
+
+    <div class="ua-filter-summary" [class.active]="unidadesFiltroActivo">
+      <ion-icon name="school-outline"></ion-icon>
+      <span>{{ unidadesFiltroLabel }}</span>
+    </div>
+    <ion-card *ngIf="modoAviso" class="carrusel-card">
+      <ion-card-content>
+        <div class="panel-heading compact-heading">
+          <div>
+            <span class="eyebrow">Modo aviso</span>
+            <h2>Carrusel destino</h2>
+          </div>
+          <ion-spinner *ngIf="cargandoCarruseles" name="crescent"></ion-spinner>
+        </div>
+        <ion-item lines="none" class="auto-select">
+          <ion-select label="Carrusel abierto" labelPlacement="stacked" [(ngModel)]="idcarruselsesionSeleccionada" (ionChange)="cambiarCarruselDestino($event.detail.value)" interface="popover" placeholder="Seleccionar punto de entrega">
+            <ion-select-option *ngFor="let carrusel of carruselesActivos" [value]="carrusel.idcarruselsesion">
+              {{ carrusel.nombrePuntoEntrega || 'Punto de entrega' }} | {{ carrusel.numeroIslas }} isla(s)
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
+        <div *ngIf="!cargandoCarruseles && carruselesActivos.length === 0" class="empty-state compact-empty">
+          No hay carruseles abiertos. Abre primero un punto de entrega.
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+
+    <ion-card class="reader-card">
+      <ion-card-content>
+        <ion-item lines="none" class="code-input">
+          <ion-input
+            label="Codigo de credencial"
+            labelPlacement="stacked"
+            [(ngModel)]="codigo"
+            placeholder="NFC / QR"
+            autocapitalize="characters"
+            (keyup.enter)="resolver()"
+          ></ion-input>
+          <ion-button slot="end" fill="clear" (click)="limpiar()" [disabled]="!codigo">
+            <ion-icon slot="icon-only" name="close-circle-outline"></ion-icon>
+          </ion-button>
+        </ion-item>
+
+        <ion-button expand="block" (click)="resolver()" [disabled]="loading || !codigo.trim()">
+          <ion-spinner *ngIf="loading" name="crescent"></ion-spinner>
+          <ion-icon *ngIf="!loading" slot="start" name="scan-outline"></ion-icon>
+          {{ loading ? 'Consultando...' : 'Leer credencial' }}
+        </ion-button>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card *ngIf="lectura?.familiar as familiar" class="identity-card" [class.external-pass]="lectura?.tipoLectura === 'INVITADO_EXTERNO'">
+      <ion-card-content>
+        <img *ngIf="fotoSrc(familiar.foto)" [src]="fotoSrc(familiar.foto)" alt="Familiar" />
+        <div class="avatar-fallback" *ngIf="!fotoSrc(familiar.foto)">
+          <ion-icon [name]="lectura?.tipoLectura === 'INVITADO_EXTERNO' ? 'id-card-outline' : 'person-outline'"></ion-icon>
+        </div>
+        <div>
+          <span class="eyebrow">{{ lectura?.tipoLectura === 'INVITADO_EXTERNO' ? 'Externo provisional' : 'Familiar' }}</span>
+          <h2>{{ familiar.familiar }}</h2>
+          <p>{{ familiar.parentesco || 'Sin parentesco' }}</p>
+          <ion-chip *ngIf="familiar.requiereValidacionDocumento" color="warning">
+            <ion-icon name="alert-circle-outline"></ion-icon>
+            <ion-label>{{ familiar.leyendaIdentificacion || 'Presentar identificacion oficial' }}</ion-label>
+          </ion-chip>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card *ngIf="lectura?.alumno as alumno" class="identity-card">
+      <ion-card-content>
+        <img *ngIf="fotoSrc(alumno.foto)" [src]="fotoSrc(alumno.foto)" alt="Alumno" />
+        <div class="avatar-fallback" *ngIf="!fotoSrc(alumno.foto)">
+          <ion-icon name="school-outline"></ion-icon>
+        </div>
+        <div>
+          <span class="eyebrow">Alumno</span>
+          <h2>{{ alumno.alumno }}</h2>
+          <p>{{ alumno.gradoGrupo || 'Sin grupo activo' }}</p>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card *ngIf="requiereEntregaSalida" class="delivery-card">
+      <ion-card-content>
+        <div class="panel-heading compact-heading">
+          <div>
+            <span class="eyebrow">Salida</span>
+            <h2>Forma de entrega</h2>
+          </div>
+        </div>
+
+        <ion-segment [value]="tipoEntrega" (ionChange)="cambiarTipoEntrega($any($event.detail.value))">
+          <ion-segment-button value="AUTO" [disabled]="autos.length === 0">
+            <ion-icon name="car-outline"></ion-icon>
+            <ion-label>Auto</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="OTRO_AUTO">
+            <ion-icon name="car-sport-outline"></ion-icon>
+            <ion-label>Otro</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="PEATONAL">
+            <ion-icon name="walk-outline"></ion-icon>
+            <ion-label>Peatonal</ion-label>
+          </ion-segment-button>
+        </ion-segment>
+
+        <ion-item *ngIf="tipoEntrega === 'AUTO'" lines="none" class="auto-select">
+          <ion-select label="Auto familiar" labelPlacement="stacked" [(ngModel)]="idautofamiliarSeleccionado" interface="popover" placeholder="Seleccionar auto">
+            <ion-select-option *ngFor="let auto of autos" [value]="auto.idautofamiliar">
+              {{ autoLabel(auto) }}
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
+
+        <div *ngIf="tipoEntrega === 'AUTO' && autos.length === 0" class="empty-state compact-empty">
+          No hay autos activos registrados para esta familia.
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <section *ngIf="lectura" class="students-panel">
+      <div class="panel-heading">
+        <div>
+          <span class="eyebrow">Alumnos</span>
+          <h2>{{ sentido === 'ENTRADA' ? 'Registrar entrada' : 'Registrar salida' }}</h2>
+        </div>
+        <ion-badge color="medium">{{ alumnos.length }}</ion-badge>
+      </div>
+
+      <div *ngIf="muestraLeyendaFamilias" class="family-legend">
+        <ion-chip color="success"><ion-label>Nucleo familiar</ion-label></ion-chip>
+        <ion-chip color="tertiary"><ion-label>Alumno externo</ion-label></ion-chip>
+      </div>
+
+      <ion-list *ngIf="alumnos.length > 0; else noStudents" lines="none">
+        <ion-item *ngFor="let alumno of alumnos" class="student-item" [class.blocked]="!alumnoDisponible(alumno)">
+          <ion-checkbox
+            slot="start"
+            [checked]="alumnoSeleccionado(alumno)"
+            [disabled]="!alumnoDisponible(alumno)"
+            (ionChange)="toggleAlumno(alumno, $event.detail.checked)"
+          ></ion-checkbox>
+          <ion-label>
+            <h3>{{ alumno.alumno }}</h3>
+            <p>{{ alumno.gradoGrupo || 'Sin grupo activo' }}</p>
+            <div class="student-tags">
+              <ion-chip [color]="alumnoRelacionColor(alumno)">
+                <ion-label>{{ alumnoRelacionLabel(alumno) }}</ion-label>
+              </ion-chip>
+            </div>
+            <p *ngIf="alumno.ultimaLectura">
+              Ultima lectura: {{ alumno.ultimaLectura.sentido }} {{ alumno.ultimaLectura.fechaHoraEvento | date:'HH:mm' }}
+            </p>
+            <p *ngIf="alumno.fechaHoraSalida && (alumnoEnAvisoCarrusel(alumno) || alumnoConSalidaRegistrada(alumno))">
+              {{ alumnoEnAvisoCarrusel(alumno) ? 'Aviso registrado' : 'Salida registrada' }}:
+              {{ alumno.fechaHoraSalida | date:'HH:mm' }}
+            </p>
+          </ion-label>
+          <ion-badge slot="end" [color]="estadoColor(alumno)">
+            {{ estadoAlumno(alumno) }}
+          </ion-badge>
+        </ion-item>
+      </ion-list>
+
+      <ng-template #noStudents>
+        <div class="empty-state">
+          No hay alumnos disponibles para la lectura.
+        </div>
+      </ng-template>
+    </section>
+  </section>
+</ion-content>
+
+<ion-footer *ngIf="lectura">
+  <ion-toolbar>
+    <ion-button expand="block" class="register-button" (click)="registrar()" [disabled]="saving || !puedeRegistrar">
+      <ion-spinner *ngIf="saving" name="crescent"></ion-spinner>
+      <ion-icon *ngIf="!saving" slot="start" name="checkmark-circle-outline"></ion-icon>
+      {{ saving ? 'Registrando...' : (modoAviso ? 'Enviar aviso' : (sentido === 'ENTRADA' ? 'Registrar entrada' : 'Registrar salida')) }}
+    </ion-button>
+  </ion-toolbar>
+</ion-footer>

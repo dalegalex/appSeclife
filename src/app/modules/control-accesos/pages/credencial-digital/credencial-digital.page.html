@@ -1,0 +1,78 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Credencial Digital</ion-title>
+    <ion-buttons slot="end">
+      <ion-button fill="clear" (click)="cargar()" [disabled]="loading">
+        <ion-icon slot="icon-only" name="refresh-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="cargar($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <section class="credential-shell">
+    @if (loading) {
+      <div class="loading-state">
+        <ion-spinner name="crescent"></ion-spinner>
+        <span>Cargando credencial...</span>
+      </div>
+    }
+
+    @if (!loading && errorMessage) {
+      <div class="empty-state">
+        <ion-icon name="alert-circle-outline"></ion-icon>
+        <h2>Credencial no disponible</h2>
+        <p>{{ errorMessage }}</p>
+        <ion-button fill="solid" (click)="cargar()">
+          <ion-icon slot="start" name="refresh-outline"></ion-icon>
+          Reintentar
+        </ion-button>
+      </div>
+    }
+
+    @if (!loading && credencial) {
+      <article
+        class="digital-card"
+        [style.--credential-primary]="primaryColor"
+        [style.--credential-secondary]="secondaryColor"
+      >
+        <div
+          class="digital-card-background"
+          [style.background-image]="fondoStyle"
+          [style.opacity]="fondoOpacity">
+        </div>
+
+        @for (field of visibleLayoutFields(); track field.key) {
+          <div
+            class="layout-field"
+            [class.layout-photo]="isImageField(field)"
+            [class.layout-qr]="isQrField(field)"
+            [ngStyle]="fieldStyle(field)">
+            @if (isImageField(field)) {
+              @if (fotoSrc) {
+                <img [src]="fotoSrc" alt="Foto de credencial" (load)="onPhotoLoaded()" (error)="onPhotoError($event)" />
+              } @else {
+                <ion-icon name="person-circle-outline"></ion-icon>
+              }
+            } @else if (isQrField(field)) {
+              @if (qrImageSrc) {
+                <img [src]="qrImageSrc" alt="QR de credencial" />
+              } @else {
+                <ion-icon name="qr-code-outline"></ion-icon>
+              }
+            } @else if (fieldText(field)) {
+              <span>{{ fieldText(field) }}</span>
+            }
+          </div>
+        }
+      </article>
+    }
+  </section>
+</ion-content>

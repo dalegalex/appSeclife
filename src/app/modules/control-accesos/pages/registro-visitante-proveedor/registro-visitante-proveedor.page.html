@@ -1,0 +1,165 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-title>Registro de visita</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="visitor-content">
+  @if (loading) {
+    <section class="state-panel">
+      <ion-spinner name="crescent"></ion-spinner>
+      <p>Consultando punto de registro...</p>
+    </section>
+  } @else if (!punto) {
+    <section class="state-panel">
+      <ion-icon name="alert-circle-outline"></ion-icon>
+      <h2>Punto no disponible</h2>
+      <p>Verifica el codigo QR con el personal del colegio.</p>
+    </section>
+  } @else {
+    <section class="visitor-shell">
+      <header class="org-header">
+        @if (logoSrc) {
+          <img [src]="logoSrc" alt="" />
+        }
+        <div>
+          <span>{{ punto.descripcion || 'Punto de registro' }}</span>
+          <h1>{{ punto.organizacion || 'Seclife' }}</h1>
+          @if (punto.unidadAdministrativa || punto.puerta) {
+            <p>{{ punto.unidadAdministrativa || punto.puerta }}</p>
+          }
+        </div>
+      </header>
+
+      @if (punto.aviso && !pase) {
+        <div class="notice">{{ punto.aviso }}</div>
+      }
+
+      @if (!pase) {
+        <form class="visitor-form" (ngSubmit)="registrar()">
+          <ion-segment [ngModel]="form.tipoVisitante" name="tipoVisitante" (ngModelChange)="setTipoVisitante($event)">
+            <ion-segment-button value="VISITANTE">
+              <ion-label>Visitante</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="PROVEEDOR">
+              <ion-label>Proveedor</ion-label>
+            </ion-segment-button>
+          </ion-segment>
+
+          <ion-list lines="full">
+            <ion-item>
+              <ion-input
+                label="Nombre"
+                labelPlacement="stacked"
+                [(ngModel)]="form.nombre"
+                name="nombre"
+                required
+                (ionInput)="onUpperInput('nombre')">
+              </ion-input>
+            </ion-item>
+            @if (form.tipoVisitante === 'PROVEEDOR') {
+              <ion-item>
+                <ion-input
+                  label="Empresa"
+                  labelPlacement="stacked"
+                  [(ngModel)]="form.empresa"
+                  name="empresa"
+                  (ionInput)="onUpperInput('empresa')">
+                </ion-input>
+              </ion-item>
+            }
+            @if (form.tipoVisitante === 'VISITANTE') {
+              <ion-item>
+                <ion-input
+                  label="Celular"
+                  labelPlacement="stacked"
+                  [(ngModel)]="form.cel"
+                  name="cel"
+                  inputmode="tel">
+                </ion-input>
+              </ion-item>
+              <ion-item>
+                <ion-input
+                  label="Correo"
+                  labelPlacement="stacked"
+                  [(ngModel)]="form.emailContacto"
+                  name="emailContacto"
+                  type="email">
+                </ion-input>
+              </ion-item>
+            }
+            <ion-item>
+              <ion-input
+                label="Area o persona a visitar"
+                labelPlacement="stacked"
+                [(ngModel)]="form.areaVisita"
+                name="areaVisita"
+                (ionInput)="onUpperInput('areaVisita')">
+              </ion-input>
+            </ion-item>
+            @if (form.tipoVisitante === 'VISITANTE') {
+              <ion-item>
+                <ion-textarea
+                  label="Motivo de visita"
+                  labelPlacement="stacked"
+                  [(ngModel)]="form.motivoVisita"
+                  name="motivoVisita"
+                  required
+                  rows="3">
+                </ion-textarea>
+              </ion-item>
+            }
+          </ion-list>
+
+          <label class="photo-upload">
+            <ion-icon name="camera-outline"></ion-icon>
+            <span>{{ form.foto ? 'Fotografia cargada' : 'Fotografia opcional' }}</span>
+            <input type="file" accept="image/*" capture="environment" (change)="onFotoSeleccionada($event)" />
+          </label>
+
+          <ion-button type="submit" expand="block" [disabled]="saving">
+            @if (saving) {
+              <ion-spinner name="crescent"></ion-spinner>
+            } @else {
+              <ion-icon name="qr-code-outline" slot="start"></ion-icon>
+            }
+            Generar pase QR
+          </ion-button>
+        </form>
+      } @else {
+        <section class="pass-panel">
+          <div class="pass-status">
+            <ion-icon name="checkmark-circle-outline"></ion-icon>
+            <span>Pase generado</span>
+          </div>
+          <h2>{{ pase.visitante }}</h2>
+          <p>{{ pase.tipoVisitante }} · {{ pase.estatus }}</p>
+
+          @if (qrDataUrl) {
+            <img class="qr-image" [src]="qrDataUrl" alt="" />
+          }
+
+          <strong class="pass-code">{{ pase.codigoPase }}</strong>
+          <p class="pass-help">Presenta este codigo QR al personal del colegio.</p>
+
+          @if (mapsUrl) {
+            <a class="map-link" [href]="mapsUrl" target="_blank" rel="noopener">
+              <ion-icon name="location-outline"></ion-icon>
+              Abrir ubicacion
+            </a>
+          }
+
+          <div class="pass-actions">
+            <ion-button expand="block" color="primary" (click)="compartirPase()">
+              <ion-icon name="share-social-outline" slot="start"></ion-icon>
+              Compartir
+            </ion-button>
+            <ion-button expand="block" fill="outline" (click)="nuevoRegistro()">
+              Nuevo registro
+            </ion-button>
+          </div>
+        </section>
+      }
+    </section>
+  }
+</ion-content>

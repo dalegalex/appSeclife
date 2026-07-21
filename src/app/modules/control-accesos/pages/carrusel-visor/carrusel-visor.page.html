@@ -1,0 +1,130 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Visor Carrusel</ion-title>
+    <ion-buttons slot="end">
+      <ion-button fill="clear" (click)="refrescarBitacora()" [disabled]="loading || connecting">
+        <ion-icon slot="icon-only" name="refresh-outline"></ion-icon>
+      </ion-button>
+      <ion-button *ngIf="sesion" fill="clear" color="medium" (click)="salirDelCarrusel()" [disabled]="loading || connecting">
+        <ion-icon slot="icon-only" name="log-out-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <section class="viewer-shell">
+    <ion-card class="selector-card">
+      <ion-card-content>
+        <div class="panel-heading">
+          <div>
+            <span class="eyebrow">Carruseles activos</span>
+            <h2>{{ sesion?.nombrePuntoEntrega || 'Selecciona un carrusel' }}</h2>
+          </div>
+          <ion-badge [color]="sesion ? 'success' : 'medium'">{{ carruseles.length }}</ion-badge>
+        </div>
+
+        <div *ngIf="loading && !sesion" class="loading-state">
+          <ion-spinner name="crescent"></ion-spinner>
+          <span>Buscando carruseles...</span>
+        </div>
+
+        <div *ngIf="!loading && carruseles.length === 0" class="empty-state">
+          No hay carruseles activos para monitorear.
+        </div>
+
+        <div *ngIf="carruseles.length > 0" class="session-list">
+          <button
+            type="button"
+            *ngFor="let item of carruseles"
+            class="session-option"
+            [class.selected]="item.idcarruselsesion === sesion?.idcarruselsesion"
+            (click)="seleccionarCarrusel(item)"
+            [disabled]="connecting"
+          >
+            <div>
+              <strong>{{ item.nombrePuntoEntrega || 'Punto de entrega' }}</strong>
+              <span>{{ item.numeroIslas }} isla(s) | {{ item.fechaServicio | date:'dd/MM/yyyy' }}</span>
+            </div>
+            <ion-chip [color]="(item.pendientes ?? 0) > 0 ? 'warning' : 'medium'">
+              <ion-label>{{ item.pendientes ?? 0 }} pend.</ion-label>
+            </ion-chip>
+          </button>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <ng-container *ngIf="sesion as actual">
+      <div class="stats-grid">
+        <ion-card>
+          <ion-card-content>
+            <span class="eyebrow">Paquetes</span>
+            <strong>{{ bitacora.length }}</strong>
+          </ion-card-content>
+        </ion-card>
+        <ion-card>
+          <ion-card-content>
+            <span class="eyebrow">Pendientes</span>
+            <strong>{{ alumnosPendientes }}</strong>
+          </ion-card-content>
+        </ion-card>
+        <ion-card>
+          <ion-card-content>
+            <span class="eyebrow">Entregados</span>
+            <strong>{{ alumnosEntregados }}</strong>
+          </ion-card-content>
+        </ion-card>
+      </div>
+
+      <div class="queue-heading">
+        <div>
+          <span class="eyebrow">Monitoreo</span>
+          <h2>{{ actual.nombrePuntoEntrega || 'Carrusel' }}</h2>
+        </div>
+        <ion-badge color="primary">{{ paquetesPendientes }} en cola</ion-badge>
+      </div>
+
+      <div *ngIf="loading" class="loading-state">
+        <ion-spinner name="crescent"></ion-spinner>
+        <span>Actualizando visor...</span>
+      </div>
+
+      <div *ngIf="!loading && bitacora.length === 0" class="empty-state">
+        Aun no hay lecturas registradas para este carrusel.
+      </div>
+
+      <ion-card *ngFor="let paquete of bitacora" class="package-card" [class.completed]="paquete.estatus === 'ENTREGADO'">
+        <ion-card-content>
+          <div class="package-header">
+            <div class="island-number">
+              <span>Isla</span>
+              <strong>{{ islaNumero(paquete) }}</strong>
+              <small>#{{ paquete.posicionCola }}</small>
+            </div>
+            <div class="package-title">
+              <span class="eyebrow">{{ paquete.fechaHoraLectura | date:'HH:mm:ss' }}</span>
+              <h2>{{ paquete.nombreFamilia || 'Familia' }}</h2>
+              <p>{{ paquete.familiarRecoge || 'Familiar' }}</p>
+              <p>{{ entregaLabel(paquete) }}</p>
+            </div>
+            <ion-badge [color]="estadoColor(paquete.estatus)">{{ paquete.estatus }}</ion-badge>
+          </div>
+
+          <ion-list lines="none">
+            <ion-item *ngFor="let alumno of paquete.alumnos" class="student-row" [class.done]="alumno.estatus === 'ENTREGADO'">
+              <ion-label>
+                <h3>{{ alumno.alumno }}</h3>
+                <p>{{ alumno.gradoGrupo || 'Sin grupo activo' }}</p>
+                <p *ngIf="alumno.fechaHoraEntrega">Entregado {{ alumno.fechaHoraEntrega | date:'HH:mm:ss' }}</p>
+              </ion-label>
+              <ion-badge slot="end" [color]="estadoColor(alumno.estatus)">{{ alumno.estatus }}</ion-badge>
+            </ion-item>
+          </ion-list>
+        </ion-card-content>
+      </ion-card>
+    </ng-container>
+  </section>
+</ion-content>

@@ -1,0 +1,236 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Visitantes</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="limpiar()">
+        <ion-icon name="refresh-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="vp-content">
+  <section class="vp-shell">
+    <ion-segment [value]="modo" (ionChange)="cambiarModo($any($event.detail.value))">
+      <ion-segment-button value="ENTRADA">
+        <ion-label>Entrada</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="SALIDA">
+        <ion-label>Salida</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+
+    @if (modo === 'ENTRADA') {
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>Validar pase</ion-card-title>
+          <ion-card-subtitle>Lee el QR generado en el portal publico.</ion-card-subtitle>
+        </ion-card-header>
+        <ion-card-content>
+          <div class="input-row pass-row">
+            <ion-input
+              label="Codigo de pase"
+              labelPlacement="stacked"
+              [(ngModel)]="codigoPase"
+              name="codigoPase"
+              autocomplete="off">
+            </ion-input>
+            <ion-button fill="outline" (click)="leerQrPase()" [disabled]="loading || saving">
+              <ion-icon name="qr-code-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+          </div>
+
+          <ion-button expand="block" (click)="resolverPase()" [disabled]="loading || saving">
+            @if (loading) {
+              <ion-spinner name="crescent"></ion-spinner>
+            } @else {
+              <ion-icon name="search-outline" slot="start"></ion-icon>
+            }
+            Validar pase
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
+
+      @if (pase) {
+        <section class="info-card">
+          <div class="visitor-avatar">
+            @if (logoSrc(pase)) {
+              <img [src]="logoSrc(pase)" alt="">
+            } @else {
+              <ion-icon name="person-outline"></ion-icon>
+            }
+          </div>
+          <div class="visitor-main">
+            <span class="type-chip">{{ pase.tipoVisitante || 'VISITANTE' }}</span>
+            <h2>{{ pase.visitante }}</h2>
+            <p>{{ pase.estatus }}</p>
+          </div>
+        </section>
+
+        <ion-list class="detail-list" lines="full">
+          @if (pase.empresa) {
+            <ion-item>
+              <ion-label>
+                <span>Empresa</span>
+                <strong>{{ pase.empresa }}</strong>
+              </ion-label>
+            </ion-item>
+          }
+          @if (pase.areaVisita || pase.personaVisita) {
+            <ion-item>
+              <ion-label>
+                <span>Area o persona</span>
+                <strong>{{ pase.areaVisita || pase.personaVisita }}</strong>
+              </ion-label>
+            </ion-item>
+          }
+          @if (pase.motivoVisita) {
+            <ion-item>
+              <ion-label>
+                <span>Motivo</span>
+                <strong>{{ pase.motivoVisita }}</strong>
+              </ion-label>
+            </ion-item>
+          }
+          <ion-item color="warning">
+            <ion-icon name="id-card-outline" slot="start"></ion-icon>
+            <ion-label>{{ pase.leyendaIdentificacion || 'PRESENTAR IDENTIFICACION OFICIAL' }}</ion-label>
+          </ion-item>
+        </ion-list>
+
+        @if (pasePuedeAutorizarEntrada) {
+          <ion-card>
+            <ion-card-header>
+              <ion-card-title>Gafete de acceso</ion-card-title>
+              <ion-card-subtitle>Lee o captura el TAG que se entregara al visitante.</ion-card-subtitle>
+            </ion-card-header>
+            <ion-card-content>
+              <div class="input-row">
+                @if (gafeteValidado) {
+                  <div class="gafete-display">
+                    <span>Gafete</span>
+                    <strong>{{ etiquetaGafete }}</strong>
+                  </div>
+                } @else {
+                  <ion-input
+                    label="Codigo de gafete"
+                    labelPlacement="stacked"
+                    [(ngModel)]="codigoGafete"
+                    (ionInput)="limpiarGafeteValidado()"
+                    name="codigoGafete"
+                    autocomplete="off">
+                  </ion-input>
+                }
+                <ion-button fill="outline" (click)="leerQrGafete()" [disabled]="saving">
+                  <ion-icon name="qr-code-outline" slot="icon-only"></ion-icon>
+                </ion-button>
+                <ion-button
+                  fill="outline"
+                  [color]="nfcActivo && nfcDestino === 'GAFETE' ? 'success' : 'medium'"
+                  (click)="activarNfc('GAFETE')"
+                  [disabled]="saving">
+                  <ion-icon name="radio-outline" slot="icon-only"></ion-icon>
+                </ion-button>
+              </div>
+              <ion-textarea
+                label="Comentarios"
+                labelPlacement="stacked"
+                [(ngModel)]="comentarios"
+                name="comentariosEntrada"
+                rows="2">
+              </ion-textarea>
+              <ion-button expand="block" color="success" (click)="registrarEntrada()" [disabled]="!puedeAutorizarEntrada">
+                @if (saving) {
+                  <ion-spinner name="crescent"></ion-spinner>
+                } @else {
+                  <ion-icon name="log-in-outline" slot="start"></ion-icon>
+                }
+                Registrar entrada
+              </ion-button>
+            </ion-card-content>
+          </ion-card>
+        } @else {
+          <ion-card color="warning">
+            <ion-card-content>
+              <div class="blocked-pass">
+                <ion-icon name="alert-circle-outline"></ion-icon>
+                <span>{{ paseMensajeBloqueo }}</span>
+              </div>
+            </ion-card-content>
+          </ion-card>
+        }
+      }
+    } @else {
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>Registrar salida</ion-card-title>
+          <ion-card-subtitle>Lee el gafete para liberar el TAG.</ion-card-subtitle>
+        </ion-card-header>
+        <ion-card-content>
+          <div class="input-row">
+            @if (gafeteValidado) {
+              <div class="gafete-display">
+                <span>Gafete</span>
+                <strong>{{ etiquetaGafete }}</strong>
+              </div>
+            } @else {
+              <ion-input
+                label="Codigo de gafete"
+                labelPlacement="stacked"
+                [(ngModel)]="codigoGafete"
+                (ionInput)="limpiarGafeteValidado()"
+                name="codigoGafeteSalida"
+                autocomplete="off">
+              </ion-input>
+            }
+            <ion-button fill="outline" (click)="leerQrGafete()" [disabled]="saving">
+              <ion-icon name="qr-code-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+            <ion-button
+              fill="outline"
+              [color]="nfcActivo && nfcDestino === 'GAFETE' ? 'success' : 'medium'"
+              (click)="activarNfc('GAFETE')"
+              [disabled]="saving">
+              <ion-icon name="radio-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+          </div>
+          <ion-textarea
+            label="Comentarios"
+            labelPlacement="stacked"
+            [(ngModel)]="comentarios"
+            name="comentariosSalida"
+            rows="2">
+          </ion-textarea>
+          <ion-button expand="block" color="warning" (click)="registrarSalida()" [disabled]="!puedeRegistrarSalida">
+            @if (saving) {
+              <ion-spinner name="crescent"></ion-spinner>
+            } @else {
+              <ion-icon name="log-out-outline" slot="start"></ion-icon>
+            }
+            Registrar salida
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
+    }
+
+    @if (resultado) {
+      <section class="result-panel">
+        <ion-icon name="checkmark-circle-outline"></ion-icon>
+        <div>
+          <strong>{{ resultado.visitante }}</strong>
+          <span>{{ resultado.estatus }}</span>
+        </div>
+      </section>
+    }
+
+    @if (nfcActivo && nfcDestino) {
+      <div class="nfc-status">
+        <ion-icon name="radio-outline"></ion-icon>
+        <span>NFC gafete</span>
+      </div>
+    }
+  </section>
+</ion-content>

@@ -1,7 +1,10 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
     <ion-title>
-      Blank
+      Seclife
     </ion-title>
   </ion-toolbar>
 </ion-header>
@@ -9,12 +12,238 @@
 <ion-content [fullscreen]="true">
   <ion-header collapse="condense">
     <ion-toolbar>
-      <ion-title size="large">Blank</ion-title>
+      <ion-buttons slot="start">
+        <ion-menu-button></ion-menu-button>
+      </ion-buttons>
+      <ion-title size="large">Seclife</ion-title>
     </ion-toolbar>
   </ion-header>
 
-  <div id="container">
-    <strong>Ready to create an app?</strong>
-    <p>Start with Ionic <a target="_blank" rel="noopener noreferrer" href="https://ionicframework.com/docs/components">UI Components</a></p>
-  </div>
+  <section class="home-shell">
+    <div class="brand-hero">
+      @if (organizationLogoSrc(); as logoSrc) {
+        <img [src]="logoSrc" alt="Institucion" class="institution-logo" />
+      } @else {
+        <div class="institution-logo-placeholder">IMAGEN INSTITUCION</div>
+      }
+      <span class="eyebrow">Control Escolar</span>
+      <p>Modulos operativos para colegio, conductor y familia.</p>
+    </div>
+
+    @if (canUseCredencialDigital()) {
+    <ion-card button routerLink="/control-accesos/credencial-digital" class="credential-card">
+      <ion-card-header>
+        <div class="module-icon">
+          <ion-icon name="id-card-outline"></ion-icon>
+        </div>
+        <ion-card-title>Credencial Digital</ion-card-title>
+        <ion-card-subtitle>Identificacion institucional</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        Mostrar credencial vigente y codigo QR para control de accesos.
+      </ion-card-content>
+    </ion-card>
+    }
+
+    @if (canUseConductor()) {
+    <ion-card button routerLink="/transporte-escolar/conductor">
+      <ion-card-header>
+        <div class="module-icon">
+          <ion-icon name="bus-outline"></ion-icon>
+        </div>
+        <ion-card-title>Transporte Escolar</ion-card-title>
+        <ion-card-subtitle>Conductor</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        Consultar ruta asignada, iniciar recorrido y registrar alumnos en cada parada.
+      </ion-card-content>
+    </ion-card>
+    }
+
+    @if (canUsePadre()) {
+    <ion-card button routerLink="/transporte-escolar/padre">
+      <ion-card-header>
+        <div class="module-icon">
+          <ion-icon name="people-outline"></ion-icon>
+        </div>
+        <ion-card-title>Transporte Familiar</ion-card-title>
+        <ion-card-subtitle>Padre de familia</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        Consultar estado del alumno, eventos del recorrido y ultima ubicacion de la unidad.
+      </ion-card-content>
+    </ion-card>
+    }
+
+    @if (canUseFichaPersonal()) {
+    <ion-card button routerLink="/ficha-personal/mi-ficha">
+      <ion-card-header>
+        <div class="module-icon">
+          <ion-icon name="person-circle-outline"></ion-icon>
+        </div>
+        <ion-card-title>Mi Ficha Personal</ion-card-title>
+        <ion-card-subtitle>Autocaptura</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        Capturar datos personales, informacion laboral, academica y entregar documentos digitales.
+      </ion-card-content>
+    </ion-card>
+    }
+
+    @if (canUseFichaAlumno()) {
+    <ion-card button routerLink="/ficha-alumno/mis-alumnos">
+      <ion-card-header>
+        <div class="module-icon">
+          <ion-icon name="school-outline"></ion-icon>
+        </div>
+        <ion-card-title>Ficha del Alumno</ion-card-title>
+        <ion-card-subtitle>Padre de familia</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        Consultar datos escolares, actualizar contacto y salud, entregar documentos y responder autorizaciones.
+      </ion-card-content>
+    </ion-card>
+    }
+
+    @if (canUseRedFamiliar()) {
+    <ion-card button routerLink="/control-accesos/red-familiar">
+      <ion-card-header>
+        <div class="module-icon">
+          <ion-icon name="people-circle-outline"></ion-icon>
+        </div>
+        <ion-card-title>Red Familiar</ion-card-title>
+        <ion-card-subtitle>Padre de familia</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        Consultar alumnos, familiares autorizados y parque vehicular registrado.
+      </ion-card-content>
+    </ion-card>
+    }
+
+    @if (canUseRedFamiliar()) {
+    <ion-card button routerLink="/control-accesos/bitacora">
+      <ion-card-header>
+        <div class="module-icon">
+          <ion-icon name="time-outline"></ion-icon>
+        </div>
+        <ion-card-title>Bitacora de Acceso</ion-card-title>
+        <ion-card-subtitle>Padre de familia</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        Consultar entradas, salidas, medio de entrega y persona que recogio al alumno.
+      </ion-card-content>
+    </ion-card>
+    }
+
+    @if (canUseRedFamiliar()) {
+    <ion-card button routerLink="/control-accesos/avisos-asistencia">
+      <ion-card-header>
+        <div class="module-icon">
+          <ion-icon name="document-text-outline"></ion-icon>
+        </div>
+        <ion-card-title>Avisos de Asistencia</ion-card-title>
+        <ion-card-subtitle>Padre de familia</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        Informar retardos, salidas tempranas o faltas justificadas.
+      </ion-card-content>
+    </ion-card>
+    }
+
+    @if (canUseControlAccesos()) {
+    <ion-card button routerLink="/control-accesos/lectura-asistida">
+      <ion-card-header>
+        <div class="module-icon">
+          <ion-icon name="scan-outline"></ion-icon>
+        </div>
+        <ion-card-title>Control de Accesos</ion-card-title>
+        <ion-card-subtitle>Lectura asistida</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        Validar credenciales NFC/QR y registrar entrada o salida de alumnos.
+      </ion-card-content>
+    </ion-card>
+    }
+
+    @if (canUseControlAccesos()) {
+    <ion-card button routerLink="/control-accesos/lectura-autogestionada">
+      <ion-card-header>
+        <div class="module-icon">
+          <ion-icon name="qr-code-outline"></ion-icon>
+        </div>
+        <ion-card-title>Lectura Autogestionada</ion-card-title>
+        <ion-card-subtitle>Eventos y asistencia</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        Registrar asistencia a eventos o accesos sin operador asistido.
+      </ion-card-content>
+    </ion-card>
+    }
+
+    @if (canUseControlAccesos()) {
+    <ion-card button routerLink="/control-accesos/carrusel">
+      <ion-card-header>
+        <div class="module-icon">
+          <ion-icon name="git-network-outline"></ion-icon>
+        </div>
+        <ion-card-title>Carrusel</ion-card-title>
+        <ion-card-subtitle>Punto de entrega</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        Abrir punto de entrega, monitorear avisos y registrar la salida de alumnos por isla.
+      </ion-card-content>
+    </ion-card>
+    }
+
+    @if (canUseControlAccesos()) {
+    <ion-card button routerLink="/control-accesos/carrusel-visor">
+      <ion-card-header>
+        <div class="module-icon">
+          <ion-icon name="eye-outline"></ion-icon>
+        </div>
+        <ion-card-title>Visor Carrusel</ion-card-title>
+        <ion-card-subtitle>Monitoreo</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        Consultar carruseles activos, lecturas recibidas y entregas registradas por isla.
+      </ion-card-content>
+    </ion-card>
+    }
+
+    @if (canUseControlAccesos()) {
+    <ion-card button routerLink="/control-accesos/visitantes-proveedores">
+      <ion-card-header>
+        <div class="module-icon">
+          <ion-icon name="id-card-outline"></ion-icon>
+        </div>
+        <ion-card-title>Visitantes</ion-card-title>
+        <ion-card-subtitle>Pases y gafetes</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        Validar pase QR de visitante o proveedor, asociar gafete y registrar entrada o salida.
+      </ion-card-content>
+    </ion-card>
+    }
+
+
+    <div class="pending-modules">
+      <h2>Proximos modulos</h2>
+      <ion-chip disabled="true">
+        <ion-icon name="chatbubbles-outline"></ion-icon>
+        <ion-label>Comunicados</ion-label>
+      </ion-chip>
+      <ion-chip disabled="true">
+        <ion-icon name="card-outline"></ion-icon>
+        <ion-label>Pagos</ion-label>
+      </ion-chip>
+      <ion-chip disabled="true">
+        <ion-icon name="person-circle-outline"></ion-icon>
+        <ion-label>Perfil</ion-label>
+      </ion-chip>
+    </div>
+
+    <div class="seclife-footmark">
+      <img src="assets/brand/brand-seclife-full.png" alt="Seclife" />
+    </div>
+  </section>
 </ion-content>

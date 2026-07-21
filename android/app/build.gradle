@@ -1,14 +1,28 @@
 apply plugin: 'com.android.application'
 
+def releaseSigningFile = rootProject.file('keystore.properties')
+def releaseSigningProperties = new Properties()
+
+if (releaseSigningFile.exists()) {
+    releaseSigningFile.withInputStream { stream ->
+        releaseSigningProperties.load(stream)
+    }
+}
+
+def releaseSigningKeys = ['storeFile', 'storePassword', 'keyAlias', 'keyPassword']
+def releaseSigningConfigured = releaseSigningKeys.every { key ->
+    releaseSigningProperties.getProperty(key)?.trim()
+}
+
 android {
-    namespace = "com.seclife.app"
+    namespace = "mx.com.seclife.schoolmaster"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.seclife.app"
+        applicationId "mx.com.seclife.schoolmaster"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 20099
+        versionName "4.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,11 +30,34 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (releaseSigningConfigured) {
+            release {
+                storeFile rootProject.file(releaseSigningProperties.getProperty('storeFile'))
+                storePassword releaseSigningProperties.getProperty('storePassword')
+                keyAlias releaseSigningProperties.getProperty('keyAlias')
+                keyPassword releaseSigningProperties.getProperty('keyPassword')
+            }
+        }
+    }
     buildTypes {
         release {
+            if (releaseSigningConfigured) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
+    }
+}
+
+gradle.taskGraph.whenReady { taskGraph ->
+    def requestsReleaseArtifact = taskGraph.allTasks.any { task ->
+        task.name.toLowerCase().contains('release')
+    }
+
+    if (requestsReleaseArtifact && !releaseSigningConfigured) {
+        throw new GradleException('Falta android/keystore.properties con la firma local de release.')
     }
 }
 

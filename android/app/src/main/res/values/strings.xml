@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">appSeclife</string>
-    <string name="title_activity_main">appSeclife</string>
-    <string name="package_name">com.seclife.app</string>
-    <string name="custom_url_scheme">com.seclife.app</string>
+    <string name="app_name">Seclife School</string>
+    <string name="title_activity_main">Seclife School</string>
+    <string name="package_name">mx.com.seclife.schoolmaster</string>
+    <string name="custom_url_scheme">mx.com.seclife.schoolmaster</string>
 </resources>

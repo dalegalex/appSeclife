@@ -1,0 +1,169 @@
+.ficha-shell {
+  --background: #f6f8fb;
+}
+
+.profile-summary {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin: 16px;
+  padding: 16px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #0f766e, #2563eb);
+  color: #fff;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.18);
+}
+
+.profile-summary .avatar {
+  width: 62px;
+  height: 62px;
+  flex: 0 0 62px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+
+.profile-summary img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-summary ion-icon {
+  font-size: 52px;
+}
+
+.profile-summary span {
+  display: block;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.82;
+}
+
+.profile-summary h1 {
+  margin: 2px 0 3px;
+  font-size: 1.25rem;
+  font-weight: 750;
+}
+
+.profile-summary p {
+  margin: 0;
+  opacity: 0.85;
+}
+
+ion-segment {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  margin: 0 12px 12px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.form-section,
+.documents-section {
+  padding: 0 12px 18px;
+}
+
+ion-list,
+ion-card {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+}
+
+ion-input,
+ion-textarea,
+ion-select {
+  text-transform: uppercase;
+}
+
+ion-input.email-lowercase {
+  text-transform: lowercase;
+}
+
+ion-input.email-lowercase::part(native) {
+  text-transform: lowercase;
+}
+
+.loading-state {
+  min-height: 45vh;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  color: var(--ion-color-medium);
+}
+
+.document-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.document-heading h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.document-heading p {
+  margin: 0;
+  color: var(--ion-color-medium);
+  font-size: 0.85rem;
+}
+
+.document-list {
+  background: transparent;
+}
+
+.document-sliding {
+  margin-bottom: 12px;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+}
+
+.document-item {
+  --background: #ffffff;
+  --border-radius: 14px;
+  --padding-start: 14px;
+  --inner-padding-end: 12px;
+}
+
+.document-swipe-option {
+  position: relative;
+  overflow: hidden;
+}
+
+.document-swipe-option input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+
+.document-note {
+  margin: 10px 0 0;
+  color: var(--ion-color-medium);
+}
+
+.uploading {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ion-color-primary);
+  font-size: 0.9rem;
+}
+
+.curriculum-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}

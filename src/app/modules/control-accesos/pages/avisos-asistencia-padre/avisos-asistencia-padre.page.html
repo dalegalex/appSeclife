@@ -1,0 +1,98 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Avisos de asistencia</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-list lines="full">
+    <ion-item>
+      <ion-label position="stacked">Alumno</ion-label>
+      <ion-select [(ngModel)]="form.idmatricula" (ionChange)="onAlumnoChange()">
+        <ion-select-option *ngFor="let alumno of alumnos" [value]="alumno.idmatricula">
+          {{ alumno.alumno }} {{ alumno.gradoGrupo ? '(' + alumno.gradoGrupo + ')' : '' }}
+        </ion-select-option>
+      </ion-select>
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Aviso</ion-label>
+      <ion-select [(ngModel)]="form.tipoPermiso">
+        <ion-select-option value="RETARDO_JUSTIFICADO">Ingreso tardío</ion-select-option>
+        <ion-select-option value="SALIDA_TEMPRANA">Salida temprana</ion-select-option>
+        <ion-select-option value="AUSENCIA_JUSTIFICADA">Falta justificada</ion-select-option>
+      </ion-select>
+    </ion-item>
+
+    <ion-item *ngIf="!esAusencia">
+      <ion-label position="stacked">Fecha</ion-label>
+      <ion-input type="date" [(ngModel)]="form.fecha"></ion-input>
+    </ion-item>
+
+    <ion-item *ngIf="esAusencia">
+      <ion-label position="stacked">Fecha inicial</ion-label>
+      <ion-input type="date" [(ngModel)]="form.fechaInicio"></ion-input>
+    </ion-item>
+
+    <ion-item *ngIf="esAusencia">
+      <ion-label position="stacked">Fecha final</ion-label>
+      <ion-input type="date" [(ngModel)]="form.fechaFin"></ion-input>
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Motivo</ion-label>
+      <ion-textarea rows="3" [(ngModel)]="form.motivo"></ion-textarea>
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Comentarios</ion-label>
+      <ion-textarea rows="3" [(ngModel)]="form.comentariosSolicitud"></ion-textarea>
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Justificante</ion-label>
+      <input class="file-input" type="file" accept="image/*,.pdf" (change)="onFileChange($event)">
+      <ion-note *ngIf="selectedFile">{{ selectedFile.name }}</ion-note>
+    </ion-item>
+  </ion-list>
+
+  <div class="actions">
+    <ion-button expand="block" [disabled]="saving || loading" (click)="enviar()">
+      {{ saving ? 'Enviando...' : 'Enviar aviso' }}
+    </ion-button>
+  </div>
+
+  <ion-list *ngIf="avisos.length > 0" class="history">
+    <ion-list-header>
+      <ion-label>Historial</ion-label>
+    </ion-list-header>
+    <ion-item *ngFor="let aviso of avisos">
+      <ion-label>
+        <h2>{{ tipoPermisoLabel(aviso.tipoPermiso) }}</h2>
+        <p class="scheduled-date">{{ fechaProgramadaLabel(aviso) }}</p>
+        <p>{{ aviso.motivo || aviso.comentariosSolicitud || 'Sin motivo capturado' }}</p>
+        <p *ngIf="aviso.comentariosResolucion">{{ aviso.comentariosResolucion }}</p>
+        <ion-chip *ngIf="hasDocumento(aviso)" color="tertiary" outline="true" class="document-chip">
+          <ion-icon name="attach-outline"></ion-icon>
+          <ion-label>{{ documentoLabel(aviso) }}</ion-label>
+        </ion-chip>
+      </ion-label>
+      <div slot="end" class="history-actions">
+        <ion-badge [color]="statusColor(aviso)">{{ aviso.estatus }}</ion-badge>
+        <ion-button
+          *ngIf="puedeCancelar(aviso)"
+          fill="clear"
+          color="danger"
+          size="small"
+          [disabled]="cancellingAvisoId === aviso.idpermisoalumno"
+          (click)="confirmarCancelar(aviso)">
+          <ion-spinner *ngIf="cancellingAvisoId === aviso.idpermisoalumno" name="crescent"></ion-spinner>
+          <ion-icon *ngIf="cancellingAvisoId !== aviso.idpermisoalumno" name="trash-outline"></ion-icon>
+        </ion-button>
+      </div>
+    </ion-item>
+  </ion-list>
+</ion-content>

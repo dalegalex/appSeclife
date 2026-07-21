@@ -1,0 +1,282 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Lectura autogestionada</ion-title>
+    <ion-buttons *ngIf="sesionAbierta" slot="end">
+      <ion-button color="warning" fill="clear" (click)="solicitarDesbloqueoConfiguracion()">
+        <ion-icon slot="icon-only" name="lock-closed-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <section class="auto-shell">
+    <ion-card *ngIf="!sesionAbierta" class="mode-card">
+      <ion-card-content>
+        <div class="session-row">
+          <ion-item lines="none" class="soft-item">
+            <ion-select
+              label="Punto activo"
+              labelPlacement="stacked"
+              [(ngModel)]="idpuntoautogestion"
+              [disabled]="controlesOperadorBloqueados"
+              interface="popover"
+              placeholder="Seleccionar punto"
+            >
+              <ion-select-option *ngFor="let punto of puntos" [value]="punto.idpuntoautogestion">
+                {{ punto.descripcion }}
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+          <ion-button *ngIf="!sesionAbierta" fill="solid" (click)="configurarSesion()" [disabled]="!idpuntoautogestion">
+            <ion-icon slot="start" name="lock-open-outline"></ion-icon>
+            Configurar
+          </ion-button>
+        </div>
+
+        <ion-segment [value]="modo" [disabled]="controlesOperadorBloqueados" (ionChange)="cambiarModo($any($event.detail.value))">
+          <ion-segment-button value="EVENTO">
+            <ion-icon name="calendar-outline"></ion-icon>
+            <ion-label>Evento</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="ASISTENCIA">
+            <ion-icon name="business-outline"></ion-icon>
+            <ion-label>Asistencia</ion-label>
+          </ion-segment-button>
+        </ion-segment>
+
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card *ngIf="!sesionAbierta" class="event-card">
+      <ion-card-content>
+        <div class="panel-heading">
+          <div>
+            <span class="eyebrow">{{ modo === 'EVENTO' ? 'Modo evento' : 'Modo asistencia' }}</span>
+            <h2>{{ modo === 'EVENTO' ? 'Selecciona el evento' : 'Registro de asistencia' }}</h2>
+          </div>
+          <ion-spinner *ngIf="loadingCatalogos" name="crescent"></ion-spinner>
+        </div>
+
+        <ion-item *ngIf="modo === 'EVENTO'" lines="none" class="soft-item">
+          <ion-select
+            label="Evento"
+            labelPlacement="stacked"
+            [(ngModel)]="ideventoacceso"
+            [disabled]="controlesOperadorBloqueados"
+            interface="popover"
+            placeholder="Seleccionar evento"
+          >
+            <ion-select-option *ngFor="let evento of eventos" [value]="evento.ideventoacceso">
+              {{ eventoLabel(evento) }}
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
+
+        <div *ngIf="modo === 'EVENTO' && eventoSeleccionado as evento" class="event-summary">
+          <strong>{{ evento.nombre }}</strong>
+          <span>{{ evento.lugar || 'Lugar pendiente' }}</span>
+          <small>{{ evento.aviso || 'Sin aviso adicional' }}</small>
+        </div>
+
+        <div *ngIf="modo === 'EVENTO' && !loadingCatalogos && eventos.length === 0" class="empty-state">
+          No hay eventos activos para mostrar.
+        </div>
+
+        <div *ngIf="modo === 'ASISTENCIA'" class="event-summary">
+          <strong>Asistencia general</strong>
+          <span>Entrada y salida autogestionada para visitas internas.</span>
+          <small>La lectura QR/NFC registra automaticamente entrada o salida.</small>
+        </div>
+
+        <ion-item *ngIf="modo === 'ASISTENCIA' && areas.length" lines="none" class="soft-item area-item">
+          <ion-select
+            label="Area a visitar"
+            labelPlacement="stacked"
+            [(ngModel)]="idareavisita"
+            interface="popover"
+            placeholder="Seleccionar area"
+          >
+            <ion-select-option [value]="null">Ingreso automatico</ion-select-option>
+            <ion-select-option *ngFor="let area of areas" [value]="area.idareavisita">
+              {{ area.descripcion }}
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
+      </ion-card-content>
+    </ion-card>
+
+    <div *ngIf="sesionAbierta" class="operation-strip">
+      <span>{{ sesion?.modo === 'EVENTO' ? (eventoSeleccionado?.nombre || sesion?.evento || 'Evento activo') : 'Asistencia activa' }}</span>
+      <strong>{{ relojActual | date:'hh:mm:ss a' }}</strong>
+    </div>
+
+    <ion-card class="reader-card">
+      <ion-card-content>
+        <ion-item lines="none" class="soft-item">
+          <ion-input
+            label="Codigo de credencial"
+            labelPlacement="stacked"
+            [(ngModel)]="codigo"
+            placeholder="QR / NFC"
+            autocapitalize="characters"
+            (keyup.enter)="resolver()"
+          ></ion-input>
+          <ion-button slot="end" fill="clear" (click)="limpiarLectura()" [disabled]="!codigo && !lectura">
+            <ion-icon slot="icon-only" name="close-circle-outline"></ion-icon>
+          </ion-button>
+        </ion-item>
+
+        <div class="reader-actions">
+          <ion-button expand="block" (click)="resolver()" [disabled]="loadingLectura || !codigo.trim() || !sesionAbierta || (modo === 'EVENTO' && !ideventoacceso)">
+            <ion-spinner *ngIf="loadingLectura" name="crescent"></ion-spinner>
+            <ion-icon *ngIf="!loadingLectura" slot="start" name="scan-outline"></ion-icon>
+            {{ loadingLectura ? 'Consultando...' : (modo === 'ASISTENCIA' ? 'Leer asistencia' : 'Validar credencial') }}
+          </ion-button>
+          <ion-button
+            fill="outline"
+            (click)="activarNfc()"
+            [color]="nfcColor"
+            [disabled]="sesionAbierta || loadingLectura || saving"
+          >
+            <ion-icon slot="icon-only" name="radio-outline"></ion-icon>
+          </ion-button>
+          <ion-button fill="outline" (click)="activarQr()" [disabled]="!sesionAbierta || (modo === 'EVENTO' && !ideventoacceso)">
+            <ion-icon slot="icon-only" name="qr-code-outline"></ion-icon>
+          </ion-button>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card *ngIf="lecturaAsistencia" class="identity-card">
+      <ion-card-content>
+        <div class="avatar-fallback">
+          <ion-icon [name]="lecturaAsistencia.tipoLectura === 'ALUMNO' ? 'school-outline' : 'person-circle-outline'"></ion-icon>
+        </div>
+        <div class="identity-info">
+          <div *ngIf="perfilAsistenciaLabel" class="profile-kind-badge">
+            {{ perfilAsistenciaLabel }}
+          </div>
+          <span class="eyebrow">{{ lecturaAsistencia.siguienteMovimiento === 'SALIDA' ? 'Salida registrada' : 'Entrada registrada' }}</span>
+          <h2>{{ lecturaAsistencia.participante || 'Participante' }}</h2>
+          <p>{{ lecturaAsistencia.grupo || 'Lectura autogestionada' }}</p>
+          <div class="movement-badge" [class.movement-out]="lecturaAsistencia.siguienteMovimiento === 'SALIDA'">
+            <ion-icon name="repeat-outline"></ion-icon>
+            <span>{{ lecturaAsistencia.siguienteMovimiento }}</span>
+          </div>
+          <ion-chip *ngIf="lecturaAsistencia.ultimoMovimiento" color="medium">
+            <ion-label>Ultimo: {{ lecturaAsistencia.ultimoMovimiento }} {{ lecturaAsistencia.ultimaFecha | date:'hh:mm a' }}</ion-label>
+          </ion-chip>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card *ngIf="requiereSeleccionAreaAsistencia" class="area-register-card">
+      <ion-card-content>
+        <div class="panel-heading">
+          <div>
+            <span class="eyebrow">Area a visitar</span>
+            <h2>Selecciona el destino</h2>
+          </div>
+          <ion-icon name="business-outline"></ion-icon>
+        </div>
+        <ion-item lines="none" class="soft-item">
+          <ion-select
+            label="Area a visitar"
+            labelPlacement="stacked"
+            [(ngModel)]="idareavisita"
+            interface="popover"
+            placeholder="Seleccionar area"
+          >
+            <ion-select-option *ngFor="let area of areas" [value]="area.idareavisita">
+              {{ area.descripcion }}
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card *ngIf="lectura" class="identity-card">
+      <ion-card-content>
+        <div class="avatar-fallback">
+          <ion-icon name="person-circle-outline"></ion-icon>
+        </div>
+        <div class="identity-info">
+          <span class="eyebrow">{{ lectura.siguienteMovimiento === 'SALIDA' ? 'Registrar salida' : 'Registrar entrada' }}</span>
+          <h2>{{ lectura.participante || 'Participante' }}</h2>
+          <p>{{ lectura.evento }}</p>
+          <div class="movement-badge" [class.movement-out]="lectura.siguienteMovimiento === 'SALIDA'">
+            <ion-icon name="repeat-outline"></ion-icon>
+            <span>{{ lectura.siguienteMovimiento }}</span>
+          </div>
+          <ion-chip *ngIf="lectura.ultimoMovimiento" color="medium">
+            <ion-label>Ultimo: {{ lectura.ultimoMovimiento }} {{ lectura.ultimaFecha | date:'hh:mm a' }}</ion-label>
+          </ion-chip>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card *ngIf="lectura && permiteParticipantes" class="participants-card">
+      <ion-card-content>
+        <div class="panel-heading">
+          <div>
+            <span class="eyebrow">Participantes</span>
+            <h2>Acompanantes por familia</h2>
+          </div>
+          <ion-badge color="primary">{{ participantes }}</ion-badge>
+        </div>
+        <ion-range
+          [(ngModel)]="participantes"
+          [min]="1"
+          [max]="maxParticipantes > 0 ? maxParticipantes : 10"
+          [pin]="true"
+          [ticks]="true"
+          [snaps]="true"
+        ></ion-range>
+        <p class="hint">
+          {{ maxParticipantes > 0 ? 'Maximo permitido por familia: ' + maxParticipantes : 'Sin limite configurado por familia.' }}
+        </p>
+      </ion-card-content>
+    </ion-card>
+
+    <div
+      *ngIf="sesionAbierta"
+      class="nfc-floating-status"
+      [class.nfc-success]="nfcColor === 'success'"
+      [class.nfc-danger]="nfcColor === 'danger'"
+    >
+      <ion-icon name="radio-outline"></ion-icon>
+      <span>NFC {{ nfcEstado }}</span>
+    </div>
+  </section>
+</ion-content>
+
+<ion-footer *ngIf="(modo === 'EVENTO' && lectura) || requiereSeleccionAreaAsistencia">
+  <ion-toolbar>
+    <ion-button
+      *ngIf="modo === 'EVENTO'"
+      expand="block"
+      class="register-button"
+      (click)="registrar()"
+      [disabled]="!puedeRegistrar"
+    >
+      <ion-spinner *ngIf="saving" name="crescent"></ion-spinner>
+      <ion-icon *ngIf="!saving" slot="start" name="checkmark-circle-outline"></ion-icon>
+      {{ saving ? 'Registrando...' : 'Registrar ' + (lectura?.siguienteMovimiento || '') }}
+    </ion-button>
+    <ion-button
+      *ngIf="modo === 'ASISTENCIA'"
+      expand="block"
+      class="register-button"
+      (click)="registrarAsistencia()"
+      [disabled]="!puedeRegistrarAsistencia"
+    >
+      <ion-spinner *ngIf="saving" name="crescent"></ion-spinner>
+      <ion-icon *ngIf="!saving" slot="start" name="checkmark-circle-outline"></ion-icon>
+      {{ saving ? 'Registrando...' : 'Registrar asistencia' }}
+    </ion-button>
+  </ion-toolbar>
+</ion-footer>

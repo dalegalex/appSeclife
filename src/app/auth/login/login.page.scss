@@ -1,0 +1,179 @@
+.login-content {
+  --background: #f4f8ff;
+}
+
+.login-shell {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  justify-content: center;
+  min-height: 100%;
+  padding: 28px 22px;
+}
+
+.brand-panel {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+
+  img {
+    background: #ffffff;
+    border: 1px solid #dbeafe;
+    border-radius: 10px;
+    height: 58px;
+    object-fit: contain;
+    padding: 6px;
+    width: 58px;
+  }
+
+  h1 {
+    color: #172033;
+    font-size: 26px;
+    font-weight: 800;
+    margin: 0;
+  }
+
+  p {
+    color: #64748b;
+    margin: 3px 0 0;
+  }
+}
+
+.login-panel {
+  background: #ffffff;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px 20px;
+
+  h2 {
+    color: #172033;
+    font-size: 22px;
+    font-weight: 800;
+    margin: 0;
+  }
+
+  p {
+    color: #64748b;
+    font-size: 14px;
+    line-height: 1.45;
+    margin: 0;
+  }
+}
+
+ion-segment {
+  background: #eef6ff;
+  border-radius: 8px;
+  padding: 3px;
+}
+
+ion-segment-button {
+  --border-radius: 6px;
+  --color: #476179;
+  --color-checked: #0f5dd6;
+  --indicator-color: #ffffff;
+  font-size: 13px;
+  min-height: 36px;
+}
+
+.form-field {
+  --background: #f8fbff;
+  --border-radius: 8px;
+  --min-height: 58px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+
+  ion-label {
+    color: #64748b;
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+
+  ion-input {
+    --color: #172033;
+    font-size: 15px;
+  }
+}
+
+.preview-panel {
+  border: 1px solid #c7ddff;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+}
+
+.preview-header {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  span {
+    color: #0f5dd6;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  strong {
+    color: #172033;
+    font-size: 16px;
+  }
+
+  small {
+    color: #64748b;
+    font-size: 12px;
+  }
+}
+
+.google-button {
+  min-height: 44px;
+}
+
+.local-register-panel {
+  border-top: 1px solid #dbeafe;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+  padding-top: 14px;
+}
+
+
+ion-spinner {
+  align-self: center;
+}
+
+.auth-alert {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-left: 4px solid #f59e0b;
+  border-radius: 8px;
+  color: #7c2d12;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  line-height: 1.35;
+  padding: 12px 14px;
+
+  strong {
+    color: #9a3412;
+    font-size: 14px;
+  }
+
+  span {
+    font-size: 13px;
+  }
+}
+
+footer {
+  color: #64748b;
+  font-size: 12px;
+  text-align: center;
+}

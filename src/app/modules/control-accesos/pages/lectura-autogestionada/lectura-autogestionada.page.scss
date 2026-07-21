@@ -1,0 +1,251 @@
+.auto-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+}
+
+.event-card,
+.mode-card,
+.reader-card,
+.identity-card,
+.area-register-card,
+.participants-card {
+  margin: 0;
+  border-radius: 8px;
+  box-shadow: none;
+  border: 1px solid rgba(var(--ion-color-medium-rgb), 0.22);
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.eyebrow {
+  display: block;
+  color: var(--ion-color-medium);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+h2,
+p {
+  margin: 0;
+}
+
+.panel-heading h2,
+.identity-info h2 {
+  font-size: 1.06rem;
+  font-weight: 800;
+}
+
+.soft-item {
+  --background: rgba(var(--ion-color-light-rgb), 0.62);
+  --border-radius: 8px;
+  --padding-start: 8px;
+  --inner-padding-end: 8px;
+}
+
+.session-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.session-row ion-button {
+  align-self: stretch;
+  min-height: 48px;
+  --border-radius: 8px;
+}
+
+.session-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.operation-strip {
+  align-items: center;
+  background: rgba(var(--ion-color-success-rgb), 0.12);
+  border: 1px solid rgba(var(--ion-color-success-rgb), 0.25);
+  border-radius: 8px;
+  color: var(--ion-color-success-shade);
+  display: flex;
+  font-size: 0.88rem;
+  font-weight: 800;
+  justify-content: space-between;
+  min-height: 38px;
+  padding: 6px 8px 6px 10px;
+}
+
+.operation-strip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.operation-strip strong {
+  flex: 0 0 auto;
+  color: var(--ion-color-dark);
+  font-size: 1rem;
+  margin-left: 10px;
+  white-space: nowrap;
+}
+
+.event-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(var(--ion-color-primary-rgb), 0.1);
+  color: var(--ion-color-primary-shade);
+}
+
+.area-item {
+  margin-top: 10px;
+}
+
+.area-register-card .panel-heading ion-icon {
+  color: var(--ion-color-primary);
+  font-size: 1.35rem;
+}
+
+.event-summary small {
+  color: var(--ion-color-medium-shade);
+}
+
+.reader-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 52px 52px;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.identity-card ion-card-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar-fallback {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  border-radius: 50%;
+  background: rgba(var(--ion-color-primary-rgb), 0.12);
+  color: var(--ion-color-primary);
+  font-size: 28px;
+}
+
+.identity-info p,
+.hint {
+  color: var(--ion-color-medium);
+  font-size: 0.86rem;
+}
+
+.profile-kind-badge {
+  background: rgba(var(--ion-color-warning-rgb), 0.18);
+  border: 1px solid rgba(var(--ion-color-warning-rgb), 0.38);
+  border-radius: 8px;
+  color: var(--ion-color-warning-shade);
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 900;
+  margin-bottom: 6px;
+  padding: 5px 8px;
+  text-transform: uppercase;
+}
+
+.identity-info ion-chip {
+  margin: 6px 4px 0 0;
+}
+
+.movement-badge {
+  align-items: center;
+  background: rgba(var(--ion-color-primary-rgb), 0.12);
+  border: 1px solid rgba(var(--ion-color-primary-rgb), 0.26);
+  border-radius: 8px;
+  color: var(--ion-color-primary-shade);
+  display: inline-flex;
+  font-size: 1.45rem;
+  font-weight: 900;
+  gap: 8px;
+  line-height: 1;
+  margin-top: 10px;
+  padding: 10px 12px;
+}
+
+.movement-badge ion-icon {
+  font-size: 1.35rem;
+}
+
+.movement-badge.movement-out {
+  background: rgba(var(--ion-color-medium-rgb), 0.16);
+  border-color: rgba(var(--ion-color-medium-rgb), 0.32);
+  color: var(--ion-color-medium-shade);
+}
+
+.nfc-floating-status {
+  align-items: center;
+  background: var(--ion-color-medium);
+  border-radius: 999px;
+  bottom: 12px;
+  box-shadow: 0 8px 18px rgba(16, 24, 40, 0.18);
+  color: var(--ion-color-medium-contrast);
+  display: inline-flex;
+  font-size: 0.75rem;
+  font-weight: 900;
+  gap: 6px;
+  letter-spacing: 0;
+  padding: 8px 10px;
+  position: fixed;
+  right: 12px;
+  text-transform: uppercase;
+  z-index: 12;
+}
+
+.nfc-floating-status ion-icon {
+  font-size: 1rem;
+}
+
+.nfc-floating-status.nfc-success {
+  background: var(--ion-color-success);
+  color: var(--ion-color-success-contrast);
+}
+
+.nfc-floating-status.nfc-danger {
+  background: var(--ion-color-danger);
+  color: var(--ion-color-danger-contrast);
+}
+
+.empty-state {
+  margin-top: 10px;
+  padding: 14px;
+  border-radius: 8px;
+  background: rgba(var(--ion-color-primary-rgb), 0.1);
+  color: var(--ion-color-primary-shade);
+  text-align: center;
+}
+
+ion-footer ion-toolbar {
+  --padding-start: 12px;
+  --padding-end: 12px;
+  --padding-top: 8px;
+  --padding-bottom: 8px;
+}
+
+.register-button {
+  --border-radius: 8px;
+}

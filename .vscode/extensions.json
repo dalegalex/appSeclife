@@ -1,6 +1,7 @@
 {
   "recommendations": [
     "Angular.ng-template",
-    "Ionic.ionic"
+    "Ionic.ionic",
+    "Webnative.webnative"
   ]
 }

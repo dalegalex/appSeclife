@@ -1,0 +1,162 @@
+:host {
+  ion-content {
+    --background: #f6f8fb;
+  }
+}
+
+.account-delete-shell {
+  display: grid;
+  gap: 16px;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.page-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 0 4px;
+
+  ion-icon {
+    width: 42px;
+    height: 42px;
+    color: var(--ion-color-primary);
+  }
+
+  p {
+    margin: 0 0 4px;
+    color: var(--ion-color-medium);
+    font-size: 0.9rem;
+  }
+
+  h1 {
+    margin: 0;
+    color: #102033;
+    font-size: 1.35rem;
+    font-weight: 700;
+  }
+}
+
+.identity-panel,
+.status-panel,
+.web-panel,
+.request-form {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+}
+
+.identity-panel {
+  padding: 16px;
+
+  span {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--ion-color-medium);
+    font-size: 0.82rem;
+    text-transform: uppercase;
+  }
+
+  strong,
+  p {
+    display: block;
+    margin: 0;
+  }
+
+  strong {
+    color: #102033;
+    font-size: 1rem;
+  }
+
+  p {
+    margin-top: 4px;
+    color: var(--ion-color-medium);
+    word-break: break-word;
+  }
+}
+
+.request-form {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+
+  ion-item {
+    --background: transparent;
+  }
+
+  ion-button {
+    margin-top: 4px;
+  }
+}
+
+.confirm-item {
+  align-items: flex-start;
+
+  ion-checkbox {
+    margin-top: 12px;
+  }
+
+  ion-label {
+    white-space: normal;
+    font-size: 0.92rem;
+    line-height: 1.35;
+  }
+}
+
+.status-panel,
+.web-panel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.status-panel.success {
+  border-color: rgba(var(--ion-color-success-rgb), 0.24);
+  background: rgba(var(--ion-color-success-rgb), 0.08);
+
+  ion-icon {
+    width: 30px;
+    height: 30px;
+    color: var(--ion-color-success);
+  }
+
+  h2,
+  p {
+    margin: 0;
+  }
+
+  h2 {
+    font-size: 1rem;
+    color: #102033;
+  }
+
+  p {
+    margin-top: 4px;
+    color: #334155;
+    font-size: 0.9rem;
+  }
+}
+
+.web-panel {
+  justify-content: space-between;
+
+  strong,
+  p {
+    margin: 0;
+  }
+
+  p {
+    margin-top: 4px;
+    color: var(--ion-color-medium);
+    font-size: 0.88rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .web-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

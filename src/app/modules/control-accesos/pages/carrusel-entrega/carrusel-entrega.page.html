@@ -1,0 +1,137 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Carrusel</ion-title>
+    <ion-buttons slot="end" *ngIf="sesion">
+      <ion-button fill="clear" color="warning" (click)="cerrarSesion()" [disabled]="loading || saving">
+        <ion-icon slot="icon-only" name="power-outline"></ion-icon>
+      </ion-button>
+      <ion-button fill="clear" (click)="refrescarCola()" [disabled]="loading">
+        <ion-icon slot="icon-only" name="refresh-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <section class="carousel-shell">
+    <ion-card *ngIf="!sesion" class="setup-card">
+      <ion-card-content>
+        <div class="panel-heading">
+          <div>
+            <span class="eyebrow">Punto de entrega</span>
+            <h2>Abrir carrusel</h2>
+          </div>
+          <ion-icon name="git-network-outline"></ion-icon>
+        </div>
+
+        <ion-item lines="none">
+          <ion-input label="Nombre del punto" labelPlacement="stacked" [(ngModel)]="nombrePuntoEntrega" autocapitalize="characters"></ion-input>
+        </ion-item>
+
+        <ion-item lines="none">
+          <ion-select label="Islas" labelPlacement="stacked" [(ngModel)]="numeroIslas" interface="popover">
+            <ion-select-option *ngFor="let isla of [1,2,3,4,5,6,7,8,9,10]" [value]="isla">{{ isla }}</ion-select-option>
+          </ion-select>
+        </ion-item>
+
+        <ion-button expand="block" (click)="abrirSesion()" [disabled]="loading">
+          <ion-spinner *ngIf="loading" name="crescent"></ion-spinner>
+          <ion-icon *ngIf="!loading" slot="start" name="play-circle-outline"></ion-icon>
+          {{ loading ? 'Abriendo...' : 'Abrir carrusel' }}
+        </ion-button>
+      </ion-card-content>
+    </ion-card>
+
+    <ng-container *ngIf="sesion as actual">
+      <ion-card class="session-card">
+        <ion-card-content>
+          <div class="panel-heading">
+            <div>
+              <span class="eyebrow">Carrusel activo</span>
+              <h2>{{ actual.nombrePuntoEntrega || 'Punto de entrega' }}</h2>
+            </div>
+            <ion-badge color="success">{{ actual.estatus }}</ion-badge>
+          </div>
+          <div class="session-meta">
+            <ion-chip color="primary"><ion-label>{{ actual.numeroIslas }} isla(s)</ion-label></ion-chip>
+            <ion-chip color="medium"><ion-label>{{ actual.fechaServicio | date:'dd/MM/yyyy' }}</ion-label></ion-chip>
+            <ion-chip class="connected-chip" [color]="lectoresConectados > 0 ? 'success' : 'medium'">
+              <ion-icon name="phone-portrait-outline"></ion-icon>
+              <ion-label>{{ lectoresConectados }}</ion-label>
+            </ion-chip>
+          </div>
+        </ion-card-content>
+      </ion-card>
+
+      <div class="queue-heading">
+        <div>
+          <span class="eyebrow">Cola de entrega</span>
+          <h2>Paquetes pendientes</h2>
+          <p *ngIf="ultimoRefrescoCola" class="refresh-note">Actualizado {{ ultimoRefrescoCola | date:'HH:mm:ss' }}</p>
+        </div>
+        <ion-badge color="primary">{{ paquetesPendientes.length }}</ion-badge>
+      </div>
+
+      <ion-note *ngIf="ultimoErrorCola" color="danger" class="queue-error">
+        {{ ultimoErrorCola }}
+      </ion-note>
+
+      <div *ngIf="loading" class="loading-state">
+        <ion-spinner name="crescent"></ion-spinner>
+        <span>Cargando cola...</span>
+      </div>
+
+      <div *ngIf="!loading && cola.length === 0" class="empty-state">
+        Aun no hay avisos registrados para este carrusel.
+      </div>
+
+      <ion-card *ngFor="let paquete of paquetesPendientes" class="package-card">
+        <ion-card-content>
+          <div class="package-header">
+            <div class="island-number">
+              <span>Isla</span>
+              <strong>{{ islaNumero(paquete) }}</strong>
+              <small>#{{ paquete.posicionCola }}</small>
+            </div>
+            <div>
+              <span class="eyebrow">{{ paquete.isla || 'Isla pendiente' }}</span>
+              <h2>{{ paquete.nombreFamilia || 'Familia' }}</h2>
+              <p>{{ paquete.familiarRecoge || 'Familiar' }}</p>
+            </div>
+            <ion-badge [color]="estadoColor(paquete.estatus)">{{ paquete.estatus }}</ion-badge>
+          </div>
+
+          <ion-list lines="none">
+            <ion-item *ngFor="let alumno of paquete.alumnos" class="student-row" [class.done]="alumno.estatus === 'ENTREGADO'">
+              <ion-label>
+                <div class="student-title">
+                  <button type="button" class="photo-trigger" (click)="cargarFotoAlumno(alumno)" [disabled]="alumno.fotoLoading">
+                    <ion-spinner *ngIf="alumno.fotoLoading" name="crescent"></ion-spinner>
+                    <img *ngIf="!alumno.fotoLoading && imageSrc(alumno.foto) as fotoSrc" [src]="fotoSrc" alt="">
+                    <ion-icon *ngIf="!alumno.fotoLoading && !imageSrc(alumno.foto)" name="person-circle-outline"></ion-icon>
+                  </button>
+                  <h3>{{ alumno.alumno }}</h3>
+                </div>
+                <p>{{ alumno.gradoGrupo || 'Sin grupo activo' }}</p>
+              </ion-label>
+              <ion-badge slot="end" [color]="estadoColor(alumno.estatus)">{{ alumno.estatus }}</ion-badge>
+              <ion-button slot="end" fill="clear" color="danger" *ngIf="alumnoPendiente(alumno)" (click)="cancelarAlumno(alumno)">
+                <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+              </ion-button>
+            </ion-item>
+          </ion-list>
+
+          <ion-button expand="block" color="success" (click)="confirmarPaquete(paquete)" [disabled]="saving">
+            <ion-spinner *ngIf="saving" name="crescent"></ion-spinner>
+            <ion-icon *ngIf="!saving" slot="start" name="checkmark-circle-outline"></ion-icon>
+            Registrar entrega
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
+
+    </ng-container>
+  </section>
+</ion-content>

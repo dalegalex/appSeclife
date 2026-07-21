@@ -1,0 +1,292 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Mi ficha personal</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="guardar()" [disabled]="guardando || cargando || activeTab === 'documentos'">
+        <ion-icon slot="icon-only" name="save-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ficha-shell">
+  <section class="profile-summary">
+    <div class="avatar">
+      <img *ngIf="detalle?.usuario?.foto; else initials" [src]="detalle?.usuario?.foto" alt="" />
+      <ng-template #initials>
+        <ion-icon name="person-circle-outline"></ion-icon>
+      </ng-template>
+    </div>
+    <div>
+      <span>Autocaptura</span>
+      <h1>{{ detalle?.usuario?.nombreCompleto || 'Mi ficha personal' }}</h1>
+      <p>{{ detalle?.usuario?.cargo || 'Personal del Colegio' }}</p>
+    </div>
+  </section>
+
+  <section class="loading-state" *ngIf="cargando">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Consultando tu ficha...</p>
+  </section>
+
+  <ng-container *ngIf="!cargando">
+    <ion-segment scrollable="true" [value]="activeTab" (ionChange)="activeTab = $any($event.detail.value)">
+      <ion-segment-button *ngFor="let tab of tabs" [value]="tab.value">
+        <ion-label>{{ tab.label }}</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+
+    <form [formGroup]="fichaForm" class="ficha-form">
+      <section *ngIf="activeTab === 'generales'" class="form-section">
+        <ion-list lines="full">
+          <ion-item>
+            <ion-label position="stacked">Nombre completo</ion-label>
+            <ion-input [value]="detalle?.usuario?.nombreCompleto || ''" readonly></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">CURP</ion-label>
+            <ion-input [value]="detalle?.usuario?.curp || ''" readonly></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">RFC</ion-label>
+            <ion-input formControlName="rfc"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Numero de empleado</ion-label>
+            <ion-input [value]="fichaForm.get('numeroEmpleado')?.value || ''" readonly></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Fecha de nacimiento</ion-label>
+            <ion-input type="date" formControlName="fechaNacimiento"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Sexo</ion-label>
+            <ion-select formControlName="sexo" interface="popover">
+              <ion-select-option value="">Sin especificar</ion-select-option>
+              <ion-select-option value="F">Femenino</ion-select-option>
+              <ion-select-option value="M">Masculino</ion-select-option>
+            </ion-select>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Estado civil</ion-label>
+            <ion-input formControlName="estadoCivil"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Nacionalidad</ion-label>
+            <ion-input formControlName="nacionalidad"></ion-input>
+          </ion-item>
+        </ion-list>
+      </section>
+
+      <section *ngIf="activeTab === 'contacto'" class="form-section">
+        <ion-list lines="full">
+          <ion-item>
+            <ion-label position="stacked">Celular</ion-label>
+            <ion-input [value]="detalle?.usuario?.cel || ''" readonly></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Telefono de emergencia</ion-label>
+            <ion-input formControlName="telefonoEmergencia"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Correo institucional</ion-label>
+            <ion-input class="email-lowercase" formControlName="emailInstitucional"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Correo personal</ion-label>
+            <ion-input class="email-lowercase" formControlName="emailPersonal"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Calle</ion-label>
+            <ion-input formControlName="direccionCalle"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Numero</ion-label>
+            <ion-input formControlName="direccionNumero"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Colonia</ion-label>
+            <ion-input formControlName="direccionColonia"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Ciudad</ion-label>
+            <ion-input formControlName="direccionCiudad"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Estado</ion-label>
+            <ion-input formControlName="direccionEstado"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">CP</ion-label>
+            <ion-input formControlName="direccionCp"></ion-input>
+          </ion-item>
+        </ion-list>
+      </section>
+
+      <section *ngIf="activeTab === 'academica'" class="form-section">
+        <ion-list lines="full">
+          <ion-item>
+            <ion-label position="stacked">Nivel maximo de estudios</ion-label>
+            <ion-input formControlName="nivelEstudios"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Carrera o especialidad</ion-label>
+            <ion-input formControlName="carreraEspecialidad"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Institucion educativa</ion-label>
+            <ion-input formControlName="institucionEducativa"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Anio de egreso</ion-label>
+            <ion-input type="number" formControlName="anioEgreso"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Cedula profesional</ion-label>
+            <ion-input formControlName="cedulaProfesional"></ion-input>
+          </ion-item>
+        </ion-list>
+      </section>
+
+      <section *ngIf="activeTab === 'curriculum'" class="form-section">
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Curriculum</ion-card-title>
+            <ion-card-subtitle>Experiencia y preparacion</ion-card-subtitle>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-list lines="none">
+              <ion-item *ngFor="let exp of detalle?.experiencias">
+                <ion-icon slot="start" name="ribbon-outline"></ion-icon>
+                <ion-label (click)="editarExperiencia(exp)">
+                  <h3>{{ exp.puesto || exp.descripcion || exp.tipo }}</h3>
+                  <p>{{ exp.empresaInstitucion }} {{ exp.periodo }}</p>
+                </ion-label>
+                <ion-badge slot="end" color="primary">{{ exp.tipo }}</ion-badge>
+              </ion-item>
+            </ion-list>
+          </ion-card-content>
+        </ion-card>
+
+        <ion-card [formGroup]="curriculumForm">
+          <ion-card-header>
+            <ion-card-title>Captura curricular</ion-card-title>
+            <ion-card-subtitle>Empleos, cursos, certificaciones y habilidades</ion-card-subtitle>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-list lines="full">
+              <ion-item>
+                <ion-label position="stacked">Tipo</ion-label>
+                <ion-select formControlName="tipo" interface="popover">
+                  <ion-select-option value="EMPLEO">Empleo</ion-select-option>
+                  <ion-select-option value="CURSO">Curso</ion-select-option>
+                  <ion-select-option value="CERTIFICACION">Certificacion</ion-select-option>
+                  <ion-select-option value="DIPLOMADO">Diplomado</ion-select-option>
+                  <ion-select-option value="HABILIDAD">Habilidad</ion-select-option>
+                </ion-select>
+              </ion-item>
+              <ion-item>
+                <ion-label position="stacked">Empresa / institucion</ion-label>
+                <ion-input formControlName="empresaInstitucion"></ion-input>
+              </ion-item>
+              <ion-item>
+                <ion-label position="stacked">Puesto</ion-label>
+                <ion-input formControlName="puesto"></ion-input>
+              </ion-item>
+              <ion-item>
+                <ion-label position="stacked">Periodo</ion-label>
+                <ion-input formControlName="periodo"></ion-input>
+              </ion-item>
+              <ion-item>
+                <ion-label position="stacked">Descripcion</ion-label>
+                <ion-textarea rows="4" formControlName="descripcion"></ion-textarea>
+              </ion-item>
+            </ion-list>
+            <div class="curriculum-actions">
+              <ion-button fill="clear" (click)="nuevaExperiencia(curriculumForm.get('tipo')?.value || 'EMPLEO')">
+                Limpiar
+              </ion-button>
+              <ion-button (click)="guardarExperiencia()">
+                <ion-icon slot="start" name="save-outline"></ion-icon>
+                Guardar
+              </ion-button>
+            </div>
+          </ion-card-content>
+        </ion-card>
+      </section>
+
+      <section *ngIf="activeTab === 'administrativa'" class="form-section">
+        <ion-list lines="full">
+          <ion-item>
+            <ion-label position="stacked">NSS</ion-label>
+            <ion-input formControlName="nss"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Tipo de sangre</ion-label>
+            <ion-input formControlName="tipoSangre"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Alergias o condiciones medicas</ion-label>
+            <ion-textarea rows="4" formControlName="alergiasCondiciones"></ion-textarea>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Banco</ion-label>
+            <ion-input formControlName="banco"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">CLABE interbancaria</ion-label>
+            <ion-input formControlName="clabeInterbancaria"></ion-input>
+          </ion-item>
+        </ion-list>
+      </section>
+    </form>
+
+    <section *ngIf="activeTab === 'documentos'" class="documents-section">
+      <ion-list lines="none" class="document-list">
+        <ion-item-sliding *ngFor="let doc of documentos(); trackBy: trackByDocumento" class="document-sliding">
+          <ion-item class="document-item swipe-hint">
+            <ion-icon slot="start" name="document-text-outline"></ion-icon>
+            <ion-label>
+              <div class="document-heading">
+                <div>
+                  <h3>{{ doc.descripcion }}</h3>
+                  <p>{{ doc.documentoNombre || 'Sin archivo asociado' }}</p>
+                </div>
+                <ion-badge [color]="statusColor(doc)">{{ doc.estatus || 'PENDIENTE' }}</ion-badge>
+              </div>
+              <p class="document-note" *ngIf="doc.observaciones">{{ doc.observaciones }}</p>
+              <div class="uploading" *ngIf="documentoUploading === doc.idctusrfichadocumento">
+                <ion-spinner name="crescent"></ion-spinner>
+                <span>Procesando documento...</span>
+              </div>
+            </ion-label>
+          </ion-item>
+
+          <ion-item-options side="end">
+            <ion-item-option color="medium" *ngIf="tieneArchivo(doc)" (click)="abrirDocumento(doc)">
+              <ion-icon slot="top" name="eye-outline"></ion-icon>
+              Ver
+            </ion-item-option>
+            <ion-item-option color="primary" class="document-swipe-option" *ngIf="puedeModificarDocumento(doc)">
+              <ion-icon slot="top" name="images-outline"></ion-icon>
+              Galeria
+              <input type="file" accept="image/*,.pdf" (change)="seleccionarArchivo(doc, $event)" />
+            </ion-item-option>
+            <ion-item-option color="tertiary" class="document-swipe-option" *ngIf="puedeModificarDocumento(doc)">
+              <ion-icon slot="top" name="camera-outline"></ion-icon>
+              Camara
+              <input type="file" accept="image/*" capture="environment" (change)="seleccionarArchivo(doc, $event)" />
+            </ion-item-option>
+            <ion-item-option color="danger" *ngIf="tieneArchivo(doc) && puedeModificarDocumento(doc)" (click)="eliminarDocumento(doc)">
+              <ion-icon slot="top" name="trash-outline"></ion-icon>
+              Eliminar
+            </ion-item-option>
+          </ion-item-options>
+        </ion-item-sliding>
+      </ion-list>
+    </section>
+  </ng-container>
+</ion-content>

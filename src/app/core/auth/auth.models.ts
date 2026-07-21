@@ -1,0 +1,121 @@
+export interface AuthUser {
+  idtag: number;
+  idusrbt: number;
+  idperfil: number;
+  idorg: number;
+  idfamilia?: number | null;
+  idfamiliamiembro?: number | null;
+  perfil: string;
+  usr?: string | null;
+  nombre?: string | null;
+  apellidos?: string | null;
+  email?: string | null;
+  googleName?: string | null;
+  googlePicture?: string | null;
+  codereg?: string | null;
+  rfid?: string | null;
+  sitbloqueo: boolean;
+  sitactivo: boolean;
+}
+
+export interface AuthSession {
+  token: string;
+  expiresAt: string;
+  user: AuthUser;
+}
+
+export interface GoogleLoginRequest {
+  idToken: string;
+}
+
+export interface RegisterWithCodeRequest {
+  codereg: string;
+  idToken: string;
+  identidad?: number | null;
+  idperfil?: number | null;
+  nombre?: string | null;
+  apellidos?: string | null;
+  nombreFamilia?: string | null;
+  cel?: string | null;
+}
+
+export interface LocalLoginStartRequest {
+  email: string;
+}
+
+export interface LocalRegisterStartRequest {
+  codereg: string;
+  email: string;
+  identidad?: number | null;
+  idperfil?: number | null;
+  nombre?: string | null;
+  apellidos?: string | null;
+  nombreFamilia?: string | null;
+  cel?: string | null;
+}
+
+export interface LocalAuthVerifyRequest {
+  email: string;
+  codigo: string;
+}
+
+export interface LocalAuthStartResponse {
+  message: string;
+  expiresAt: string;
+  codigoPrueba?: string | null;
+}
+
+export interface RegistrationCodePreview {
+  codereg?: string | null;
+  idtag: number;
+  identidad: number;
+  idorg: number;
+  idperfil: number;
+  perfil: string;
+  nombre?: string | null;
+  apellidos?: string | null;
+  cel?: string | null;
+  email?: string | null;
+  sitbloqueo: boolean;
+  sitactivo: boolean;
+  requiereDatos: boolean;
+  organizaciones: RegistrationCodeOrganization[];
+  usuarios: RegistrationCodeUser[];
+}
+
+export interface RegistrationCodeOrganization {
+  idorg: number;
+  organizacion?: string | null;
+}
+
+export interface AccountDeletionRequest {
+  motivo?: string | null;
+  origen: 'APPSECLIFE' | 'WEB';
+}
+
+export interface AccountDeletionResponse {
+  idsolicitud: number;
+  folio: string;
+  estatus: string;
+  alcance: string;
+  fechaSolicitud: string;
+  fechaLimiteAtencion: string;
+  solicitudActiva: boolean;
+  message: string;
+}
+
+export interface AuthOrganizationBrand {
+  idorg: number;
+  logoorg?: string | null;
+  logoContentType?: string | null;
+}
+
+export interface RegistrationCodeUser {
+  identidad: number;
+  idperfil: number;
+  idtag: number;
+  nombre?: string | null;
+  apellidos?: string | null;
+  cel?: string | null;
+  email?: string | null;
+}

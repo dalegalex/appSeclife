@@ -37,6 +37,13 @@ log.txt
 npm-debug.log
 yarn-error.log
 
+# Local signing material. Never commit upload keys or passwords.
+/android/keystore.properties
+/android/app/release/
+*.jks
+*.keystore
+/ARTEFACTOS PUBLICACION/
+
 # IDEs and editors
 .idea/
 .project

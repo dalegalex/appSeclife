@@ -1,0 +1,229 @@
+.access-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+}
+
+.mode-bar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 4px 0;
+  background: var(--ion-background-color);
+}
+
+.tool-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tool-row ion-button {
+  --border-radius: 8px;
+  --background: rgba(var(--ion-color-medium-rgb), 0.12);
+  --color: var(--ion-color-medium-shade);
+  min-height: 44px;
+}
+
+.tool-row ion-button.active {
+  --background: rgba(var(--ion-color-primary-rgb), 0.16);
+  --color: var(--ion-color-primary);
+}
+
+.tool-row ion-button.aviso-active {
+  --background: rgba(var(--ion-color-warning-rgb), 0.24);
+  --color: var(--ion-color-warning-shade);
+}
+
+.reader-card,
+.identity-card {
+  margin: 0;
+  border-radius: 8px;
+  box-shadow: none;
+  border: 1px solid rgba(var(--ion-color-medium-rgb), 0.22);
+}
+
+.code-input {
+  --padding-start: 0;
+  --inner-padding-end: 0;
+  margin-bottom: 10px;
+}
+
+.identity-card ion-card-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.identity-card img,
+.avatar-fallback {
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.avatar-fallback {
+  display: grid;
+  place-items: center;
+  background: rgba(var(--ion-color-primary-rgb), 0.12);
+  color: var(--ion-color-primary);
+  font-size: 26px;
+}
+
+.eyebrow {
+  display: block;
+  color: var(--ion-color-medium);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+.identity-card h2,
+.panel-heading h2 {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.identity-card p,
+.student-item p {
+  color: var(--ion-color-medium);
+  font-size: 0.86rem;
+}
+
+.students-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px;
+}
+
+.student-item {
+  --background: rgba(var(--ion-color-light-rgb), 0.62);
+  --border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.student-item.blocked {
+  opacity: 0.74;
+}
+
+.student-item ion-badge {
+  max-width: 112px;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.15;
+}
+
+.empty-state {
+  padding: 14px;
+  border-radius: 8px;
+  background: rgba(var(--ion-color-primary-rgb), 0.1);
+  color: var(--ion-color-primary-shade);
+  text-align: center;
+}
+
+ion-footer ion-toolbar {
+  --padding-start: 12px;
+  --padding-end: 12px;
+  --padding-top: 8px;
+  --padding-bottom: 8px;
+}
+
+.register-button {
+  --border-radius: 8px;
+}
+
+.carrusel-card,
+.delivery-card {
+  margin: 0;
+  border-radius: 8px;
+  box-shadow: none;
+  border: 1px solid rgba(var(--ion-color-medium-rgb), 0.22);
+}
+
+.delivery-card ion-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.compact-heading {
+  padding: 0;
+}
+
+.auto-select {
+  --background: rgba(var(--ion-color-light-rgb), 0.62);
+  --border-radius: 8px;
+}
+
+.compact-empty {
+  padding: 10px;
+  font-size: 0.86rem;
+}
+
+.identity-card.external-pass {
+  border-color: rgba(var(--ion-color-warning-rgb), 0.45);
+}
+
+.identity-card ion-chip {
+  margin: 6px 0 0;
+  max-width: 100%;
+}
+
+.family-legend,
+.student-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.family-legend {
+  padding: 0 2px;
+}
+
+.family-legend ion-chip,
+.student-tags ion-chip {
+  min-height: 24px;
+  margin: 0;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.student-tags {
+  margin-top: 5px;
+}
+
+.ua-filter-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  min-height: 28px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(var(--ion-color-medium-rgb), 0.1);
+  color: var(--ion-color-medium-shade);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.ua-filter-summary.active {
+  background: rgba(var(--ion-color-primary-rgb), 0.14);
+  color: var(--ion-color-primary);
+}

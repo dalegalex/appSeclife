@@ -1,0 +1,82 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Eliminar cuenta</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <section class="account-delete-shell">
+    <header class="page-heading">
+      <ion-icon name="shield-checkmark-outline" aria-hidden="true"></ion-icon>
+      <div>
+        <p>Cuenta Seclife</p>
+        <h1>Solicitud de eliminacion de cuenta</h1>
+      </div>
+    </header>
+
+    @if (submission(); as request) {
+      <section class="status-panel success">
+        <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon>
+        <div>
+          <h2>Solicitud registrada</h2>
+          <p>Folio: <strong>{{ request.folio }}</strong></p>
+          <p>Estado: {{ request.estatus }}</p>
+          <p>Fecha limite estimada: {{ request.fechaLimiteAtencion | date:'dd/MM/yyyy' }}</p>
+          <p>La eliminacion queda sujeta a validacion de identidad, relacion escolar y obligaciones legales de conservacion.</p>
+        </div>
+      </section>
+    }
+
+    <section class="identity-panel">
+      <span>Usuario autenticado</span>
+      <strong>{{ displayName }}</strong>
+      <p>{{ userEmail }}</p>
+    </section>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="request-form">
+      <ion-item lines="full">
+        <ion-label position="stacked">Motivo u observaciones</ion-label>
+        <ion-textarea
+          formControlName="motivo"
+          rows="5"
+          maxlength="500"
+          placeholder="Opcional"
+        ></ion-textarea>
+      </ion-item>
+
+      <ion-item lines="none" class="confirm-item">
+        <ion-checkbox formControlName="confirma" slot="start"></ion-checkbox>
+        <ion-label>
+          Solicito iniciar el proceso de eliminacion de mi cuenta y datos personales asociados, considerando que algunos registros pueden conservarse por obligaciones legales, seguridad, auditoria o relacion escolar activa.
+        </ion-label>
+      </ion-item>
+
+      @if (form.controls.confirma.touched && form.controls.confirma.invalid) {
+        <ion-note color="danger">Confirma la solicitud para continuar.</ion-note>
+      }
+
+      <ion-button type="submit" expand="block" [disabled]="form.invalid || submitting() || !!submission()">
+        @if (submitting()) {
+          <ion-spinner name="crescent"></ion-spinner>
+        } @else {
+          <ion-icon slot="start" name="trash-outline"></ion-icon>
+          Solicitar eliminacion
+        }
+      </ion-button>
+    </form>
+
+    <section class="web-panel">
+      <div>
+        <strong>Solicitud desde sitio web</strong>
+        <p>Disponible para quienes ya no tienen acceso a la aplicacion.</p>
+      </div>
+      <ion-button fill="outline" size="small" [disabled]="!accountDeletionUrl" (click)="openWebRequest()">
+        <ion-icon slot="start" name="open-outline"></ion-icon>
+        Abrir sitio
+      </ion-button>
+    </section>
+  </section>
+</ion-content>

@@ -1,0 +1,372 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Transporte Escolar</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="refrescarManual()">
+        <ion-icon slot="icon-only" name="refresh-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="padre-shell">
+  <section class="family-summary">
+    <div>
+      <span>Padre de familia</span>
+      <h1>{{ padreNombre }}</h1>
+      <p>Consulta el estado del alumno y la ultima ubicacion reportada.</p>
+    </div>
+  </section>
+
+  <section class="loading-state" *ngIf="cargando">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Consultando transporte familiar...</p>
+  </section>
+
+  <section class="loading-state" *ngIf="!cargando && mensajeEstado">
+    <ion-icon name="information-circle-outline"></ion-icon>
+    <p>{{ mensajeEstado }}</p>
+  </section>
+
+  <section class="family-list" *ngIf="!cargando && alumnosSelector.length">
+    <p class="last-update" *ngIf="ultimaActualizacion">
+      {{ alumnosSelector.length }} alumno{{ alumnosSelector.length === 1 ? '' : 's' }} vinculado{{ alumnosSelector.length === 1 ? '' : 's' }} | Actualizado {{ resolveHoraActualizacion(ultimaActualizacion) }}
+    </p>
+
+    <ion-segment
+      class="student-segment"
+      scrollable="true"
+      [value]="idmatriculaActiva"
+      (ionChange)="seleccionarAlumno($any($event.detail.value))"
+      *ngIf="alumnosSelector.length > 1"
+    >
+      <ion-segment-button
+        *ngFor="let alumno of alumnosSelector; trackBy: trackByAlumnoSelector"
+        [value]="alumno.idmatricula"
+        [title]="resolveAlumnoNombre(alumno)"
+      >
+        <ion-label>{{ resolveAlumnoNombreCorto(alumno) }}</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+
+    <ion-segment class="view-segment" [value]="vistaActiva" (ionChange)="activarVista($any($event.detail.value))">
+      <ion-segment-button value="estado">
+        <ion-icon name="list-outline"></ion-icon>
+        <ion-label>Estado</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="mapa">
+        <ion-icon name="map-outline"></ion-icon>
+        <ion-label>Mapa</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+
+    <section class="request-status">
+      <div class="request-status-header">
+        <div>
+          <span>Solicitudes</span>
+          <h2>Seguimiento del Colegio</h2>
+        </div>
+        <ion-spinner name="crescent" *ngIf="solicitudesCargando"></ion-spinner>
+      </div>
+
+      <div class="request-status-empty" *ngIf="!solicitudesCargando && solicitudesAlumnoActivo.length === 0">
+        No hay solicitudes registradas para el alumno seleccionado.
+      </div>
+
+      <ion-list lines="none" *ngIf="solicitudesAlumnoActivo.length > 0">
+    <ion-item *ngFor="let solicitud of solicitudesAlumnoActivo; trackBy: trackBySolicitud">
+          <ion-icon slot="start" name="document-text-outline"></ion-icon>
+          <ion-label>
+            <h3>{{ resolveSolicitudTipoLabel(solicitud.tipoSolicitud) }}</h3>
+            <p>
+              {{ solicitud.fechaServicio | date:'dd/MM/yyyy' }}
+              <ng-container *ngIf="solicitud.rutaDestino">
+                | {{ solicitud.rutaDestino }}
+              </ng-container>
+            </p>
+            <p *ngIf="solicitud.comentariosResolucion">{{ solicitud.comentariosResolucion }}</p>
+          </ion-label>
+          <div class="request-status-actions" slot="end">
+            <ion-badge [color]="resolveSolicitudEstatusColor(solicitud.estatus)">
+              {{ solicitud.estatus }}
+            </ion-badge>
+            <ion-button
+              fill="clear"
+              color="danger"
+              size="small"
+              *ngIf="puedeCancelarSolicitud(solicitud)"
+              (click)="confirmarCancelarSolicitud(solicitud)"
+            >
+              <ion-icon slot="icon-only" name="close-circle-outline"></ion-icon>
+            </ion-button>
+          </div>
+        </ion-item>
+      </ion-list>
+    </section>
+
+    <ion-card *ngIf="alumnoActivoSinRuta as alumno" class="student-card empty-student-card">
+      <ion-card-header>
+        <ion-card-title>{{ resolveAlumnoNombre(alumno) }}</ion-card-title>
+        <ion-card-subtitle>Sin ruta activa asignada para hoy</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="route-state muted">
+          <ion-icon name="information-circle-outline"></ion-icon>
+          <span>Sin recorrido disponible</span>
+        </div>
+        <p>No se encontro una ruta activa vinculada a este alumno en la consulta actual.</p>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card *ngFor="let item of alumnosVisibles; trackBy: trackByRutaAlumno" class="student-card">
+      <ion-card-header>
+        <div class="card-heading">
+          <div>
+            <ion-card-title>{{ item.alumno }}</ion-card-title>
+            <ion-card-subtitle>{{ item.descripcion }} | {{ item.sentido === 'ENTRADA' ? 'Entrada' : 'Salida' }}</ion-card-subtitle>
+          </div>
+        </div>
+        <ion-badge class="status-badge" [color]="estadoColor(item)">{{ item.estadoTexto }}</ion-badge>
+      </ion-card-header>
+
+      <ion-card-content *ngIf="vistaActiva === 'estado'">
+        <div class="route-state">
+          <ion-icon name="radio-outline"></ion-icon>
+          <span>{{ item.rutaEstadoTexto }}</span>
+        </div>
+
+        <div class="facts">
+          <div>
+            <span>Parada</span>
+            <strong>{{ item.paradaNombre }}</strong>
+            <p>{{ item.paradaHora }}</p>
+          </div>
+          <div>
+            <span>Unidad</span>
+            <strong>{{ item.unidad }}</strong>
+            <p>{{ item.placas }}</p>
+          </div>
+        </div>
+
+        <div class="map-empty">
+          <ion-icon name="map-outline"></ion-icon>
+          <p>
+            {{ item.gps?.latitud && item.gps?.longitud ? 'Ultima ubicacion disponible para abrir en mapa.' : 'Sin coordenadas GPS recientes.' }}
+          </p>
+        </div>
+
+        <ion-list lines="none" class="event-list">
+          <ion-item>
+            <ion-icon slot="start" name="location-outline"></ion-icon>
+            <ion-label>
+              <h2>Ultima ubicacion</h2>
+              <p>{{ resolveFechaHora(item.gps?.fechaHora) }}</p>
+            </ion-label>
+          </ion-item>
+          <ion-item>
+            <ion-icon slot="start" name="checkmark-circle-outline"></ion-icon>
+            <ion-label>
+              <h2>Ultimo evento</h2>
+              <p>{{ item.ultimoEvento?.tipoEvento || 'Sin evento' }} | {{ resolveFechaHora(item.ultimoEvento?.fechaHora) }}</p>
+            </ion-label>
+          </ion-item>
+        </ion-list>
+
+        <ion-button expand="block" fill="outline" (click)="abrirMapa(item)">
+          <ion-icon slot="start" name="navigate-outline"></ion-icon>
+          Abrir mapa
+        </ion-button>
+
+        <ion-button expand="block" color="primary" (click)="abrirSolicitud(item)">
+          <ion-icon slot="start" name="swap-horizontal-outline"></ion-icon>
+          Solicitar cambio
+        </ion-button>
+      </ion-card-content>
+
+      <ion-card-content *ngIf="vistaActiva === 'mapa'">
+        <div class="route-state">
+          <ion-icon name="radio-outline"></ion-icon>
+          <span>{{ item.rutaEstadoTexto }} | Actualiza cada 5 seg.</span>
+        </div>
+
+        <div
+          class="parent-map-shell"
+          [class.is-expanded]="mapaExpandido"
+          (dblclick)="alternarMapaExpandido()"
+        >
+          <div class="parent-map-toolbar">
+            <span>{{ mapaExpandido ? 'Seguimiento en pantalla completa' : 'Seguimiento del autobus' }}</span>
+            <ion-button fill="solid" size="small" (click)="alternarMapaExpandido(); $event.stopPropagation()">
+              <ion-icon slot="start" [name]="mapaExpandido ? 'contract-outline' : 'expand-outline'"></ion-icon>
+              {{ mapaExpandido ? 'Volver' : 'Ampliar' }}
+            </ion-button>
+          </div>
+          <div class="parent-map-frame" #parentMap></div>
+        </div>
+
+        <div class="facts map-facts">
+          <div>
+            <span>Autobus</span>
+            <strong>{{ item.gps?.latitud && item.gps?.longitud ? 'Ubicacion recibida' : 'Sin GPS reciente' }}</strong>
+            <p>{{ resolveFechaHora(item.gps?.fechaHora) }}</p>
+          </div>
+          <div>
+            <span>Parada</span>
+            <strong>{{ item.paradaNombre }}</strong>
+            <p>{{ item.paradaHora }}</p>
+          </div>
+        </div>
+
+        <ion-button expand="block" fill="outline" (click)="abrirMapa(item)">
+          <ion-icon slot="start" name="navigate-outline"></ion-icon>
+          Abrir en Google Maps
+        </ion-button>
+
+        <ion-button expand="block" color="primary" (click)="abrirSolicitud(item)">
+          <ion-icon slot="start" name="swap-horizontal-outline"></ion-icon>
+          Solicitar cambio
+        </ion-button>
+      </ion-card-content>
+    </ion-card>
+  </section>
+
+  <ion-modal [isOpen]="solicitudAbierta" (didDismiss)="cerrarSolicitud()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Solicitud de transporte</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="cerrarSolicitud()" [disabled]="solicitudGuardando">
+              <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="request-modal">
+        <section class="request-summary" *ngIf="solicitudAlumno as item">
+          <span>Alumno</span>
+          <h2>{{ item.alumno }}</h2>
+          <p>{{ item.descripcion }} | {{ item.sentido === 'ENTRADA' ? 'Entrada' : 'Salida' }}</p>
+        </section>
+
+        <ion-list lines="full" class="request-form">
+          <ion-item>
+            <ion-label position="stacked">Tipo de solicitud</ion-label>
+            <ion-segment
+              [value]="solicitudTipo"
+              (ionChange)="onSolicitudTipoChange($any($event.detail.value))"
+            >
+              <ion-segment-button value="CAMBIO_RUTA">
+                <ion-label>Cambio ruta</ion-label>
+              </ion-segment-button>
+              <ion-segment-button value="NO_TOMA_TRANSPORTE">
+                <ion-label>No toma</ion-label>
+              </ion-segment-button>
+            </ion-segment>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Fecha del servicio</ion-label>
+            <ion-input
+              type="date"
+              [(ngModel)]="solicitudFecha"
+              (ionChange)="onSolicitudContextChange()"
+            ></ion-input>
+          </ion-item>
+
+          <ion-item class="readonly-item">
+            <ion-icon slot="start" name="swap-horizontal-outline"></ion-icon>
+            <ion-label>
+              <span>Sentido de la ruta origen</span>
+              <strong>{{ solicitudSentido === 'ENTRADA' ? 'Entrada' : 'Salida' }}</strong>
+            </ion-label>
+          </ion-item>
+
+          <ng-container *ngIf="solicitudTipo === 'CAMBIO_RUTA'">
+            <ion-item>
+              <ion-label position="stacked">Ruta destino</ion-label>
+              <ion-select
+                placeholder="Selecciona ruta"
+                [value]="solicitudRutaDestinoId"
+                (ionChange)="seleccionarRutaDestino($any($event.detail.value))"
+                [disabled]="solicitudCargandoRutas"
+              >
+                <ion-select-option
+                  *ngFor="let ruta of rutasDisponibles"
+                  [value]="ruta.idruta"
+                  [disabled]="ruta.puedeSolicitar === false"
+                >
+                  {{ resolveRutaDisponibleNombre(ruta) }} - {{ resolveCupoRuta(ruta) }}{{ ruta.puedeSolicitar === false ? ' - ' + resolveRutaNoDisponibleMotivo(ruta) : '' }}
+                </ion-select-option>
+              </ion-select>
+            </ion-item>
+
+            <div class="request-help" *ngIf="solicitudCargandoRutas">
+              <ion-spinner name="crescent"></ion-spinner>
+              <span>Consultando rutas disponibles...</span>
+            </div>
+
+            <div class="request-help muted" *ngIf="!solicitudCargandoRutas && rutasDisponibles.length === 0">
+              No hay rutas alternativas disponibles para la fecha y sentido seleccionados.
+            </div>
+
+            <div class="seat-availability" *ngIf="rutaDestinoSeleccionada as ruta">
+              <ion-icon name="bus-outline"></ion-icon>
+              <div>
+                <span>Asientos disponibles</span>
+                <strong>{{ resolveCupoRuta(ruta) }}</strong>
+              </div>
+            </div>
+
+            <ion-item *ngIf="solicitudRutaDestinoId">
+              <ion-label position="stacked">Parada destino</ion-label>
+              <ion-select
+                placeholder="Selecciona parada"
+                [(ngModel)]="solicitudParadaDestinoId"
+                [disabled]="solicitudCargandoParadas"
+              >
+                <ion-select-option *ngFor="let parada of paradasDestino" [value]="parada.idrutaparada">
+                  {{ parada.orden }}. {{ parada.nombre }} {{ parada.horaProgramada ? '| ' + resolveHoraProgramada(parada.horaProgramada) : '' }}
+                </ion-select-option>
+              </ion-select>
+            </ion-item>
+
+            <div class="request-help" *ngIf="solicitudCargandoParadas">
+              <ion-spinner name="crescent"></ion-spinner>
+              <span>Consultando paradas...</span>
+            </div>
+          </ng-container>
+
+          <ion-item>
+            <ion-label position="stacked">Comentarios</ion-label>
+            <ion-textarea
+              autoGrow="true"
+              rows="3"
+              placeholder="Motivo o indicaciones para el Colegio"
+              [(ngModel)]="solicitudComentarios"
+            ></ion-textarea>
+          </ion-item>
+        </ion-list>
+
+        <div class="request-error" *ngIf="solicitudError">
+          <ion-icon name="alert-circle-outline"></ion-icon>
+          <span>{{ solicitudError }}</span>
+        </div>
+
+        <div class="request-actions">
+          <ion-button fill="clear" (click)="cerrarSolicitud()" [disabled]="solicitudGuardando">
+            Cancelar
+          </ion-button>
+          <ion-button (click)="enviarSolicitud()" [disabled]="solicitudGuardando">
+            <ion-spinner slot="start" name="crescent" *ngIf="solicitudGuardando"></ion-spinner>
+            Enviar solicitud
+          </ion-button>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+</ion-content>

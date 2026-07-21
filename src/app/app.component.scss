@@ -1,0 +1,93 @@
+.menu-profile {
+  align-items: center;
+  background: #f8fbff;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  gap: 12px;
+  padding: 18px 16px;
+
+  strong {
+    color: #172033;
+    display: block;
+    font-size: 16px;
+    line-height: 1.2;
+  }
+
+  span {
+    color: #64748b;
+    display: block;
+    font-size: 13px;
+    margin-top: 3px;
+  }
+}
+
+.brand-symbol {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  display: block;
+  height: 44px;
+  object-fit: contain;
+  padding: 4px;
+  width: 44px;
+}
+
+.user-photo {
+  border: 2px solid #dbeafe;
+  border-radius: 50%;
+  display: block;
+  height: 44px;
+  object-fit: cover;
+  width: 44px;
+}
+
+ion-menu ion-item {
+  --border-radius: 8px;
+  --min-height: 64px;
+  margin: 4px 10px;
+
+  h2 {
+    color: #172033;
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  p {
+    color: #64748b;
+    font-size: 12px;
+    margin: 3px 0 0;
+  }
+}
+
+.company-mark {
+  align-items: center;
+  border-top: 1px solid #e2e8f0;
+  color: #64748b;
+  display: flex;
+  font-size: 11px;
+  gap: 8px;
+  margin: 14px 16px 0;
+  padding-top: 12px;
+
+  img {
+    display: block;
+    height: 18px;
+    object-fit: contain;
+    width: 24px;
+  }
+}
+
+.app-version {
+  color: #94a3b8;
+  font-size: 11px;
+  margin: 6px 16px 0;
+}
+
+.signout-button {
+  --color: #0f62fe;
+  font-weight: 700;
+  margin: 10px 10px 16px;
+  text-transform: none;
+}

@@ -1,0 +1,667 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Red familiar</ion-title>
+    <ion-buttons slot="end">
+      <ion-button fill="clear" (click)="cargar()" [disabled]="loading">
+        <ion-icon slot="icon-only" name="refresh-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="cargar($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <section class="family-shell">
+    <div class="family-header">
+      <div>
+        <span class="eyebrow">Familia</span>
+        <h1>{{ nombreFamilia }}</h1>
+      </div>
+      <ion-badge color="primary">{{ familiares.length }} miembros</ion-badge>
+    </div>
+
+    <ion-segment [value]="activeTab" (ionChange)="cambiarTab($any($event.detail.value))">
+      <ion-segment-button value="alumnos">
+        <ion-icon name="school-outline"></ion-icon>
+        <ion-label>Alumnos</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="familiares">
+        <ion-icon name="people-outline"></ion-icon>
+        <ion-label>Familiares</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="autos">
+        <ion-icon name="car-outline"></ion-icon>
+        <ion-label>Autos</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+
+    <div *ngIf="loading" class="loading-state">
+      <ion-spinner name="crescent"></ion-spinner>
+      <span>Cargando red familiar...</span>
+    </div>
+
+    <ng-container *ngIf="!loading">
+      <section *ngIf="activeTab !== 'autos'" class="apply-code-panel">
+        <div class="section-heading compact-heading">
+          <div>
+            <span class="eyebrow">Codigo recibido</span>
+            <h2>Agregar permiso compartido</h2>
+          </div>
+        </div>
+          <ion-item lines="none">
+            <ion-input
+              label="Codigo recibido"
+              labelPlacement="stacked"
+              [(ngModel)]="codigoCapturado"
+              placeholder="6 digitos"
+              inputmode="numeric"
+              maxlength="6"
+            ></ion-input>
+            <ion-button slot="end" fill="clear" (click)="consultarCodigo()" [disabled]="applyingCode || !codigoCapturado.trim()">
+              <ion-icon slot="icon-only" name="search-outline"></ion-icon>
+            </ion-button>
+          </ion-item>
+
+          <div *ngIf="codigoConsultado" class="code-preview">
+            <div>
+              <span class="eyebrow">Codigo valido</span>
+              <h3>{{ codigoConsultado.familiaOrigen }}</h3>
+              <p *ngIf="codigoConsultado.tipoCompartir !== 'FAMILIAR_EXISTENTE'">
+                Fecha asignada {{ codigoConsultado.vigenciaFin | date:'dd/MM/yyyy' }}
+              </p>
+              <p *ngIf="codigoConsultado.tipoCompartir === 'FAMILIAR_EXISTENTE'">
+                Autorizacion permanente
+              </p>
+            </div>
+            <ion-list lines="none">
+              <ion-item *ngIf="codigoConsultado.familiarCompartido" class="compact-item">
+                <ion-icon slot="start" name="person-add-outline"></ion-icon>
+                <ion-label>
+                  <h3>{{ codigoConsultado.familiarCompartido.familiar }}</h3>
+                  <p>{{ codigoConsultado.familiarCompartido.parentesco || 'Familiar compartido' }}</p>
+                </ion-label>
+              </ion-item>
+              <ion-item *ngFor="let alumno of codigoConsultado.alumnos" class="compact-item">
+                <ion-icon slot="start" name="school-outline"></ion-icon>
+                <ion-label>{{ alumno.alumno }}</ion-label>
+              </ion-item>
+            </ion-list>
+            <ion-button expand="block" (click)="aplicarCodigo()" [disabled]="applyingCode">
+              <ion-spinner *ngIf="applyingCode" name="crescent"></ion-spinner>
+              <ion-icon *ngIf="!applyingCode" slot="start" name="checkmark-circle-outline"></ion-icon>
+              {{ applyingCode ? 'Aplicando...' : 'Agregar a mi red' }}
+            </ion-button>
+          </div>
+
+          <div *ngIf="codigoAplicado" class="code-result">
+            <ion-icon name="checkmark-circle-outline"></ion-icon>
+            <span>{{ codigoAplicadoMensaje() }}</span>
+          </div>
+      </section>
+
+      <section *ngIf="activeTab === 'alumnos'" class="tab-panel">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">Alumnos asociados</span>
+            <h2>{{ alumnos.length }} registros</h2>
+          </div>
+          <div class="heading-actions">
+            <ion-button size="small" fill="solid" (click)="toggleAlumnoForm()" [disabled]="!idfamilia">
+              <ion-icon slot="start" [name]="showAlumnoForm ? 'close-outline' : 'add-outline'"></ion-icon>
+              Alumno
+            </ion-button>
+            <ion-button size="small" fill="solid" (click)="toggleCodigoForm()" [disabled]="alumnos.length === 0">
+              <ion-icon slot="start" [name]="showCodigoForm ? 'close-outline' : 'share-social-outline'"></ion-icon>
+              Compartir
+            </ion-button>
+          </div>
+        </div>
+
+        <form *ngIf="showAlumnoForm" class="inline-form" (ngSubmit)="guardarAlumno()">
+          <div class="form-title">
+            <span class="eyebrow">Agregar hijo-alumno</span>
+            <h3>Buscar por matricula o CURP</h3>
+          </div>
+          <ion-item>
+            <ion-input
+              label="Matricula / CURP"
+              labelPlacement="stacked"
+              [(ngModel)]="alumnoForm.alumnoReferencia"
+              name="alumnoReferencia"
+              (ionInput)="toUpperForm(alumnoForm, 'alumnoReferencia')"
+            ></ion-input>
+          </ion-item>
+          <p class="form-hint">El alumno debe pertenecer a la misma organizacion.</p>
+          <ion-button type="submit" expand="block" [disabled]="savingAlumno || !puedeGuardarAlumno">
+            <ion-spinner *ngIf="savingAlumno" name="crescent"></ion-spinner>
+            <ion-icon *ngIf="!savingAlumno" slot="start" name="person-add-outline"></ion-icon>
+            {{ savingAlumno ? 'Agregando...' : 'Agregar alumno' }}
+          </ion-button>
+        </form>
+
+        <form *ngIf="showCodigoForm" class="inline-form" (ngSubmit)="generarCodigo()">
+          <div class="form-title">
+            <span class="eyebrow">Compartir alumnos</span>
+            <h3>Codigo para otra familia</h3>
+          </div>
+
+          <ion-segment [(ngModel)]="codigoForm.modo" name="modoCompartir" (ionChange)="cambiarModoCompartir()">
+            <ion-segment-button value="PROVISIONAL">
+              <ion-label>Provisional</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="PERMANENTE">
+              <ion-label>Permanente</ion-label>
+            </ion-segment-button>
+          </ion-segment>
+
+          <ion-list lines="none">
+            <ion-item *ngFor="let alumno of alumnos" class="compact-item">
+              <ion-checkbox
+                slot="start"
+                [checked]="alumnoSeleccionado(alumno.idmatricula)"
+                [disabled]="!puedeCompartirAlumno(alumno)"
+                (ionChange)="toggleAlumnoCompartir(alumno.idmatricula, $event.detail.checked)"
+              ></ion-checkbox>
+              <ion-label>
+                <h3>{{ alumno.alumno }}</h3>
+                <p>{{ alumnoReferencia(alumno) }}</p>
+                <p *ngIf="!puedeCompartirAlumno(alumno)">Solo la familia nucleo puede compartir este alumno.</p>
+              </ion-label>
+            </ion-item>
+          </ion-list>
+
+          <ion-item>
+            <ion-input
+              type="date"
+              label="Fecha asignada"
+              labelPlacement="stacked"
+              [(ngModel)]="codigoForm.vigenciaFin"
+              name="vigenciaFin"
+            ></ion-input>
+          </ion-item>
+          <p class="form-hint" *ngIf="codigoForm.modo === 'PERMANENTE'">
+            La fecha solo limita el uso del codigo; la autorizacion quedara permanente.
+          </p>
+          <ion-item>
+            <ion-input
+              type="number"
+              min="1"
+              label="Usos disponibles"
+              labelPlacement="stacked"
+              [(ngModel)]="codigoForm.maxUsos"
+              name="maxUsos"
+            ></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-textarea
+              label="Comentarios"
+              labelPlacement="stacked"
+              [(ngModel)]="codigoForm.comentarios"
+              name="comentarios"
+            ></ion-textarea>
+          </ion-item>
+
+          <ion-button type="submit" expand="block" [disabled]="sharing || selectedAlumnos.size === 0">
+            <ion-spinner *ngIf="sharing" name="crescent"></ion-spinner>
+            <ion-icon *ngIf="!sharing" slot="start" name="key-outline"></ion-icon>
+            {{ sharing ? 'Generando...' : 'Generar codigo' }}
+          </ion-button>
+
+          <div *ngIf="codigoGenerado" class="generated-code">
+            <span>Codigo</span>
+            <strong>{{ codigoGenerado.codigo }}</strong>
+            <div class="generated-code-actions">
+              <ion-button fill="clear" (click)="copiarCodigo(codigoGenerado.codigo)" type="button">
+                <ion-icon slot="start" name="copy-outline"></ion-icon>
+                Copiar
+              </ion-button>
+              <ion-button fill="clear" (click)="compartirCodigo(codigoGenerado)" type="button">
+                <ion-icon slot="start" name="share-social-outline"></ion-icon>
+                Compartir
+              </ion-button>
+            </div>
+          </div>
+        </form>
+
+        <section class="issued-codes-panel">
+          <div class="section-heading">
+            <div>
+              <span class="eyebrow">Codigos emitidos</span>
+              <h2>{{ codigosEmitidosAlumnosActivos.length }} registros</h2>
+            </div>
+            <ion-button size="small" fill="clear" (click)="cargarCodigosEmitidos()" [disabled]="loadingCodigos || !idfamilia">
+              <ion-spinner *ngIf="loadingCodigos" name="crescent"></ion-spinner>
+              <ion-icon *ngIf="!loadingCodigos" slot="icon-only" name="refresh-outline"></ion-icon>
+            </ion-button>
+          </div>
+
+          <div *ngIf="loadingCodigos" class="loading-state compact-loading">
+            <ion-spinner name="crescent"></ion-spinner>
+            <span>Cargando codigos...</span>
+          </div>
+
+          <div *ngIf="!loadingCodigos && codigosEmitidosAlumnosActivos.length === 0" class="empty-state">
+            No hay codigos de alumnos emitidos para esta familia.
+          </div>
+
+          <article *ngFor="let codigo of codigosEmitidosAlumnosActivos" class="issued-code-card">
+            <div class="issued-code-head">
+              <div>
+                <span class="eyebrow">{{ codigoModoLabel(codigo) }}</span>
+                <strong>{{ codigo.codigo }}</strong>
+              </div>
+              <ion-chip [color]="codigoEstadoColor(codigo)">
+                <ion-label>{{ codigo.estatusOperativo || codigo.estatus || 'Sin estado' }}</ion-label>
+              </ion-chip>
+            </div>
+
+            <div class="code-meta">
+              <span>Vence {{ codigo.vigenciaFin | date:'dd/MM/yyyy HH:mm' }}</span>
+              <span>Usos {{ codigo.usosRealizados || 0 }}/{{ codigo.maxUsos || 0 }}</span>
+            </div>
+
+            <div class="mini-list">
+              <span class="eyebrow">Alumnos</span>
+              <p *ngFor="let alumno of codigo.alumnos">{{ alumno.alumno }}</p>
+            </div>
+
+            <div class="mini-list">
+              <span class="eyebrow">Integrado por</span>
+              <p *ngIf="!codigo.aplicaciones?.length">Aun no ha sido aplicado por otra familia.</p>
+              <p *ngFor="let aplicacion of codigo.aplicaciones">
+                {{ aplicacion.familiaDestino || 'Familia destino' }}
+                <span *ngIf="aplicacion.familiarDestino">- {{ aplicacion.familiarDestino }}</span>
+                <small>({{ aplicacion.alumnosAgregados || 0 }} alumno(s))</small>
+              </p>
+            </div>
+
+            <ion-button fill="clear" size="small" (click)="copiarCodigo(codigo.codigo)" type="button">
+              <ion-icon slot="start" name="copy-outline"></ion-icon>
+              Copiar codigo
+            </ion-button>
+            <ion-button fill="clear" size="small" (click)="compartirCodigo(codigo)" type="button">
+              <ion-icon slot="start" name="share-social-outline"></ion-icon>
+              Compartir
+            </ion-button>
+            <ion-button fill="clear" color="warning" size="small" (click)="cancelarCodigoEmitido(codigo)" type="button">
+              <ion-icon slot="start" name="close-circle-outline"></ion-icon>
+              Cancelar
+            </ion-button>
+          </article>
+        </section>
+
+        <div *ngIf="alumnos.length === 0" class="empty-state">
+          No hay alumnos asociados a esta red familiar.
+        </div>
+
+        <ion-list *ngIf="alumnos.length > 0" lines="none" class="student-list">
+          <ion-item-sliding *ngFor="let alumno of alumnos" class="student-sliding-delete">
+            <ion-item
+              class="data-item swipe-hint"
+              [class.nucleo-student]="esAlumnoNucleo(alumno)"
+              [class.shared-student]="esAlumnoCompartidoExterno(alumno)"
+            >
+              <ion-icon slot="start" name="school-outline"></ion-icon>
+              <ion-label>
+                <h3>{{ alumno.alumno }}</h3>
+                <p>{{ alumnoReferencia(alumno) }}</p>
+                <div class="chip-row">
+                  <ion-chip *ngIf="tieneCompartido(alumno, 'PROVISIONAL')" color="warning">
+                    <ion-icon name="time-outline"></ion-icon>
+                    <ion-label>Provisional</ion-label>
+                  </ion-chip>
+                  <ion-chip *ngIf="tieneCompartido(alumno, 'PERMANENTE')" color="primary">
+                    <ion-icon name="people-outline"></ion-icon>
+                    <ion-label>Permanente</ion-label>
+                  </ion-chip>
+                  <ion-chip [color]="alumnoRelacionColor(alumno)">
+                    <ion-label>{{ alumnoRelacionLabel(alumno) }}</ion-label>
+                  </ion-chip>
+                  <ion-chip [color]="alumno.puedeRecoger ? 'success' : 'medium'">
+                    <ion-label>{{ alumno.puedeRecoger ? 'Entrega activa' : 'Sin entrega' }}</ion-label>
+                  </ion-chip>
+                </div>
+                <div *ngIf="compartidosAlumno(alumno).length > 0" class="shared-with-list">
+                  <span class="eyebrow">Compartido con</span>
+                  <article *ngFor="let compartido of compartidosAlumno(alumno)" class="shared-with-item">
+                    <div>
+                      <strong>{{ compartido.familiaDestino || 'Familia destino' }}</strong>
+                      <p>
+                        {{ compartido.familiarDestino || 'Familiar autorizado' }}
+                        <span>- {{ compartidoLabel(compartido) }}</span>
+                      </p>
+                    </div>
+                    <ion-button fill="clear" color="danger" size="small" (click)="revocarCompartido(alumno, compartido)">
+                      <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+                    </ion-button>
+                  </article>
+                </div>
+              </ion-label>
+            </ion-item>
+
+            <ion-item-options side="end">
+              <ion-item-option color="danger" *ngIf="puedeCompartirAlumno(alumno)" (click)="eliminarAlumno(alumno)">
+                <ion-icon slot="top" name="trash-outline"></ion-icon>
+                Eliminar
+              </ion-item-option>
+            </ion-item-options>
+          </ion-item-sliding>
+        </ion-list>
+
+      </section>
+
+      <section *ngIf="activeTab === 'familiares'" class="tab-panel">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">Miembros visibles</span>
+            <h2>{{ familiares.length }} registros</h2>
+          </div>
+          <div class="heading-actions">
+            <ion-button size="small" fill="outline" (click)="toggleExternoForm()" [disabled]="!idfamilia">
+              <ion-icon slot="start" [name]="showExternoForm ? 'close-outline' : 'person-add-outline'"></ion-icon>
+              Externo
+            </ion-button>
+            <ion-button size="small" fill="solid" (click)="toggleMiembroForm()" [disabled]="!idfamilia">
+              <ion-icon slot="start" [name]="showMiembroForm ? 'close-outline' : 'add-outline'"></ion-icon>
+              Familiar
+            </ion-button>
+          </div>
+        </div>
+
+        <form *ngIf="showMiembroForm" class="inline-form" (ngSubmit)="guardarMiembro()">
+          <ion-item>
+            <ion-input label="Nombre" labelPlacement="stacked" [(ngModel)]="miembroForm.nombre" name="nombre" (ionInput)="toUpperForm(miembroForm, 'nombre')"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-input label="Apellidos" labelPlacement="stacked" [(ngModel)]="miembroForm.apellidos" name="apellidos" (ionInput)="toUpperForm(miembroForm, 'apellidos')"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-select label="Parentesco" labelPlacement="stacked" [(ngModel)]="miembroForm.idparentesco" name="idparentesco">
+              <ion-select-option *ngFor="let parentesco of parentescos" [value]="parentesco.idparentesco">
+                {{ parentesco.descripcion || parentesco.nombre }}
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+          <ion-item>
+            <ion-input label="Celular" labelPlacement="stacked" [(ngModel)]="miembroForm.cel" name="cel"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-input label="Correo de contacto" labelPlacement="stacked" [(ngModel)]="miembroForm.emailContacto" name="emailContacto"></ion-input>
+          </ion-item>
+          <ion-item lines="none">
+            <ion-checkbox [(ngModel)]="miembroForm.puedeRecoger" name="puedeRecoger">Puede recoger</ion-checkbox>
+          </ion-item>
+          <ion-item lines="none">
+            <ion-checkbox [(ngModel)]="miembroForm.puedeAdministrar" name="puedeAdministrar">Administra red</ion-checkbox>
+          </ion-item>
+          <ion-button type="submit" expand="block" [disabled]="savingMiembro || !puedeGuardarMiembro">
+            <ion-spinner *ngIf="savingMiembro" name="crescent"></ion-spinner>
+            <ion-icon *ngIf="!savingMiembro" slot="start" name="save-outline"></ion-icon>
+            {{ savingMiembro ? 'Guardando...' : (editingMiembro ? 'Actualizar familiar' : 'Guardar familiar') }}
+          </ion-button>
+        </form>
+
+        <form *ngIf="showExternoForm" class="inline-form external-pass-form" (ngSubmit)="guardarExternoProvisional()">
+          <div class="form-title">
+            <h3>Persona externa provisional</h3>
+            <p>Sin TAG ni acceso a la app. Solo podra recoger con pase QR por fecha.</p>
+          </div>
+          <ion-item>
+            <ion-input label="Nombre" labelPlacement="stacked" [(ngModel)]="externoForm.nombre" name="externoNombre" (ionInput)="toUpperForm(externoForm, 'nombre')"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-input label="Apellidos" labelPlacement="stacked" [(ngModel)]="externoForm.apellidos" name="externoApellidos" (ionInput)="toUpperForm(externoForm, 'apellidos')"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-input label="Celular" labelPlacement="stacked" [(ngModel)]="externoForm.cel" name="externoCel"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-textarea label="Observaciones" labelPlacement="stacked" [(ngModel)]="externoForm.observaciones" name="externoObservaciones"></ion-textarea>
+          </ion-item>
+          <ion-button type="submit" expand="block" [disabled]="savingExterno || !puedeGuardarExterno">
+            <ion-spinner *ngIf="savingExterno" name="crescent"></ion-spinner>
+            <ion-icon *ngIf="!savingExterno" slot="start" name="save-outline"></ion-icon>
+            {{ savingExterno ? 'Guardando...' : 'Guardar externo provisional' }}
+          </ion-button>
+        </form>
+
+        <form *ngIf="externalPassMember" class="inline-form external-pass-form pass-generator-form" (ngSubmit)="generarPaseExterno()">
+          <div class="form-title">
+            <h3>Pase externo para {{ externalPassMember.familiar }}</h3>
+            <p>El Colegio solicitara identificacion oficial al presentar este codigo.</p>
+          </div>
+          <ion-list lines="none">
+            <ion-item *ngFor="let alumno of alumnos" class="compact-item">
+              <ion-checkbox
+                slot="start"
+                [checked]="alumnoSeleccionado(alumno.idmatricula)"
+                [disabled]="!puedeCompartirAlumno(alumno)"
+                (ionChange)="toggleAlumnoCompartir(alumno.idmatricula, $event.detail.checked)">
+              </ion-checkbox>
+              <ion-label>
+                <h3>{{ alumno.alumno }}</h3>
+                <p>{{ alumnoReferencia(alumno) }}</p>
+              </ion-label>
+            </ion-item>
+          </ion-list>
+          <ion-item>
+            <ion-input type="date" label="Fecha del pase" labelPlacement="stacked" [(ngModel)]="externoPassForm.fecha" name="externoPassFecha"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-textarea label="Comentarios" labelPlacement="stacked" [(ngModel)]="externoPassForm.comentarios" name="externoPassComentarios"></ion-textarea>
+          </ion-item>
+          <div class="form-actions">
+            <ion-button type="button" fill="clear" (click)="externalPassMember = null">
+              Cancelar
+            </ion-button>
+            <ion-button type="submit" [disabled]="generatingExternalPass || !puedeGenerarPaseExterno">
+              <ion-spinner *ngIf="generatingExternalPass" name="crescent"></ion-spinner>
+              <ion-icon *ngIf="!generatingExternalPass" slot="start" name="qr-code-outline"></ion-icon>
+              {{ generatingExternalPass ? 'Generando...' : 'Generar pase' }}
+            </ion-button>
+          </div>
+        </form>
+
+        <div *ngIf="familiares.length === 0" class="empty-state">
+          No hay familiares visibles para mostrar.
+        </div>
+
+        <ion-list *ngIf="familiares.length > 0" lines="none" class="family-list">
+          <ion-item-sliding *ngFor="let miembro of familiares" class="family-sliding" [class.external-family]="esMiembroExterno(miembro)">
+            <ion-item class="data-item swipe-hint" [class.external-member]="esMiembroExterno(miembro)">
+              <button
+                slot="start"
+                class="photo-picker"
+                [class.locked-photo]="esMiembroExterno(miembro)"
+                type="button"
+                [disabled]="esMiembroExterno(miembro)"
+                (click)="seleccionarOrigenFoto(miembro, photoGalleryInput, photoCameraInput)"
+                [attr.aria-label]="esMiembroExterno(miembro) ? 'Fotografia administrada por familia origen' : 'Cambiar fotografia'">
+                <img *ngIf="fotoSrc(miembro.foto)" [src]="fotoSrc(miembro.foto)" alt="Familiar" />
+                <span *ngIf="!fotoSrc(miembro.foto)" class="avatar-fallback">
+                  <ion-icon name="person-outline"></ion-icon>
+                </span>
+                <ion-icon *ngIf="!esMiembroExterno(miembro)" class="photo-edit" name="camera-outline"></ion-icon>
+              </button>
+              <input #photoGalleryInput type="file" accept="image/*" hidden (change)="cargarFotoMiembro(miembro, $event)" />
+              <input #photoCameraInput type="file" accept="image/*" capture="environment" hidden (change)="cargarFotoMiembro(miembro, $event)" />
+              <ion-label>
+                <h3>{{ miembro.familiar }}</h3>
+                <p>{{ miembro.parentesco || 'Sin parentesco' }}</p>
+                <div class="chip-row">
+                  <ion-chip [color]="esMiembroExterno(miembro) ? 'tertiary' : 'primary'">
+                    <ion-label>{{ esInvitadoProvisional(miembro) ? 'Externo provisional' : (esMiembroExterno(miembro) ? 'Familiar externo' : 'Familia nucleo') }}</ion-label>
+                  </ion-chip>
+                  <ion-chip color="primary">
+                    <ion-label>{{ codigoTipo(miembro) }}</ion-label>
+                  </ion-chip>
+
+                  <ion-chip *ngIf="tagEstadoLabel(miembro)" [color]="tagEstadoColor(miembro)">
+                    <ion-label>{{ tagEstadoLabel(miembro) }}</ion-label>
+                  </ion-chip>
+                </div>
+                <p *ngIf="miembroPaseFechaLabel(miembro)" class="pass-date-note">{{ miembroPaseFechaLabel(miembro) }}</p>
+              </ion-label>
+            </ion-item>
+
+            <ion-item-options side="end">
+              <ion-item-option color="medium" *ngIf="!esMiembroExterno(miembro)" (click)="editarMiembro(miembro)">
+                <ion-icon slot="top" name="create-outline"></ion-icon>
+                Editar
+              </ion-item-option>
+              <ion-item-option color="primary" *ngIf="miembro.sitactivo !== false && !sharing && !esMiembroExterno(miembro)" (click)="abrirCompartirFamiliar(miembro)">
+                <ion-icon slot="top" name="share-social-outline"></ion-icon>
+                Compartir
+              </ion-item-option>
+              <ion-item-option color="success" *ngIf="esInvitadoProvisional(miembro)" (click)="abrirPaseExterno(miembro)">
+                <ion-icon slot="top" [name]="miembroPaseAccionIcon(miembro)"></ion-icon>
+                {{ miembroPaseAccionLabel(miembro) }}
+              </ion-item-option>
+              <ion-item-option [color]="miembro.sitbloqueo ? 'success' : 'warning'" *ngIf="puedeBloquearTag(miembro)" [disabled]="savingTag" (click)="cambiarBloqueoMiembro(miembro)">
+                <ion-icon slot="top" [name]="bloqueoTagIcon(miembro)"></ion-icon>
+                {{ bloqueoTagLabel(miembro) }}
+              </ion-item-option>
+              <ion-item-option color="warning" *ngIf="esInvitadoProvisional(miembro) && miembroTienePaseActivo(miembro)" (click)="cancelarPaseExterno(miembro)">
+                <ion-icon slot="top" name="close-circle-outline"></ion-icon>
+                Cancelar QR
+              </ion-item-option>
+              <ion-item-option color="danger" (click)="eliminarMiembro(miembro)">
+                <ion-icon slot="top" name="trash-outline"></ion-icon>
+                Eliminar
+              </ion-item-option>
+            </ion-item-options>
+          </ion-item-sliding>
+        </ion-list>
+
+        <section class="issued-codes-panel">
+          <div class="section-heading">
+            <div>
+              <span class="eyebrow">Familiares compartidos</span>
+              <h2>{{ codigosEmitidosFamiliaresActivos.length }} registros</h2>
+            </div>
+            <ion-button size="small" fill="clear" (click)="cargarCodigosEmitidos()" [disabled]="loadingCodigos || !idfamilia">
+              <ion-spinner *ngIf="loadingCodigos" name="crescent"></ion-spinner>
+              <ion-icon *ngIf="!loadingCodigos" slot="icon-only" name="refresh-outline"></ion-icon>
+            </ion-button>
+          </div>
+
+          <div *ngIf="loadingCodigos" class="loading-state compact-loading">
+            <ion-spinner name="crescent"></ion-spinner>
+            <span>Cargando codigos...</span>
+          </div>
+
+          <div *ngIf="!loadingCodigos && codigosEmitidosFamiliaresActivos.length === 0" class="empty-state">
+            No hay codigos de familiares emitidos para esta familia.
+          </div>
+
+          <article *ngFor="let codigo of codigosEmitidosFamiliaresActivos" class="issued-code-card">
+            <div class="issued-code-head">
+              <div>
+                <span class="eyebrow">{{ codigoModoLabel(codigo) }}</span>
+                <strong>{{ codigo.codigo }}</strong>
+              </div>
+              <ion-chip [color]="codigoEstadoColor(codigo)">
+                <ion-label>{{ codigo.estatusOperativo || codigo.estatus || 'Sin estado' }}</ion-label>
+              </ion-chip>
+            </div>
+
+            <div class="code-meta">
+              <span>Vence {{ codigo.vigenciaFin | date:'dd/MM/yyyy HH:mm' }}</span>
+              <span>Usos {{ codigo.usosRealizados || 0 }}/{{ codigo.maxUsos || 0 }}</span>
+            </div>
+
+            <div class="mini-list">
+              <span class="eyebrow">Familiar</span>
+              <p>{{ familiarCodigo(codigo)?.familiar || 'Familiar compartido' }}</p>
+              <p *ngIf="familiarCodigo(codigo)?.parentesco">{{ familiarCodigo(codigo)?.parentesco }}</p>
+            </div>
+
+            <div class="mini-list">
+              <span class="eyebrow">Integrado por</span>
+              <p *ngIf="!codigo.aplicaciones?.length">Aun no ha sido aplicado por otra familia.</p>
+              <p *ngFor="let aplicacion of codigo.aplicaciones">
+                {{ aplicacion.familiaDestino || 'Familia destino' }}
+                <span *ngIf="aplicacion.familiarDestino">- {{ aplicacion.familiarDestino }}</span>
+              </p>
+            </div>
+
+            <ion-button fill="clear" size="small" (click)="copiarCodigo(codigo.codigo)" type="button">
+              <ion-icon slot="start" name="copy-outline"></ion-icon>
+              Copiar codigo
+            </ion-button>
+            <ion-button fill="clear" size="small" (click)="compartirCodigo(codigo)" type="button">
+              <ion-icon slot="start" name="share-social-outline"></ion-icon>
+              Compartir
+            </ion-button>
+            <ion-button fill="clear" color="warning" size="small" (click)="cancelarCodigoEmitido(codigo)" type="button">
+              <ion-icon slot="start" name="close-circle-outline"></ion-icon>
+              Cancelar
+            </ion-button>
+          </article>
+        </section>
+      </section>
+
+      <section *ngIf="activeTab === 'autos'" class="tab-panel">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">Parque vehicular</span>
+            <h2>{{ autos.length }} registros</h2>
+          </div>
+          <ion-button size="small" fill="solid" (click)="toggleAutoForm()" [disabled]="!idfamilia">
+            <ion-icon slot="start" [name]="showAutoForm ? 'close-outline' : 'add-outline'"></ion-icon>
+            Auto
+          </ion-button>
+        </div>
+
+        <form *ngIf="showAutoForm" class="inline-form" (ngSubmit)="guardarAuto()">
+          <ion-item>
+            <ion-input label="Placas" labelPlacement="stacked" [(ngModel)]="autoForm.placas" name="placas" (ionInput)="toUpperForm(autoForm, 'placas')"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-input label="Marca" labelPlacement="stacked" [(ngModel)]="autoForm.marca" name="marca" (ionInput)="toUpperForm(autoForm, 'marca')"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-input label="Modelo" labelPlacement="stacked" [(ngModel)]="autoForm.modelo" name="modelo" (ionInput)="toUpperForm(autoForm, 'modelo')"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-input label="Color" labelPlacement="stacked" [(ngModel)]="autoForm.color" name="color" (ionInput)="toUpperForm(autoForm, 'color')"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-textarea label="Observaciones" labelPlacement="stacked" [(ngModel)]="autoForm.observaciones" name="observaciones"></ion-textarea>
+          </ion-item>
+          <ion-button type="submit" expand="block" [disabled]="savingAuto || !puedeGuardarAuto">
+            <ion-spinner *ngIf="savingAuto" name="crescent"></ion-spinner>
+            <ion-icon *ngIf="!savingAuto" slot="start" name="save-outline"></ion-icon>
+            {{ savingAuto ? 'Guardando...' : 'Guardar auto' }}
+          </ion-button>
+        </form>
+
+        <div *ngIf="autos.length === 0" class="empty-state">
+          No hay autos registrados para esta familia.
+        </div>
+
+        <ion-list *ngIf="autos.length > 0" lines="none">
+          <ion-item *ngFor="let auto of autos" class="data-item">
+            <ion-icon slot="start" name="car-outline"></ion-icon>
+            <ion-label>
+              <h3>{{ auto.placas }}</h3>
+              <p>{{ auto.marca || 'Sin marca' }} {{ auto.modelo || '' }} - {{ auto.color || 'Sin color' }}</p>
+              <ion-chip [color]="auto.sitactivo === false ? 'danger' : 'primary'">
+                <ion-label>{{ auto.sitactivo === false ? 'Inactivo' : 'Activo' }}</ion-label>
+              </ion-chip>
+            </ion-label>
+            <ion-button slot="end" fill="clear" color="danger" (click)="eliminarAuto(auto)">
+              <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+            </ion-button>
+          </ion-item>
+        </ion-list>
+      </section>
+    </ng-container>
+  </section>
+</ion-content>
