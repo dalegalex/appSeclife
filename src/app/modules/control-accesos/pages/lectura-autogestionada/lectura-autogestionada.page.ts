@@ -1,6 +1,5 @@
 import { Component, NgZone, OnDestroy } from '@angular/core';
 import {
-  CapacitorBarcodeScanner,
   CapacitorBarcodeScannerCameraDirection,
   CapacitorBarcodeScannerScanOrientation,
   CapacitorBarcodeScannerTypeHint,
@@ -11,6 +10,7 @@ import { CapacitorNfc, NfcEvent, NdefRecord, PluginListenerHandle } from '@capgo
 import { AlertController, ToastController } from '@ionic/angular';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../../../core/auth/auth.service';
+import { scanQrCode } from '../../../../core/qr-scanner';
 import {
   AutogestionEvento,
   AutogestionEventoLectura,
@@ -220,7 +220,7 @@ export class LecturaAutogestionadaPage implements OnDestroy {
 
   async activarQr(): Promise<void> {
     try {
-      const result = await CapacitorBarcodeScanner.scanBarcode({
+      const result = await scanQrCode({
         hint: CapacitorBarcodeScannerTypeHint.QR_CODE,
         cameraDirection: CapacitorBarcodeScannerCameraDirection.BACK,
         scanOrientation: CapacitorBarcodeScannerScanOrientation.ADAPTIVE,

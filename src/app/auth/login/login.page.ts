@@ -165,6 +165,8 @@ export class LoginPage implements AfterViewInit {
     await SocialLogin.initialize({
       google: {
         webClientId: environment.googleClientId,
+        iOSClientId: environment.googleIosClientId,
+        iOSServerClientId: environment.googleClientId,
         mode: 'online',
       },
     });
@@ -571,7 +573,7 @@ export class LoginPage implements AfterViewInit {
     if (normalized.includes('aplicacion autorizada') || normalized.includes('google no valido')) {
       this.setError(
         'Configuracion Google',
-        'Google no pudo validar esta aplicacion. Revisa el Client ID, paquete Android y SHA-1 configurados en Google Cloud.'
+        'Google no pudo validar esta aplicacion. Revisa los Client ID y la configuracion de la plataforma en Google Cloud.'
       );
       return;
     }

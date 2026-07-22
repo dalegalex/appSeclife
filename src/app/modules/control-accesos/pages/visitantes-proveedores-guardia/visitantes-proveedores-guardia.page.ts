@@ -1,6 +1,5 @@
 import { Component, NgZone, OnDestroy } from '@angular/core';
 import {
-  CapacitorBarcodeScanner,
   CapacitorBarcodeScannerCameraDirection,
   CapacitorBarcodeScannerScanOrientation,
   CapacitorBarcodeScannerTypeHint,
@@ -10,6 +9,7 @@ import { CapacitorNfc, NfcEvent, NdefRecord, PluginListenerHandle } from '@capgo
 import { ToastController } from '@ionic/angular';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../../../core/auth/auth.service';
+import { scanQrCode } from '../../../../core/qr-scanner';
 import { VisitanteProveedorPase } from '../../models/visitantes-proveedores.model';
 import { VisitantesProveedoresService } from '../../services/visitantes-proveedores.service';
 
@@ -320,7 +320,7 @@ export class VisitantesProveedoresGuardiaPage implements OnDestroy {
 
   private async scanQr(): Promise<string | null> {
     try {
-      const result = await CapacitorBarcodeScanner.scanBarcode({
+      const result = await scanQrCode({
         hint: CapacitorBarcodeScannerTypeHint.QR_CODE,
         scanInstructions: 'Alinea el codigo QR dentro del recuadro',
         cameraDirection: CapacitorBarcodeScannerCameraDirection.BACK,

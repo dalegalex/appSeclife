@@ -1,7 +1,6 @@
 import { ChangeDetectorRef, Component, NgZone, OnDestroy } from '@angular/core';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import {
-  CapacitorBarcodeScanner,
   CapacitorBarcodeScannerCameraDirection,
   CapacitorBarcodeScannerScanOrientation,
   CapacitorBarcodeScannerTypeHint,
@@ -10,6 +9,7 @@ import { CapacitorNfc, NfcEvent, NdefRecord, PluginListenerHandle } from '@capgo
 import { AlertController, ToastController } from '@ionic/angular';
 import { Subscription, firstValueFrom } from 'rxjs';
 import { AuthService } from '../../../../core/auth/auth.service';
+import { scanQrCode } from '../../../../core/qr-scanner';
 import {
   LecturaAsistidaAlumno,
   LecturaAsistidaAuto,
@@ -416,7 +416,7 @@ export class LecturaAsistidaPage implements OnDestroy {
     this.nfcActivo = false;
 
     try {
-      const result = await CapacitorBarcodeScanner.scanBarcode({
+      const result = await scanQrCode({
         hint: CapacitorBarcodeScannerTypeHint.QR_CODE,
         scanInstructions: 'Alinea el codigo QR dentro del recuadro.',
         scanButton: false,
