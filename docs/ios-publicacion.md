@@ -43,6 +43,12 @@ npx cap open ios
 
 Despues de `cap sync ios`, confirmar que `ios/App/CapApp-SPM/Package.swift` mantiene rutas con `/` y que el plugin de notificaciones aparece entre las dependencias.
 
+### Contador de notificaciones en el icono iOS
+
+- La app sincroniza el contador nativo con `totalNoLeidas` al registrar el dispositivo, recibir una notificacion en primer plano, entrar a Inicio o Historial, marcar una notificacion como leida y cerrar sesion.
+- Para que el numero aparezca en el instante de entrega cuando la app esta en segundo plano o cerrada, GpsApi debe incluir el total pendiente en `apns.payload.aps.badge` para cada mensaje iOS. Android puede calcular un indicador desde las notificaciones activas, pero iOS no lo infiere.
+- Al abrir o leer una notificacion, el contador se vuelve a conciliar contra el historial del backend para evitar acumulaciones incorrectas.
+
 ## Pruebas obligatorias en dispositivo iOS fisico
 
 1. Login por correo personal y por Google.

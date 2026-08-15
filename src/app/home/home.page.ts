@@ -2,6 +2,7 @@ import { Component, OnInit, computed, signal } from '@angular/core';
 import { AuthService } from '../core/auth/auth.service';
 import { DRIVER_TRANSPORT_ENABLED } from '../core/platform/platform-capabilities';
 import { EventoInvitacionService } from '../modules/control-accesos/services/evento-invitacion.service';
+import { NotificacionesPushRegistrationService } from '../modules/notificaciones-push/services/notificaciones-push-registration.service';
 import { NotificacionesPushService } from '../modules/notificaciones-push/services/notificaciones-push.service';
 
 @Component({
@@ -21,6 +22,7 @@ export class HomePage implements OnInit {
   constructor(
     public readonly authService: AuthService,
     private readonly eventoInvitacionService: EventoInvitacionService,
+    private readonly notificacionesPushRegistrationService: NotificacionesPushRegistrationService,
     private readonly notificacionesPushService: NotificacionesPushService
   ) {}
 
@@ -137,7 +139,10 @@ export class HomePage implements OnInit {
       page: 1,
       pageSize: 1,
     }).subscribe({
-      next: page => this.unreadNotificationCount.set(page.totalNoLeidas ?? 0),
+      next: page => {
+        this.unreadNotificationCount.set(page.totalNoLeidas ?? 0);
+        void this.notificacionesPushRegistrationService.updateAppBadgeCount(this.unreadNotificationCount());
+      },
       error: () => this.unreadNotificationCount.set(0),
     });
   }

@@ -7,6 +7,7 @@ import { ToastController } from '@ionic/angular';
 import { firstValueFrom } from 'rxjs';
 import { DRIVER_TRANSPORT_ENABLED } from '../../../core/platform/platform-capabilities';
 import { environment } from '../../../../environments/environment';
+import { setAppBadgeCount } from '../../../core/app-badge';
 import { AuthService } from '../../../core/auth/auth.service';
 import { NotificacionesPushService } from './notificaciones-push.service';
 
@@ -51,6 +52,7 @@ export class NotificacionesPushRegistrationService {
       });
 
       await PushNotifications.addListener('pushNotificationReceived', (notification) => {
+        void this.syncAppBadgeFromHistory();
         void this.presentForegroundNotification(notification).catch((error) =>
           this.logPushError('pushNotificationReceived', error)
         );
@@ -63,6 +65,7 @@ export class NotificacionesPushRegistrationService {
       });
 
       await PushNotifications.register();
+      await this.syncAppBadgeFromHistory();
     } catch (error) {
       this.initialized = false;
       await PushNotifications.removeAllListeners();
@@ -84,12 +87,17 @@ export class NotificacionesPushRegistrationService {
     } catch (error) {
       this.logPushError('unregisterCurrentDevice', error);
     } finally {
+      await this.setAppBadgeCountSafely(0);
       await PushNotifications.removeAllListeners();
       this.initialized = false;
     }
   }
 
   private async registerToken(token: Token): Promise<void> {
+    if (this.platform === 'ios' && /^[a-f0-9]{64}$/i.test(token.value)) {
+      throw new Error('Se recibio un token APNs en lugar de un token FCM; no se registrara en el backend.');
+    }
+
     const deviceInfo = await this.getDeviceInfo();
 
     await firstValueFrom(
@@ -109,6 +117,31 @@ export class NotificacionesPushRegistrationService {
         webViewVersion: deviceInfo?.webViewVersion ?? null,
       })
     );
+
+    await this.syncAppBadgeFromHistory();
+  }
+
+  async syncAppBadgeFromHistory(): Promise<void> {
+    if (!this.authService.isAuthenticated()) {
+      await this.setAppBadgeCountSafely(0);
+      return;
+    }
+
+    try {
+      const page = await firstValueFrom(this.notificacionesPushService.consultarHistorial({
+        estado: 'NO_LEIDAS',
+        texto: '',
+        page: 1,
+        pageSize: 1,
+      }));
+      await this.setAppBadgeCountSafely(page.totalNoLeidas ?? 0);
+    } catch (error) {
+      this.logPushError('syncAppBadgeFromHistory', error);
+    }
+  }
+
+  async updateAppBadgeCount(count: number): Promise<void> {
+    await this.setAppBadgeCountSafely(count);
   }
 
   async openHistoryNotification(idnotificacion: number, dataJson?: string | null): Promise<void> {
@@ -162,6 +195,8 @@ export class NotificacionesPushRegistrationService {
         this.logPushError('marcarLeida', error);
       }
     }
+
+    await this.syncAppBadgeFromHistory();
 
     await this.router.navigateByUrl(this.resolveNotificationRoute(data));
   }
@@ -245,6 +280,14 @@ export class NotificacionesPushRegistrationService {
     } catch (error) {
       this.logPushError('getDeviceInfo', error);
       return null;
+    }
+  }
+
+  private async setAppBadgeCountSafely(count: number): Promise<void> {
+    try {
+      await setAppBadgeCount(count);
+    } catch (error) {
+      this.logPushError('setAppBadgeCount', error);
     }
   }
 

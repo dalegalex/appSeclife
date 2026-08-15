@@ -93,6 +93,7 @@ export class HistorialNotificacionesPage {
           : current
       ));
       this.totalNoLeidas.update((count) => Math.max(0, count - 1));
+      void this.registrationService.updateAppBadgeCount(this.totalNoLeidas());
     }
   }
 
@@ -113,6 +114,7 @@ export class HistorialNotificacionesPage {
       );
       this.total.update((count) => Math.max(0, count - 1));
       this.totalNoLeidas.update((count) => Math.max(0, count - 1));
+      await this.registrationService.updateAppBadgeCount(this.totalNoLeidas());
     } catch {
       const toast = await this.toastController.create({
         message: 'No fue posible marcar la notificacion como leida.',
@@ -173,6 +175,7 @@ export class HistorialNotificacionesPage {
       next: (page) => {
         this.total.set(page.total ?? 0);
         this.totalNoLeidas.set(page.totalNoLeidas ?? 0);
+        void this.registrationService.updateAppBadgeCount(this.totalNoLeidas());
         this.filters.update((filters) => ({
           ...filters,
           page: page.page || requestedFilters.page,
