@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, signal } from '@angular/core';
 import { SocialLogin } from '@capgo/capacitor-social-login';
 import { Capacitor } from '@capacitor/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, catchError, finalize, of, shareReplay, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   AccountDeletionRequest,
@@ -17,6 +17,7 @@ import {
   RegistrationCodePreview,
   RegisterWithCodeRequest,
   AuthOrganizationBrand,
+  AuthMenuItem,
 } from './auth.models';
 
 const SESSION_KEY = 'seclife.mobile.auth.session';
@@ -30,9 +31,18 @@ export class AuthService {
     : environment.apiUrl;
   private readonly baseUrl = `${this.apiUrl}/auth`;
   private readonly sessionSignal = signal<AuthSession | null>(this.readStoredSession());
+  private readonly appMenuSignal = signal<AuthMenuItem[]>([]);
+  private readonly appMenuLoadedSignal = signal(false);
+  private readonly appMenuLoadingSignal = signal(false);
+  private readonly appMenuErrorSignal = signal<string | null>(null);
+  private appMenuRequest$: Observable<AuthMenuItem[]> | null = null;
 
   readonly session = computed(() => this.sessionSignal());
   readonly user = computed(() => this.sessionSignal()?.user ?? null);
+  readonly appMenuItems = computed(() => this.flattenMenu(this.appMenuSignal()));
+  readonly appMenuLoaded = computed(() => this.appMenuLoadedSignal());
+  readonly appMenuLoading = computed(() => this.appMenuLoadingSignal());
+  readonly appMenuError = computed(() => this.appMenuErrorSignal());
   readonly isAuthenticated = computed(() => {
     const session = this.sessionSignal();
     return !!session?.token && !this.isExpired(session.expiresAt);
@@ -89,6 +99,59 @@ export class AuthService {
     return this.http.get<AuthOrganizationBrand>(`${this.baseUrl}/organizacion/identidad`);
   }
 
+  loadAppMenu(force = false): Observable<AuthMenuItem[]> {
+    if (!this.isAuthenticated()) {
+      this.resetAppMenu();
+      return of([]);
+    }
+
+    if (this.appMenuRequest$) {
+      return this.appMenuRequest$;
+    }
+
+    if (!force && this.appMenuLoadedSignal()) {
+      return of(this.appMenuSignal());
+    }
+
+    this.appMenuLoadingSignal.set(true);
+    this.appMenuErrorSignal.set(null);
+
+    const request$ = this.http.get<AuthMenuItem[]>(`${this.baseUrl}/menu`, {
+      params: { canal: 'APP' },
+    }).pipe(
+      tap(items => {
+        this.appMenuSignal.set(items ?? []);
+        this.appMenuLoadedSignal.set(true);
+      }),
+      catchError(() => {
+        this.appMenuSignal.set([]);
+        this.appMenuLoadedSignal.set(false);
+        this.appMenuErrorSignal.set('No fue posible cargar los permisos del menu.');
+        return of([]);
+      }),
+      finalize(() => {
+        this.appMenuLoadingSignal.set(false);
+        this.appMenuRequest$ = null;
+      }),
+      shareReplay({ bufferSize: 1, refCount: false })
+    );
+
+    this.appMenuRequest$ = request$;
+    return request$;
+  }
+
+  canAccessAppRoute(route: string): boolean {
+    if (!this.appMenuLoadedSignal()) {
+      return false;
+    }
+
+    const target = this.normalizeRoute(route);
+    return this.appMenuItems().some(item =>
+      item.puedever && !!item.ruta && this.normalizeRoute(item.ruta) === target
+    );
+  }
+
+
   getCurrentUserId(): number | null {
     return this.sessionSignal()?.user?.idusrbt ?? null;
   }
@@ -130,15 +193,40 @@ export class AuthService {
   signOut(): void {
     const email = this.getCurrentUser()?.email ?? null;
     localStorage.removeItem(SESSION_KEY);
+    this.resetAppMenu();
     this.sessionSignal.set(null);
     this.closeNativeGoogleSession();
     this.closeGoogleSession(email);
   }
 
   private setSession(session: AuthSession): void {
+    this.resetAppMenu();
     localStorage.setItem(SESSION_KEY, JSON.stringify(session));
     this.sessionSignal.set(session);
   }
+
+  private resetAppMenu(): void {
+    this.appMenuSignal.set([]);
+    this.appMenuLoadedSignal.set(false);
+    this.appMenuLoadingSignal.set(false);
+    this.appMenuErrorSignal.set(null);
+    this.appMenuRequest$ = null;
+  }
+
+  private flattenMenu(items: AuthMenuItem[]): AuthMenuItem[] {
+    return items.flatMap(item => [item, ...this.flattenMenu(item.children ?? [])]);
+  }
+
+  private normalizeRoute(route: string): string {
+    const cleanRoute = (route ?? '').split(/[?#]/, 1)[0].trim();
+
+    if (!cleanRoute) {
+      return '/';
+    }
+
+    return cleanRoute.length > 1 ? cleanRoute.replace(/\/+$/, '') : cleanRoute;
+  }
+
 
   private readStoredSession(): AuthSession | null {
     const raw = localStorage.getItem(SESSION_KEY);

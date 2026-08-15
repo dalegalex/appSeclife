@@ -12,7 +12,7 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="padre-shell">
+<ion-content [fullscreen]="true" class="padre-shell" [scrollY]="!mapaExpandido">
   <section class="family-summary">
     <div>
       <span>Padre de familia</span>
@@ -121,7 +121,7 @@
       </ion-card-content>
     </ion-card>
 
-    <ion-card *ngFor="let item of alumnosVisibles; trackBy: trackByRutaAlumno" class="student-card">
+    <ion-card *ngFor="let item of alumnosVisibles; trackBy: trackByRutaAlumno" class="student-card" [class.map-expanded-card]="mapaExpandido && vistaActiva === 'mapa' && esRecorridoActivo(item)">
       <ion-card-header>
         <div class="card-heading">
           <div>
@@ -138,7 +138,7 @@
           <span>{{ item.rutaEstadoTexto }}</span>
         </div>
 
-        <div class="facts">
+        <div class="facts" *ngIf="esRecorridoActivo(item)">
           <div>
             <span>Parada</span>
             <strong>{{ item.paradaNombre }}</strong>
@@ -151,14 +151,14 @@
           </div>
         </div>
 
-        <div class="map-empty">
+        <div class="map-empty" *ngIf="esRecorridoActivo(item)">
           <ion-icon name="map-outline"></ion-icon>
           <p>
             {{ item.gps?.latitud && item.gps?.longitud ? 'Ultima ubicacion disponible para abrir en mapa.' : 'Sin coordenadas GPS recientes.' }}
           </p>
         </div>
 
-        <ion-list lines="none" class="event-list">
+        <ion-list lines="none" class="event-list" *ngIf="esRecorridoActivo(item)">
           <ion-item>
             <ion-icon slot="start" name="location-outline"></ion-icon>
             <ion-label>
@@ -189,10 +189,14 @@
       <ion-card-content *ngIf="vistaActiva === 'mapa'">
         <div class="route-state">
           <ion-icon name="radio-outline"></ion-icon>
-          <span>{{ item.rutaEstadoTexto }} | Actualiza cada 5 seg.</span>
+          <span>
+            {{ item.rutaEstadoTexto }}
+            <ng-container *ngIf="esRecorridoActivo(item)"> | Actualiza cada 5 seg.</ng-container>
+          </span>
         </div>
 
         <div
+          *ngIf="esRecorridoActivo(item)"
           class="parent-map-shell"
           [class.is-expanded]="mapaExpandido"
           (dblclick)="alternarMapaExpandido()"
@@ -207,7 +211,7 @@
           <div class="parent-map-frame" #parentMap></div>
         </div>
 
-        <div class="facts map-facts">
+        <div class="facts map-facts" *ngIf="esRecorridoActivo(item)">
           <div>
             <span>Autobus</span>
             <strong>{{ item.gps?.latitud && item.gps?.longitud ? 'Ubicacion recibida' : 'Sin GPS reciente' }}</strong>
@@ -222,7 +226,7 @@
 
         <ion-button expand="block" fill="outline" (click)="abrirMapa(item)">
           <ion-icon slot="start" name="navigate-outline"></ion-icon>
-          Abrir en Google Maps
+          Abrir mapa
         </ion-button>
 
         <ion-button expand="block" color="primary" (click)="abrirSolicitud(item)">

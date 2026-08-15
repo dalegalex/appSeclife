@@ -17,6 +17,7 @@ import {
   MiembroFamiliar,
   RedFamiliarCatalogos,
   RedFamiliarRow,
+  RetirarAlumnoCompartidoResponse,
   SpResponse,
 } from '../models/red-familiar.model';
 
@@ -252,6 +253,22 @@ export class RedFamiliarService {
       map((response) => {
         this.assertSuccess(response);
         return response.result as AplicarCodigoCompartirResponse;
+      })
+    );
+  }
+
+  retirarAlumnoCompartido(
+    idmatricula: number,
+    idorg: number,
+    idfamilia: number
+  ): Observable<RetirarAlumnoCompartidoResponse> {
+    return this.http.put<SpResponse<RetirarAlumnoCompartidoResponse>>(
+      `${this.baseUrl}/red-familiar/alumnos-compartidos/${idmatricula}/retirar`,
+      { idorg, idfamilia }
+    ).pipe(
+      map((response) => {
+        this.assertSuccess(response);
+        return response.result as RetirarAlumnoCompartidoResponse;
       })
     );
   }

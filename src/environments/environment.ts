@@ -4,7 +4,7 @@
 
 export const environment = {
   production: false,
-  appVersion: '4.0.0',
+  appVersion: '4.1.1',
   appBuild: 1,
   appChannel: 'local',
   apiUrl: 'https://localhost:7013/api',
@@ -13,7 +13,7 @@ export const environment = {
   googleIosClientId: '410964984533-vso3mie80ultk93jou157gj9l14he1fr.apps.googleusercontent.com',
   googleAndroidClientId: '410964984533-pgunuise95ph74n8b285rso8gsuod0f9.apps.googleusercontent.com',
   accountDeletionUrl: 'https://schoolseclife.azurewebsites.net/cuenta/eliminacion',
-  enableDriverTransport: false,
+  enableDriverTransport: true,
   useMockTransporte: false,
   padreIdusr: 16,
   padreIdmatricula: 37

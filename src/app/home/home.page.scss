@@ -88,6 +88,59 @@ ion-card.credential-card {
   }
 }
 
+ion-card.notifications-card {
+  border: 1px solid #dbe4f0;
+  margin-bottom: 14px;
+  position: relative;
+
+  ion-card-header {
+    padding-right: 64px;
+  }
+
+  .module-icon {
+    background: #e8f7ef;
+    color: #157347;
+  }
+}
+.notifications-unread-badge {
+  align-items: center;
+  border: 2px solid #ffffff;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 800;
+  justify-content: center;
+  min-height: 28px;
+  min-width: 28px;
+  padding: 4px 8px;
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  z-index: 1;
+}
+
+ion-card.events-card {
+  position: relative;
+
+  ion-card-header {
+    padding-right: 72px;
+  }
+}
+
+.events-pending-badge {
+  align-items: center;
+  border: 2px solid #ffffff;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 800;
+  justify-content: center;
+  min-height: 28px;
+  min-width: 28px;
+  padding: 4px 8px;
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  z-index: 1;
+}
 .module-icon {
   align-items: center;
   background: #eaf2ff;

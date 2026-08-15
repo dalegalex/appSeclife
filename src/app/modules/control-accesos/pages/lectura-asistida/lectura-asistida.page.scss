@@ -130,6 +130,25 @@ p {
   line-height: 1.15;
 }
 
+.student-item ion-checkbox[slot='end'] {
+  margin-inline-start: 10px;
+  margin-inline-end: 2px;
+}
+
+.student-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.group-color {
+  width: 11px;
+  height: 11px;
+  flex: 0 0 11px;
+  border: 1px solid rgba(23, 32, 51, 0.22);
+  border-radius: 50%;
+}
+
 .empty-state {
   padding: 14px;
   border-radius: 8px;

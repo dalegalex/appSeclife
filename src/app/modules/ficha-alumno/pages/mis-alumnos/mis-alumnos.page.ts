@@ -81,6 +81,10 @@ export class MisAlumnosFichaPage implements OnInit {
     return this.alumnos.find((alumno) => alumno.idmatricula === this.selectedIdmatricula) ?? null;
   }
 
+  get studentPhotoSrc(): string | null {
+    return this.normalizePhoto(this.detalle?.alumno?.foto ?? this.selectedAlumno?.foto);
+  }
+
   get puedeGuardar(): boolean {
     return this.activeTab === 'contacto' || this.activeTab === 'medica';
   }
@@ -741,6 +745,28 @@ export class MisAlumnosFichaPage implements OnInit {
       acc[key as keyof T] = typeof value === 'string' ? value.toUpperCase() as T[keyof T] : value as T[keyof T];
       return acc;
     }, {} as T);
+  }
+
+  private normalizePhoto(value?: string | null): string | null {
+    const foto = (value ?? '').trim();
+    if (!foto) {
+      return null;
+    }
+
+    if (/^(data:image\/|https?:\/\/)/i.test(foto)) {
+      return foto;
+    }
+
+    return `data:${this.detectPhotoContentType(foto)};base64,${foto}`;
+  }
+
+  private detectPhotoContentType(base64: string): string {
+    const prefix = base64.slice(0, 16);
+    if (prefix.startsWith('/9j/')) return 'image/jpeg';
+    if (prefix.startsWith('iVBOR')) return 'image/png';
+    if (prefix.startsWith('UklGR')) return 'image/webp';
+    if (prefix.startsWith('R0lGOD')) return 'image/gif';
+    return 'image/jpeg';
   }
 
   private errorMessage(error: any, fallback: string): string {

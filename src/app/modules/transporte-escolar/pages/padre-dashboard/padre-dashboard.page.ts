@@ -62,7 +62,6 @@ export class PadreDashboardPage implements OnInit, OnDestroy {
   private renderedRouteKey = '';
   private renderedMarkerKey = '';
   private userAdjustedMap = false;
-  private paradasNotificadas = new Set<string>();
 
   constructor(
     private readonly padreRutasService: PadreRutasService,
@@ -322,7 +321,8 @@ export class PadreDashboardPage implements OnInit, OnDestroy {
 
   alternarMapaExpandido(): void {
     this.mapaExpandido = !this.mapaExpandido;
-    this.programarRenderMapa();
+    this.userAdjustedMap = false;
+    this.programarRenderMapa(this.mapaExpandido ? 180 : 80);
   }
 
   get padreNombre(): string {
@@ -431,6 +431,10 @@ export class PadreDashboardPage implements OnInit, OnDestroy {
     };
 
     return colors[item.estado];
+  }
+
+  esRecorridoActivo(item: PadreRutaAlumno): boolean {
+    return item.recorrido?.estatus === 'EN_CURSO';
   }
 
   resolveFechaHora(value?: string | null): string {
@@ -587,14 +591,6 @@ export class PadreDashboardPage implements OnInit, OnDestroy {
 
     alumno.rutaEstadoTexto = 'Dentro del radio de parada';
 
-    const key = this.resolveParadaNotificacionKey(alumno);
-    if (this.paradasNotificadas.has(key)) {
-      return;
-    }
-
-    this.paradasNotificadas.add(key);
-    const parada = alumno.paradaNombre || 'la parada asignada';
-    this.presentToast(`El transporte esta proximo a ${parada}.`);
   }
 
   private isAproximandoseParada(alumno: PadreRutaAlumno): boolean {
@@ -609,17 +605,6 @@ export class PadreDashboardPage implements OnInit, OnDestroy {
       alumno.paradaLatitud,
       alumno.paradaLongitud
     ) <= radio;
-  }
-
-  private resolveParadaNotificacionKey(alumno: PadreRutaAlumno): string {
-    return [
-      this.dashboard?.fecha || this.toSqlDate(new Date()),
-      alumno.idmatricula,
-      alumno.idruta,
-      alumno.sentido,
-      alumno.paradaLatitud ?? '',
-      alumno.paradaLongitud ?? '',
-    ].join('|');
   }
 
   private distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -749,12 +734,12 @@ export class PadreDashboardPage implements OnInit, OnDestroy {
     }
   }
 
-  private programarRenderMapa(): void {
+  private programarRenderMapa(delayMs = 80): void {
     if (this.vistaActiva !== 'mapa') {
       return;
     }
 
-    window.setTimeout(() => this.renderMapaPadre(), 80);
+    window.setTimeout(() => this.renderMapaPadre(), delayMs);
   }
 
   private renderMapaPadre(): void {
@@ -980,6 +965,12 @@ export class PadreDashboardPage implements OnInit, OnDestroy {
     stopPoint: { lat: number; lng: number } | null
   ): void {
     if (!this.map) {
+      return;
+    }
+
+    if (this.mapaExpandido && busPoint && !this.userAdjustedMap) {
+      this.map.setCenter(busPoint);
+      this.map.setZoom(16);
       return;
     }
 

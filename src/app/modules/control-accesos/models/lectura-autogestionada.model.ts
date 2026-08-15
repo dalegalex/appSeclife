@@ -19,6 +19,12 @@ export interface AutogestionEvento {
   horaProgramada?: string | null;
   maxParticipantesFamilia?: number | null;
   aviso?: string | null;
+  modalidadAcceso?: 'ABIERTO' | 'POR_INVITACION' | string | null;
+  confirmacionRequerida?: boolean | null;
+  fechaLimiteConfirmacion?: string | null;
+  familiasInvitadas?: number | null;
+  familiasConfirmadas?: number | null;
+  asistentesRegistrados?: number | null;
   estatus?: string | null;
   sitactivo?: boolean | null;
 }

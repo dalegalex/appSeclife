@@ -178,14 +178,11 @@
 
       <ion-list *ngIf="alumnos.length > 0; else noStudents" lines="none">
         <ion-item *ngFor="let alumno of alumnos" class="student-item" [class.blocked]="!alumnoDisponible(alumno)">
-          <ion-checkbox
-            slot="start"
-            [checked]="alumnoSeleccionado(alumno)"
-            [disabled]="!alumnoDisponible(alumno)"
-            (ionChange)="toggleAlumno(alumno, $event.detail.checked)"
-          ></ion-checkbox>
           <ion-label>
-            <h3>{{ alumno.alumno }}</h3>
+            <h3 class="student-name">
+              <span *ngIf="alumno.colorGrupo" class="group-color" [style.background-color]="alumno.colorGrupo" aria-hidden="true"></span>
+              <span>{{ alumno.alumno }}</span>
+            </h3>
             <p>{{ alumno.gradoGrupo || 'Sin grupo activo' }}</p>
             <div class="student-tags">
               <ion-chip [color]="alumnoRelacionColor(alumno)">
@@ -203,6 +200,13 @@
           <ion-badge slot="end" [color]="estadoColor(alumno)">
             {{ estadoAlumno(alumno) }}
           </ion-badge>
+          <ion-checkbox
+            slot="end"
+            aria-label="Seleccionar alumno"
+            [checked]="alumnoSeleccionado(alumno)"
+            [disabled]="!alumnoDisponible(alumno)"
+            (ionChange)="toggleAlumno(alumno, $event.detail.checked)"
+          ></ion-checkbox>
         </ion-item>
       </ion-list>
 

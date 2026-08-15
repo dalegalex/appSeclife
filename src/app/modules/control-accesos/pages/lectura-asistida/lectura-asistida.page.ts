@@ -212,7 +212,7 @@ export class LecturaAsistidaPage implements OnDestroy {
     this.tipoEntrega = tipo;
     if (tipo !== 'AUTO') {
       this.idautofamiliarSeleccionado = null;
-    } else if (!this.idautofamiliarSeleccionado && this.autos.length === 1) {
+    } else if (!this.idautofamiliarSeleccionado && this.autos.length > 0) {
       this.idautofamiliarSeleccionado = this.autos[0].idautofamiliar;
     }
   }
@@ -896,13 +896,13 @@ export class LecturaAsistidaPage implements OnDestroy {
       return;
     }
 
-    if (this.autos.length === 1) {
+    if (this.autos.length > 0) {
       this.tipoEntrega = 'AUTO';
       this.idautofamiliarSeleccionado = this.autos[0].idautofamiliar;
       return;
     }
 
-    this.tipoEntrega = null;
+    this.tipoEntrega = 'OTRO_AUTO';
     this.idautofamiliarSeleccionado = null;
   }
 

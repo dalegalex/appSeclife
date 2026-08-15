@@ -51,9 +51,9 @@
       </ion-card-content>
     </ion-card>
 
-    <ion-card *ngIf="!sesionAbierta" class="event-card">
+    <ion-card *ngIf="!sesionAbierta || modo === 'EVENTO'" class="event-card">
       <ion-card-content>
-        <div class="panel-heading">
+        <div *ngIf="!sesionAbierta" class="panel-heading">
           <div>
             <span class="eyebrow">{{ modo === 'EVENTO' ? 'Modo evento' : 'Modo asistencia' }}</span>
             <h2>{{ modo === 'EVENTO' ? 'Selecciona el evento' : 'Registro de asistencia' }}</h2>
@@ -61,7 +61,7 @@
           <ion-spinner *ngIf="loadingCatalogos" name="crescent"></ion-spinner>
         </div>
 
-        <ion-item *ngIf="modo === 'EVENTO'" lines="none" class="soft-item">
+        <ion-item *ngIf="modo === 'EVENTO' && !sesionAbierta" lines="none" class="soft-item">
           <ion-select
             label="Evento"
             labelPlacement="stacked"
@@ -76,13 +76,37 @@
           </ion-select>
         </ion-item>
 
-        <div *ngIf="modo === 'EVENTO' && eventoSeleccionado as evento" class="event-summary">
-          <strong>{{ evento.nombre }}</strong>
-          <span>{{ evento.lugar || 'Lugar pendiente' }}</span>
+        <div
+          *ngIf="modo === 'EVENTO' && eventoSeleccionado as evento"
+          class="event-summary"
+          [class.session-event-summary]="sesionAbierta"
+        >
+          <div class="event-summary-title">
+            <div>
+              <span class="eyebrow">{{ sesionAbierta ? 'Evento activo en esta tableta' : 'Evento seleccionado' }}</span>
+              <strong>{{ evento.nombre }}</strong>
+            </div>
+            <ion-icon name="calendar-outline"></ion-icon>
+          </div>
+          <span class="event-location">
+            <ion-icon name="location-outline"></ion-icon>
+            {{ evento.lugar || 'Lugar pendiente' }}
+          </span>
+          <div class="event-meta">
+            <span class="event-chip">
+              {{ evento.modalidadAcceso === 'POR_INVITACION' ? 'Por invitacion' : 'Acceso abierto' }}
+            </span>
+            <span class="event-chip" [class.confirmation-required]="evento.confirmacionRequerida">
+              {{ evento.confirmacionRequerida ? 'Confirmacion requerida' : 'Confirmacion informativa' }}
+            </span>
+          </div>
+          <small *ngIf="evento.modalidadAcceso === 'POR_INVITACION'">
+            {{ evento.familiasConfirmadas || 0 }} de {{ evento.familiasInvitadas || 0 }} familias confirmadas
+          </small>
           <small>{{ evento.aviso || 'Sin aviso adicional' }}</small>
         </div>
 
-        <div *ngIf="modo === 'EVENTO' && !loadingCatalogos && eventos.length === 0" class="empty-state">
+        <div *ngIf="modo === 'EVENTO' && !sesionAbierta && !loadingCatalogos && eventos.length === 0" class="empty-state">
           No hay eventos activos para mostrar.
         </div>
 

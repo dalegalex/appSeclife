@@ -1,0 +1,135 @@
+:host {
+  --page-background: #f4f8fc;
+}
+
+ion-content {
+  --background: var(--page-background);
+}
+
+.preferences-shell {
+  margin: 0 auto;
+  max-width: 760px;
+  min-height: 100%;
+  padding: 20px 16px 32px;
+}
+
+.page-heading {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+
+  h1 {
+    color: #172033;
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1.2;
+    margin: 0;
+  }
+
+  p {
+    color: #64748b;
+    font-size: 14px;
+    margin: 3px 0 0;
+  }
+}
+
+.heading-icon {
+  align-items: center;
+  background: #145ee8;
+  border-radius: 8px;
+  color: #ffffff;
+  display: flex;
+  flex: 0 0 44px;
+  height: 44px;
+  justify-content: center;
+
+  ion-icon {
+    font-size: 24px;
+  }
+}
+
+.loading-state,
+.message-state {
+  align-items: center;
+  color: #52647a;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+  min-height: 220px;
+  text-align: center;
+
+  ion-icon {
+    color: #64748b;
+    font-size: 36px;
+  }
+
+  p {
+    margin: 0;
+  }
+}
+
+.message-state.error ion-icon {
+  color: #b42318;
+}
+
+.preference-group {
+  background: #ffffff;
+  border: 1px solid #dbe4f0;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  overflow: hidden;
+
+  > header {
+    align-items: center;
+    border-bottom: 1px solid #e6edf5;
+    display: flex;
+    gap: 10px;
+    min-height: 48px;
+    padding: 10px 14px;
+
+    ion-icon {
+      color: #145ee8;
+      font-size: 22px;
+    }
+
+    h2 {
+      color: #253247;
+      font-size: 16px;
+      font-weight: 800;
+      margin: 0;
+    }
+  }
+
+  ion-list {
+    padding: 0;
+  }
+
+  ion-item {
+    --min-height: 58px;
+    --padding-end: 12px;
+    --padding-start: 14px;
+  }
+
+  ion-label h3 {
+    color: #253247;
+    font-size: 14px;
+    font-weight: 650;
+    line-height: 1.35;
+    margin: 0;
+    white-space: normal;
+  }
+}
+
+.toggle-control {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  min-width: 64px;
+
+  ion-spinner {
+    height: 18px;
+    width: 18px;
+  }
+}

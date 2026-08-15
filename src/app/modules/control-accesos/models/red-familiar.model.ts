@@ -1,4 +1,4 @@
-﻿export interface SpResponse<T> {
+export interface SpResponse<T> {
   result: T | null;
   message?: string | null;
   codeNumber?: number | null;
@@ -250,9 +250,21 @@ export interface AplicarCodigoCompartirResponse {
   idfamilia: number;
   idfamiliamiembro: number;
   familiaresAgregados?: number | null;
+  aplicaRedCompleta?: boolean | null;
+  miembrosDestino?: number | null;
   alumnosAgregados: number;
+  asignacionesAgregadas?: number | null;
   familiarCompartido?: CodigoCompartirFamiliar | null;
   alumnos?: CodigoCompartirAlumno[];
+}
+
+export interface RetirarAlumnoCompartidoResponse {
+  idorg: number;
+  idfamilia: number;
+  idmatricula: number;
+  idfamiliamiembro: number;
+  aplicaRedCompleta: boolean;
+  autorizacionesRevocadas: number;
 }
 
 export type ModoCompartirAlumno = 'PROVISIONAL' | 'PERMANENTE';

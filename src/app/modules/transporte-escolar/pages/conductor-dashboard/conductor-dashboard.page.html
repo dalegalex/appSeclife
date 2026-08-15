@@ -8,233 +8,283 @@
 </ion-header>
 
 <ion-content [fullscreen]="true" class="conductor-shell">
-  <section class="loading-state" *ngIf="cargando">
-    <ion-spinner name="crescent"></ion-spinner>
-    <p>Consultando rutas asignadas...</p>
-  </section>
+  @if (cargando) {
+    <section class="loading-state">
+      <ion-spinner name="crescent"></ion-spinner>
+      <p>Consultando rutas asignadas...</p>
+    </section>
+  }
 
-  <section class="loading-state" *ngIf="!cargando && mensajeEstado">
-    <ion-icon name="information-circle-outline"></ion-icon>
-    <p>{{ mensajeEstado }}</p>
-  </section>
+  @if (!cargando && mensajeEstado) {
+    <section class="loading-state">
+      <ion-icon name="information-circle-outline"></ion-icon>
+      <p>{{ mensajeEstado }}</p>
+    </section>
+  }
 
-  <section class="route-summary" *ngIf="!cargando && rutaActiva as ruta">
-    <div>
-      <span class="eyebrow">{{ rolOperadorRuta }}</span>
-      <p class="operator-name">{{ nombreOperadorRuta }}</p>
-      <ion-select
-        *ngIf="rutas.length > 1; else singleRouteTitle"
-        class="route-title-select"
-        interface="action-sheet"
-        [value]="ruta.idruta"
-        [disabled]="recorridoIniciado || pendientesSincronizar > 0"
-        (ionChange)="seleccionarRuta($event.detail.value)"
-      >
-        <ion-select-option *ngFor="let opcion of rutas" [value]="opcion.idruta">
-          {{ opcion.descripcion }} - {{ opcion.sentido === 'ENTRADA' ? 'Entrada' : 'Salida' }}
-        </ion-select-option>
-      </ion-select>
-      <ng-template #singleRouteTitle>
-        <h1>{{ ruta.descripcion }}</h1>
-      </ng-template>
-      <p class="route-driver" *ngIf="esAsistenteRuta">
-        <ion-icon name="person-circle-outline"></ion-icon>
-        <span>Conductor: {{ ruta.conductor }}</span>
-      </p>
-      <p class="route-driver" *ngIf="!esAsistenteRuta">
-        <ion-icon name="person-circle-outline"></ion-icon>
-        <span>{{ ruta.conductor }}</span>
-      </p>
-      <p>{{ ruta.unidad }} &middot; {{ ruta.placas }}</p>
-    </div>
-
-    <ion-badge [color]="recorridoIniciado ? 'success' : ruta.estatus === 'finalizada' ? 'medium' : 'warning'">
-      {{ ruta.estatus === 'finalizada' ? 'Finalizada' : recorridoIniciado ? 'En recorrido' : 'Pendiente' }}
-    </ion-badge>
-  </section>
-
-  <ion-note class="mock-note" *ngIf="!cargando && rutaActiva?.modoPrueba">
-    Vista con datos de prueba. Reinicia GpsApi y asigna el conductor al usuario de prueba para consultar datos reales.
-  </ion-note>
-
-  <section class="sync-panel warning-panel" *ngIf="diasRecorridoAbierto > 0">
-    <ion-icon name="time-outline"></ion-icon>
-    <div>
-      <strong>Recorrido abierto desde hace {{ diasRecorridoAbierto }} dia{{ diasRecorridoAbierto === 1 ? '' : 's' }}</strong>
-      <p>Finaliza el recorrido si ya no corresponde a la operacion actual.</p>
-    </div>
-  </section>
-
-  <ion-grid fixed *ngIf="rutaActiva as ruta">
-    <ion-row>
-      <ion-col size="6">
-        <div class="metric">
-          <span>Sentido</span>
-          <strong>{{ ruta.sentido === 'ENTRADA' ? 'Entrada' : 'Salida' }}</strong>
-        </div>
-      </ion-col>
-      <ion-col size="6">
-        <div class="metric">
-          <span>Alumnos</span>
-          <strong>{{ alumnosRegistrados }}/{{ totalAlumnos }}</strong>
-        </div>
-      </ion-col>
-    </ion-row>
-  </ion-grid>
-
-  <section class="gps-panel" *ngIf="rutaActiva">
-    <div>
-      <span>Ubicacion</span>
-      <strong>{{ gpsMensaje }}</strong>
-      <p *ngIf="ultimaSincronizacion">
-        Ultima sincronizacion {{ formatMexicoTime(ultimaSincronizacion) }}
-      </p>
-      <p *ngIf="ultimaUbicacion">
-        {{ ultimaUbicacion.latitud | number:'1.6-6' }},
-        {{ ultimaUbicacion.longitud | number:'1.6-6' }}
-      </p>
-    </div>
-    <ion-badge [color]="gpsActivo ? 'success' : 'medium'">
-      {{ gpsActivo ? 'Activo' : 'Inactivo' }}
-    </ion-badge>
-  </section>
-
-  <section class="sync-panel" *ngIf="pendientesSincronizar > 0">
-    <ion-icon name="cloud-upload-outline"></ion-icon>
-    <div>
-      <strong>{{ pendientesSincronizar }} pendiente{{ pendientesSincronizar === 1 ? '' : 's' }} por sincronizar</strong>
-      <p>El cierre del recorrido se habilitara cuando la app confirme el envio al API.</p>
-    </div>
-  </section>
-
-  <section class="sync-panel warning-panel" *ngIf="recorridoIniciado && alumnosPendientesRegistro > 0">
-    <ion-icon name="alert-circle-outline"></ion-icon>
-    <div>
-      <strong>{{ alumnosPendientesRegistro }} alumno{{ alumnosPendientesRegistro === 1 ? '' : 's' }} pendiente{{ alumnosPendientesRegistro === 1 ? '' : 's' }} por registrar</strong>
-      <p>Registra, marca ausente o reporta incidencia antes de finalizar el recorrido.</p>
-    </div>
-  </section>
-
-  <div class="primary-action" *ngIf="rutaActiva as ruta">
-    <ion-button
-      expand="block"
-      size="large"
-      [disabled]="ruta.estatus === 'finalizada'"
-      (click)="recorridoIniciado ? finalizarRecorrido() : iniciarRecorrido()"
-    >
-      <ion-icon slot="start" [name]="recorridoIniciado ? 'stop-circle-outline' : 'play-circle-outline'"></ion-icon>
-      {{ accionPrincipal }}
-    </ion-button>
-  </div>
-
-  <ion-segment class="route-mode" *ngIf="rutaActiva" [value]="vistaActiva" (ionChange)="activarVista($any($event.detail.value))">
-    <ion-segment-button value="lista">
-      <ion-label>Lista</ion-label>
-    </ion-segment-button>
-    <ion-segment-button value="mapa">
-      <ion-label>Mapa</ion-label>
-    </ion-segment-button>
-  </ion-segment>
-
-  <section class="map-panel" *ngIf="rutaActiva && vistaActiva === 'mapa'">
-    <div class="next-stop">
+  @if (!cargando && rutaActiva; as ruta) {
+    <section class="route-summary">
       <div>
-        <span>Siguiente parada</span>
-        <strong>{{ siguienteParada?.nombre || 'Sin paradas pendientes' }}</strong>
-        <p>{{ siguienteParada?.horaProgramada || '--:--' }} · {{ estadoTiempoSiguienteParada }}</p>
+        <span class="eyebrow">{{ rolOperadorRuta }}</span>
+        <p class="operator-name">{{ nombreOperadorRuta }}</p>
+        @if (rutas.length > 1) {
+          <ion-select
+            class="route-title-select"
+            interface="action-sheet"
+            [value]="ruta.idruta"
+            [disabled]="recorridoIniciado || pendientesSincronizar > 0 || revisandoRecorridos"
+            (ionChange)="seleccionarRuta($event.detail.value)"
+            >
+            @for (opcion of rutas; track opcion) {
+              <ion-select-option [value]="opcion.idruta">
+                {{ opcion.descripcion }} - {{ opcion.sentido === 'ENTRADA' ? 'Entrada' : 'Salida' }}
+              </ion-select-option>
+            }
+          </ion-select>
+        } @else {
+          <h1>{{ ruta.descripcion }}</h1>
+        }
+        @if (esAsistenteRuta) {
+          <p class="route-driver">
+            <ion-icon name="person-circle-outline"></ion-icon>
+            <span>Conductor: {{ ruta.conductor }}</span>
+          </p>
+        }
+        @if (!esAsistenteRuta) {
+          <p class="route-driver">
+            <ion-icon name="person-circle-outline"></ion-icon>
+            <span>{{ ruta.conductor }}</span>
+          </p>
+        }
+        <p>{{ ruta.unidad }} &middot; {{ ruta.placas }}</p>
       </div>
-      <ion-badge [color]="llegadaSiguienteParada ? 'success' : 'primary'">
-        {{ llegadaSiguienteParada ? 'En parada' : 'En ruta' }}
+      <ion-badge [color]="recorridoIniciado ? 'success' : ruta.estatus === 'finalizada' ? 'medium' : 'warning'">
+        {{ ruta.estatus === 'finalizada' ? 'Finalizada' : recorridoIniciado ? 'En recorrido' : 'Pendiente' }}
       </ion-badge>
-    </div>
+    </section>
+  }
 
-    <div class="map-frame" *ngIf="mapaUrl; else noMap">
-      <iframe [src]="mapaUrl" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-    </div>
+  @if (!cargando && rutaActiva?.modoPrueba) {
+    <ion-note class="mock-note">
+      Vista con datos de prueba. Reinicia GpsApi y asigna el conductor al usuario de prueba para consultar datos reales.
+    </ion-note>
+  }
 
-    <ng-template #noMap>
-      <div class="map-empty">
-        <ion-icon name="map-outline"></ion-icon>
-        <p>Esta ruta aun no tiene coordenadas para mostrar el trayecto.</p>
+  @if (diasRecorridoAbierto > 0) {
+    <section class="sync-panel warning-panel">
+      <ion-icon name="time-outline"></ion-icon>
+      <div>
+        <strong>Recorrido abierto desde hace {{ diasRecorridoAbierto }} dia{{ diasRecorridoAbierto === 1 ? '' : 's' }}</strong>
+        <p>Finaliza el recorrido si ya no corresponde a la operacion actual.</p>
       </div>
-    </ng-template>
+    </section>
+  }
 
-    <div class="map-stops" *ngIf="mapParadas.length > 0">
-      <div
-        class="map-stop"
-        *ngFor="let parada of mapParadas"
-        [class.current]="parada.idrutaparada === siguienteParada?.idrutaparada"
-      >
-        <span>{{ parada.orden }}</span>
-        <div>
-          <strong>{{ parada.nombre }}</strong>
-          <p>{{ parada.horaProgramada }}</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="map-actions">
-      <ion-button expand="block" fill="outline" (click)="abrirGoogleMaps()">
-        <ion-icon slot="start" name="navigate-outline"></ion-icon>
-        Abrir en Google Maps
-      </ion-button>
-      <ion-button expand="block" [disabled]="!siguienteParada" (click)="registrarParadaActual()">
-        <ion-icon slot="start" name="list-outline"></ion-icon>
-        Registrar parada
-      </ion-button>
-    </div>
-  </section>
-
-  <ion-list lines="none" *ngIf="rutaActiva as ruta" [hidden]="vistaActiva !== 'lista'">
-    <ion-list-header>
-      <ion-label>Paradas</ion-label>
-    </ion-list-header>
-
-    <ion-card *ngFor="let parada of ruta.paradas" class="stop-card">
-      <ion-card-header>
-        <div class="stop-heading">
-          <ion-badge color="primary">{{ parada.orden }}</ion-badge>
-          <div>
-            <ion-card-title>{{ parada.nombre }}</ion-card-title>
-            <ion-card-subtitle>{{ parada.horaProgramada }}</ion-card-subtitle>
+  @if (rutaActiva; as ruta) {
+    <ion-grid fixed>
+      <ion-row>
+        <ion-col size="6">
+          <div class="metric">
+            <span>Sentido</span>
+            <strong>{{ ruta.sentido === 'ENTRADA' ? 'Entrada' : 'Salida' }}</strong>
           </div>
+        </ion-col>
+        <ion-col size="6">
+          <div class="metric">
+            <span>Alumnos</span>
+            <strong>{{ alumnosRegistrados }}/{{ totalAlumnos }}</strong>
+          </div>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+  }
+
+  @if (rutaActiva) {
+    <section class="gps-panel">
+      <div>
+        <span>Ubicacion</span>
+        <strong>{{ gpsMensaje }}</strong>
+        @if (ultimaSincronizacion) {
+          <p>
+            Ultima sincronizacion {{ formatMexicoTime(ultimaSincronizacion) }}
+          </p>
+        }
+        @if (ultimaUbicacion) {
+          <p>
+            {{ ultimaUbicacion.latitud | number:'1.6-6' }},
+            {{ ultimaUbicacion.longitud | number:'1.6-6' }}
+          </p>
+        }
+      </div>
+      <ion-badge [color]="gpsActivo ? 'success' : 'medium'">
+        {{ gpsActivo ? 'Activo' : 'Inactivo' }}
+      </ion-badge>
+    </section>
+  }
+
+  @if (pendientesSincronizar > 0) {
+    <section class="sync-panel">
+      <ion-icon name="cloud-upload-outline"></ion-icon>
+      <div>
+        <strong>{{ pendientesSincronizar }} pendiente{{ pendientesSincronizar === 1 ? '' : 's' }} por sincronizar</strong>
+        <p>El cierre del recorrido se habilitara cuando la app confirme el envio al API.</p>
+      </div>
+    </section>
+  }
+
+  @if (recorridoIniciado && alumnosPendientesRegistro > 0) {
+    <section class="sync-panel warning-panel">
+      <ion-icon name="alert-circle-outline"></ion-icon>
+      <div>
+        <strong>{{ alumnosPendientesRegistro }} alumno{{ alumnosPendientesRegistro === 1 ? '' : 's' }} pendiente{{ alumnosPendientesRegistro === 1 ? '' : 's' }} por registrar</strong>
+        <p>Registra, marca ausente o reporta incidencia antes de finalizar el recorrido.</p>
+      </div>
+    </section>
+  }
+
+  @if (rutaActiva; as ruta) {
+    <div class="primary-action">
+      <ion-button
+        expand="block"
+        size="large"
+        [disabled]="ruta.estatus === 'finalizada' || revisandoRecorridos"
+        (click)="recorridoIniciado ? finalizarRecorrido() : iniciarRecorrido()"
+        >
+        <ion-icon slot="start" [name]="recorridoIniciado ? 'stop-circle-outline' : 'play-circle-outline'"></ion-icon>
+        {{ accionPrincipal }}
+      </ion-button>
+    </div>
+    @if (recorridoIniciado) {
+      <ion-button
+        class="incident-action"
+        expand="block"
+        fill="outline"
+        color="warning"
+        [disabled]="enviandoIncidencia || !politicaIncidencias?.puedeReportar"
+        (click)="reportarIncidenciaOperativa()">
+        <ion-icon slot="start" name="warning-outline"></ion-icon>
+        {{ enviandoIncidencia ? 'Enviando...' : 'Reportar incidencia del recorrido' }}
+      </ion-button>
+    }
+  }
+
+  @if (rutaActiva) {
+    <ion-segment class="route-mode" [value]="vistaActiva" (ionChange)="activarVista($any($event.detail.value))">
+      <ion-segment-button value="lista">
+        <ion-label>Lista</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="mapa">
+        <ion-label>Mapa</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+  }
+
+  @if (rutaActiva && vistaActiva === 'mapa') {
+    <section class="map-panel">
+      <div class="next-stop">
+        <div>
+          <span>Siguiente parada</span>
+          <strong>{{ siguienteParada?.nombre || 'Sin paradas pendientes' }}</strong>
+          <p>{{ siguienteParada?.horaProgramada || '--:--' }} · {{ estadoTiempoSiguienteParada }}</p>
         </div>
-      </ion-card-header>
+        <ion-badge [color]="llegadaSiguienteParada ? 'success' : 'primary'">
+          {{ llegadaSiguienteParada ? 'En parada' : 'En ruta' }}
+        </ion-badge>
+      </div>
+      @if (mapaUrl) {
+        <div class="map-frame">
+          <iframe [src]="mapaUrl" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </div>
+      } @else {
+        <div class="map-empty">
+          <ion-icon name="map-outline"></ion-icon>
+          <p>Esta ruta aun no tiene coordenadas para mostrar el trayecto.</p>
+        </div>
+      }
+      @if (mapParadas.length > 0) {
+        <div class="map-stops">
+          @for (parada of mapParadas; track parada) {
+            <div
+              class="map-stop"
+              [class.current]="parada.idrutaparada === siguienteParada?.idrutaparada"
+              >
+              <span>{{ parada.orden }}</span>
+              <div>
+                <strong>{{ parada.nombre }}</strong>
+                <p>{{ parada.horaProgramada }}</p>
+              </div>
+            </div>
+          }
+        </div>
+      }
+      <div class="map-actions">
+        <ion-button expand="block" fill="outline" (click)="abrirGoogleMaps()">
+          <ion-icon slot="start" name="navigate-outline"></ion-icon>
+          Abrir en Google Maps
+        </ion-button>
+        <ion-button expand="block" [disabled]="!siguienteParada" (click)="registrarParadaActual()">
+          <ion-icon slot="start" name="list-outline"></ion-icon>
+          Registrar parada
+        </ion-button>
+      </div>
+    </section>
+  }
 
-      <ion-card-content>
-        <ion-item *ngIf="parada.alumnos.length === 0" class="empty-stop">
-          <ion-icon name="checkmark-done-outline" slot="start"></ion-icon>
-          <ion-label>Sin alumnos por registrar</ion-label>
-        </ion-item>
-
-        <ion-item-sliding *ngFor="let alumno of parada.alumnos" class="student-sliding">
-          <ion-item class="student-row swipe-hint">
-            <ion-label>
-              <h2>{{ alumno.nombre }}</h2>
-              <p>{{ alumno.grado }}</p>
-            </ion-label>
-
-            <ion-badge slot="end" [color]="alumno.estado === 'registrado' ? 'success' : alumno.estado === 'ausente' ? 'medium' : alumno.estado === 'incidencia' ? 'danger' : alumno.estado === 'pendiente_sync' ? 'warning' : 'light'">
-              {{ alumno.estado === 'pendiente' ? 'Pendiente' : alumno.estado === 'registrado' ? 'Registrado' : alumno.estado === 'ausente' ? 'Ausente' : alumno.estado === 'pendiente_sync' ? 'Pendiente sync' : 'Incidencia' }}
-            </ion-badge>
-
-            <ion-button fill="clear" size="small" slot="end" [disabled]="!recorridoIniciado" (click)="registrarAlumno(alumno)">
-              <ion-icon slot="icon-only" name="checkmark-circle-outline"></ion-icon>
-            </ion-button>
-          </ion-item>
-
-          <ion-item-options side="end">
-            <ion-item-option color="medium" [disabled]="!recorridoIniciado" (click)="marcarAusente(alumno)">
-              <ion-icon slot="top" name="remove-circle-outline"></ion-icon>
-              Ausente
-            </ion-item-option>
-            <ion-item-option color="danger" [disabled]="!recorridoIniciado" (click)="reportarIncidencia(alumno)">
-              <ion-icon slot="top" name="alert-circle-outline"></ion-icon>
-              Incidencia
-            </ion-item-option>
-          </ion-item-options>
-        </ion-item-sliding>
-      </ion-card-content>
-    </ion-card>
-  </ion-list>
+  @if (rutaActiva; as ruta) {
+    <ion-list lines="none" [hidden]="vistaActiva !== 'lista'">
+      <ion-list-header>
+        <ion-label>Paradas</ion-label>
+      </ion-list-header>
+      @for (parada of ruta.paradas; track parada) {
+        <ion-card class="stop-card">
+          <ion-card-header>
+            <div class="stop-heading">
+              <ion-badge color="primary">{{ parada.orden }}</ion-badge>
+              <div>
+                <ion-card-title>{{ parada.nombre }}</ion-card-title>
+                <ion-card-subtitle>{{ parada.horaProgramada }}</ion-card-subtitle>
+              </div>
+            </div>
+          </ion-card-header>
+          <ion-card-content>
+            @if (parada.alumnos.length === 0) {
+              <ion-item class="empty-stop">
+                <ion-icon name="checkmark-done-outline" slot="start"></ion-icon>
+                <ion-label>Sin alumnos por registrar</ion-label>
+              </ion-item>
+            }
+            @for (alumno of parada.alumnos; track alumno) {
+              <ion-item-sliding class="student-sliding">
+                <ion-item class="student-row swipe-hint">
+                  <ion-label>
+                    <h2>{{ alumno.nombre }}</h2>
+                    <p>{{ alumno.grado }}</p>
+                  </ion-label>
+                  @if (alumno.estado !== 'pendiente') {
+                    <ion-badge class="student-status" slot="end" [color]="alumno.estado === 'registrado' ? 'success' : alumno.estado === 'ausente' ? 'medium' : alumno.estado === 'incidencia' ? 'danger' : 'warning'">
+                      {{ alumno.estado === 'registrado' ? 'Registrado' : alumno.estado === 'ausente' ? 'Ausente' : alumno.estado === 'pendiente_sync' ? 'Pendiente sync' : 'Incidencia' }}
+                    </ion-badge>
+                  }
+                  <ion-button class="register-student-button" fill="solid" color="success" size="default" slot="end" [disabled]="!recorridoIniciado" (click)="registrarAlumno(alumno)">
+                    <ion-icon slot="start" name="checkmark-circle-outline"></ion-icon>
+                    Registrar
+                  </ion-button>
+                </ion-item>
+                <ion-item-options side="end">
+                  <ion-item-option color="medium" [disabled]="!recorridoIniciado" (click)="marcarAusente(alumno)">
+                    <ion-icon slot="top" name="remove-circle-outline"></ion-icon>
+                    Ausente
+                  </ion-item-option>
+                  <ion-item-option color="danger" [disabled]="!recorridoIniciado" (click)="reportarIncidencia(alumno)">
+                    <ion-icon slot="top" name="alert-circle-outline"></ion-icon>
+                    Incidencia
+                  </ion-item-option>
+                </ion-item-options>
+              </ion-item-sliding>
+            }
+          </ion-card-content>
+        </ion-card>
+      }
+    </ion-list>
+  }
 </ion-content>

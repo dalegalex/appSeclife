@@ -120,6 +120,63 @@ p {
   font-size: 1.35rem;
 }
 
+.event-summary-title,
+.event-location,
+.event-meta {
+  display: flex;
+  align-items: center;
+}
+
+.event-summary-title {
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.event-summary-title > div {
+  display: grid;
+  gap: 3px;
+}
+
+.event-summary-title > ion-icon {
+  flex: 0 0 auto;
+  font-size: 1.35rem;
+}
+
+.event-location {
+  gap: 6px;
+}
+
+.event-location ion-icon {
+  flex: 0 0 auto;
+}
+
+.event-meta {
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.event-chip {
+  border: 1px solid rgba(var(--ion-color-primary-rgb), 0.28);
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: var(--ion-color-light);
+  color: var(--ion-color-primary-shade);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.event-chip.confirmation-required {
+  border-color: rgba(var(--ion-color-warning-rgb), 0.5);
+  background: rgba(var(--ion-color-warning-rgb), 0.18);
+  color: var(--ion-color-warning-shade);
+}
+
+.session-event-summary {
+  margin-top: 0;
+  border-left: 4px solid var(--ion-color-success);
+}
+
 .event-summary small {
   color: var(--ion-color-medium-shade);
 }

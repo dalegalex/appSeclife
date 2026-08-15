@@ -1,0 +1,128 @@
+﻿.events-shell {
+  margin: 0 auto;
+  max-width: 760px;
+  padding: 12px;
+}
+
+.state-panel {
+  align-items: center;
+  color: var(--ion-color-medium);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+  min-height: 46vh;
+  text-align: center;
+}
+
+.state-panel ion-icon {
+  font-size: 42px;
+}
+
+ion-card {
+  border-radius: 8px;
+  margin: 0 0 14px;
+}
+
+.required-card {
+  border-left: 4px solid var(--ion-color-danger);
+}
+
+.card-heading {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+}
+
+.event-icon {
+  align-items: center;
+  background: rgba(var(--ion-color-primary-rgb), 0.12);
+  border-radius: 8px;
+  color: var(--ion-color-primary);
+  display: flex;
+  font-size: 23px;
+  height: 40px;
+  justify-content: center;
+  width: 40px;
+}
+
+ion-card-title {
+  font-size: 1rem;
+}
+
+.required-notice {
+  align-items: flex-start;
+  background: rgba(var(--ion-color-danger-rgb), 0.1);
+  border-radius: 6px;
+  color: var(--ion-color-danger-shade);
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 10px;
+}
+
+.required-notice ion-icon {
+  flex: 0 0 auto;
+  font-size: 20px;
+}
+
+.event-data {
+  display: grid;
+  gap: 7px;
+}
+
+.event-data span {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.event-message {
+  border-left: 2px solid var(--ion-color-primary);
+  margin: 14px 0;
+  padding-left: 10px;
+}
+
+.shared-response {
+  color: var(--ion-color-medium-shade);
+  font-size: 0.82rem;
+}
+
+.shared-response span {
+  display: block;
+}
+
+.response-editor {
+  border-top: 1px solid var(--ion-color-light-shade);
+  margin-top: 14px;
+  padding-top: 12px;
+}
+
+.editor-heading,
+.companion-row,
+.editor-actions,
+.card-actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.editor-heading,
+.editor-actions,
+.card-actions {
+  justify-content: space-between;
+}
+
+.companion-row ion-input {
+  flex: 1;
+}
+
+.editor-actions,
+.card-actions {
+  margin-top: 14px;
+}
+
+.uppercase-input {
+  text-transform: uppercase;
+}

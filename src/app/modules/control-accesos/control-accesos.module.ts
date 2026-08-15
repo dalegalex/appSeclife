@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
@@ -12,6 +12,8 @@ import { AvisosAsistenciaPadrePage } from './pages/avisos-asistencia-padre/aviso
 import { CredencialDigitalPage } from './pages/credencial-digital/credencial-digital.page';
 import { LecturaAutogestionadaPage } from './pages/lectura-autogestionada/lectura-autogestionada.page';
 import { VisitantesProveedoresGuardiaPage } from './pages/visitantes-proveedores-guardia/visitantes-proveedores-guardia.page';
+import { EventosFamiliaresPage } from './pages/eventos-familiares/eventos-familiares.page';
+import { EventosSocialesFamiliaresPage } from './pages/eventos-sociales-familiares/eventos-sociales-familiares.page';
 
 @NgModule({
   imports: [
@@ -30,6 +32,8 @@ import { VisitantesProveedoresGuardiaPage } from './pages/visitantes-proveedores
     CredencialDigitalPage,
     LecturaAutogestionadaPage,
     VisitantesProveedoresGuardiaPage,
+    EventosFamiliaresPage,
+    EventosSocialesFamiliaresPage,
   ],
 })
 export class ControlAccesosModule {}

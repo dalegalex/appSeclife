@@ -46,6 +46,27 @@
         }
       </ion-list>
 
+      @if (authService.isAuthenticated()) {
+        <ion-list lines="none" class="privacy-menu">
+          <ion-item button detail="false" (click)="openPrivacyNotice()">
+            <ion-icon slot="start" name="shield-checkmark-outline"></ion-icon>
+            <ion-label>
+              <h2>Aviso de privacidad</h2>
+              <p>Consulta el tratamiento de datos</p>
+            </ion-label>
+          </ion-item>
+          <ion-menu-toggle autoHide="false">
+            <ion-item routerDirection="root" routerLink="/cuenta/eliminacion" detail="false">
+              <ion-icon slot="start" name="trash-outline"></ion-icon>
+              <ion-label>
+                <h2>Eliminar cuenta</h2>
+                <p>Privacidad y datos</p>
+              </ion-label>
+            </ion-item>
+          </ion-menu-toggle>
+        </ion-list>
+      }
+
       <section class="company-mark">
         <img src="assets/brand/brand-af-seclife-symbol.png" alt="A & F Seclife" />
         <span>Desarrollado por A &amp; F Seclife</span>
@@ -69,4 +90,49 @@
   <div class="ion-page" id="main-content">
     <ion-router-outlet></ion-router-outlet>
   </div>
+
+  <ion-modal
+    class="privacy-consent-modal"
+    [isOpen]="privacyConsentRequired"
+    [backdropDismiss]="false"
+  >
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Aviso de privacidad</ion-title>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content scroll-y="true">
+        <section class="privacy-consent">
+          <img src="assets/brand/brand-seclife-symbol.png" alt="Seclife" />
+          <h1>Privacidad de datos Seclife</h1>
+          <p>
+            Antes de continuar, revisa y acepta el aviso de privacidad vigente para el uso de
+            Seclife School.
+          </p>
+
+          <ion-button fill="outline" expand="block" (click)="openPrivacyNotice()">
+            <ion-icon slot="start" name="open-outline"></ion-icon>
+            Leer aviso de privacidad
+          </ion-button>
+
+          <div class="privacy-summary">
+            <p>
+              El aviso describe los datos que se tratan para identificacion, acceso escolar,
+              transporte, notificaciones, comunicacion y soporte.
+            </p>
+            <p>
+              Tambien explica el uso opcional de ubicacion GPS y notificaciones push, asi como
+              la eliminacion de cuenta, revocacion de permisos y conservacion de datos.
+            </p>
+          </div>
+
+          <ion-button expand="block" (click)="acceptPrivacyNotice()">
+            Acepto el aviso de privacidad
+          </ion-button>
+        </section>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
 </ion-app>

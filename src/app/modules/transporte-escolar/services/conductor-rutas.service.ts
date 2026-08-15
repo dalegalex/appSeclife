@@ -245,6 +245,7 @@ export class ConductorRutasService {
 
     eventos
       .slice()
+      .filter((evento) => ['SUBE', 'BAJA', 'AUSENTE', 'INCIDENCIA'].includes(String(evento.tipoEvento ?? '').toUpperCase()))
       .sort((a, b) => String(a.fechaHora || '').localeCompare(String(b.fechaHora || '')))
       .forEach((evento) => {
         ultimoEventoPorAlumno.set(evento.idalumnoruta, evento);
@@ -259,12 +260,15 @@ export class ConductorRutasService {
           return;
         }
 
-        alumno.ultimoEvento = evento.tipoEvento;
-        alumno.estado = evento.tipoEvento === 'AUSENTE'
-          ? 'ausente'
-          : evento.tipoEvento === 'INCIDENCIA'
-            ? 'incidencia'
-            : 'registrado';
+        const tipoEvento = String(evento.tipoEvento).toUpperCase();
+        alumno.ultimoEvento = tipoEvento;
+        alumno.estado = tipoEvento === 'SUBE' || tipoEvento === 'BAJA'
+          ? 'registrado'
+          : tipoEvento === 'AUSENTE'
+            ? 'ausente'
+            : tipoEvento === 'INCIDENCIA'
+              ? 'incidencia'
+              : 'pendiente';
       });
     });
 

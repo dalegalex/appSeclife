@@ -25,6 +25,11 @@
       </div>
       <ion-badge color="primary">{{ familiares.length }} miembros</ion-badge>
     </div>
+    <ion-button expand="block" fill="outline" routerLink="/control-accesos/red-familiar/eventos">
+      <ion-icon slot="start" name="calendar-outline"></ion-icon>
+      Eventos familiares
+      <ion-icon slot="end" name="chevron-forward-outline"></ion-icon>
+    </ion-button>
 
     <ion-segment [value]="activeTab" (ionChange)="cambiarTab($any($event.detail.value))">
       <ion-segment-button value="alumnos">
@@ -152,11 +157,11 @@
           </div>
 
           <ion-segment [(ngModel)]="codigoForm.modo" name="modoCompartir" (ionChange)="cambiarModoCompartir()">
-            <ion-segment-button value="PROVISIONAL">
-              <ion-label>Provisional</ion-label>
-            </ion-segment-button>
             <ion-segment-button value="PERMANENTE">
               <ion-label>Permanente</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="PROVISIONAL">
+              <ion-label>Provisional</ion-label>
             </ion-segment-button>
           </ion-segment>
 
@@ -349,6 +354,10 @@
               <ion-item-option color="danger" *ngIf="puedeCompartirAlumno(alumno)" (click)="eliminarAlumno(alumno)">
                 <ion-icon slot="top" name="trash-outline"></ion-icon>
                 Eliminar
+              </ion-item-option>
+              <ion-item-option color="danger" *ngIf="esAlumnoCompartidoExterno(alumno)" (click)="retirarAlumnoCompartido(alumno)">
+                <ion-icon slot="top" name="remove-circle-outline"></ion-icon>
+                Quitar de mi red
               </ion-item-option>
             </ion-item-options>
           </ion-item-sliding>

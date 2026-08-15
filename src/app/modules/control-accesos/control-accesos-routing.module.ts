@@ -1,4 +1,4 @@
-import { NgModule } from '@angular/core';
+﻿import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { AuthProfileGuard } from '../../core/auth/auth.guard';
 import { LecturaAsistidaPage } from './pages/lectura-asistida/lectura-asistida.page';
@@ -10,6 +10,8 @@ import { AvisosAsistenciaPadrePage } from './pages/avisos-asistencia-padre/aviso
 import { CredencialDigitalPage } from './pages/credencial-digital/credencial-digital.page';
 import { LecturaAutogestionadaPage } from './pages/lectura-autogestionada/lectura-autogestionada.page';
 import { VisitantesProveedoresGuardiaPage } from './pages/visitantes-proveedores-guardia/visitantes-proveedores-guardia.page';
+import { EventosFamiliaresPage } from './pages/eventos-familiares/eventos-familiares.page';
+import { EventosSocialesFamiliaresPage } from './pages/eventos-sociales-familiares/eventos-sociales-familiares.page';
 
 const routes: Routes = [
   {
@@ -36,6 +38,12 @@ const routes: Routes = [
     component: RedFamiliarPadrePage,
   },
   {
+    path: 'red-familiar/eventos',
+    canActivate: [AuthProfileGuard],
+    data: { profiles: [4] },
+    component: EventosSocialesFamiliaresPage,
+  },
+  {
     path: 'bitacora',
     canActivate: [AuthProfileGuard],
     data: { profiles: [4] },
@@ -46,6 +54,12 @@ const routes: Routes = [
     canActivate: [AuthProfileGuard],
     data: { profiles: [4] },
     component: AvisosAsistenciaPadrePage,
+  },
+  {
+    path: 'eventos',
+    canActivate: [AuthProfileGuard],
+    data: { profiles: [4] },
+    component: EventosFamiliaresPage,
   },
   {
     path: 'credencial-digital',

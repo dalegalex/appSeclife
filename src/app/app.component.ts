@@ -1,7 +1,13 @@
-import { Component } from '@angular/core';
+import { Component, effect, untracked } from '@angular/core';
 import { Router } from '@angular/router';
 import { environment } from '../environments/environment';
 import { AuthService } from './core/auth/auth.service';
+import { DRIVER_TRANSPORT_ENABLED } from './core/platform/platform-capabilities';
+import { NotificacionesPushRegistrationService } from './modules/notificaciones-push/services/notificaciones-push-registration.service';
+
+const PRIVACY_NOTICE_URL = 'https://seclifemx.com/aviso';
+const PRIVACY_NOTICE_VERSION = '2026-08-13';
+const PRIVACY_CONSENT_KEY_PREFIX = 'seclife.mobile.privacy.accepted';
 
 interface AppMenuItem {
   title: string;
@@ -19,6 +25,8 @@ interface AppMenuItem {
 })
 export class AppComponent {
   readonly appVersionLabel = `v${environment.appVersion} (${environment.appChannel})`;
+  readonly privacyNoticeUrl = PRIVACY_NOTICE_URL;
+  readonly privacyNoticeVersion = PRIVACY_NOTICE_VERSION;
 
   private readonly adminProfiles = [1, 2, 3];
   private readonly allMenuItems: AppMenuItem[] = [
@@ -27,6 +35,20 @@ export class AppComponent {
       subtitle: 'Tablero de modulos',
       url: '/home',
       icon: 'home-outline',
+      enabled: true,
+    },
+    {
+      title: 'Notificaciones',
+      subtitle: 'Avisos y preferencias',
+      url: '/notificaciones/historial',
+      icon: 'notifications-outline',
+      enabled: true,
+    },
+    {
+      title: 'Credencial Digital',
+      subtitle: 'Identificacion escolar',
+      url: '/control-accesos/credencial-digital',
+      icon: 'id-card-outline',
       enabled: true,
     },
     {
@@ -41,6 +63,13 @@ export class AppComponent {
       subtitle: 'Datos y documentos del alumno',
       url: '/ficha-alumno/mis-alumnos',
       icon: 'school-outline',
+      enabled: true,
+    },
+    {
+      title: 'Expediente Documental',
+      subtitle: 'Representacion y firma',
+      url: '/expediente-documental',
+      icon: 'document-lock-outline',
       enabled: true,
     },
     {
@@ -62,6 +91,20 @@ export class AppComponent {
       subtitle: 'Familia, alumnos y autos',
       url: '/control-accesos/red-familiar',
       icon: 'people-circle-outline',
+      enabled: true,
+    },
+    {
+      title: 'Eventos familiares',
+      subtitle: 'Pases sociales e invitaciones',
+      url: '/control-accesos/red-familiar/eventos',
+      icon: 'calendar-clear-outline',
+      enabled: true,
+    },
+    {
+      title: 'Eventos y Citas',
+      subtitle: 'Invitaciones familiares',
+      url: '/control-accesos/eventos',
+      icon: 'calendar-number-outline',
       enabled: true,
     },
     {
@@ -114,13 +157,6 @@ export class AppComponent {
       enabled: true,
     },
     {
-      title: 'Eliminar cuenta',
-      subtitle: 'Privacidad y datos',
-      url: '/cuenta/eliminacion',
-      icon: 'trash-outline',
-      enabled: true,
-    },
-    {
       title: 'Comunicados',
       subtitle: 'Proximamente',
       url: '/home',
@@ -138,15 +174,29 @@ export class AppComponent {
 
   constructor(
     public readonly authService: AuthService,
-    private readonly router: Router
-  ) {}
+    private readonly router: Router,
+    private readonly notificacionesPushRegistrationService: NotificacionesPushRegistrationService
+  ) {
+    effect(() => {
+      if (this.authService.isAuthenticated()) {
+        untracked(() => {
+          this.authService.loadAppMenu().subscribe();
+          void this.notificacionesPushRegistrationService.registerCurrentDevice();
+        });
+      }
+    });
+  }
 
   get menuItems(): AppMenuItem[] {
     const profileId = this.authService.getCurrentProfileId();
 
     return this.allMenuItems.filter((item) => {
+      if (!this.authService.canAccessAppRoute(item.url)) {
+        return false;
+      }
+
       if (item.url === '/transporte-escolar/conductor') {
-        return environment.enableDriverTransport && this.isProfileAllowed(profileId, [10, 11]);
+        return DRIVER_TRANSPORT_ENABLED && this.isProfileAllowed(profileId, [10, 11]);
       }
 
       if (item.url === '/ficha-personal/mi-ficha') {
@@ -156,11 +206,19 @@ export class AppComponent {
         return this.canUseFamilyAccess(profileId);
       }
 
+      if (item.url === '/expediente-documental') {
+        return this.canUseFamilyAccess(profileId);
+      }
+
       if (item.url === '/transporte-escolar/padre') {
         return this.canUseFamilyAccess(profileId);
       }
 
-      if (item.url === '/control-accesos/red-familiar') {
+      if (
+        item.url === '/control-accesos/red-familiar' ||
+        item.url === '/control-accesos/red-familiar/eventos' ||
+        item.url === '/control-accesos/eventos'
+      ) {
         return this.canUseFamilyAccess(profileId);
       }
 
@@ -203,7 +261,34 @@ export class AppComponent {
     return this.authService.getCurrentUser()?.email ?? '';
   }
 
+  get privacyConsentRequired(): boolean {
+    return this.authService.isAuthenticated() && !this.hasAcceptedCurrentPrivacyNotice();
+  }
+
+  acceptPrivacyNotice(): void {
+    const key = this.getPrivacyConsentKey();
+
+    if (!key) {
+      return;
+    }
+
+    const evidence = {
+      acceptedAt: new Date().toISOString(),
+      noticeVersion: this.privacyNoticeVersion,
+      noticeUrl: this.privacyNoticeUrl,
+      userId: this.authService.getCurrentUserId(),
+      email: this.userEmail || null,
+    };
+
+    localStorage.setItem(key, JSON.stringify(evidence));
+  }
+
+  openPrivacyNotice(): void {
+    window.open(this.privacyNoticeUrl, '_blank', 'noopener,noreferrer');
+  }
+
   signOut(): void {
+    void this.notificacionesPushRegistrationService.unregisterCurrentDevice();
     this.authService.signOut();
     this.router.navigateByUrl('/auth/login', { replaceUrl: true });
   }
@@ -214,5 +299,34 @@ export class AppComponent {
 
   private canUseFamilyAccess(profileId: number | null): boolean {
     return this.isProfileAllowed(profileId, [4]) || this.authService.hasFamilyAccess();
+  }
+
+  private hasAcceptedCurrentPrivacyNotice(): boolean {
+    const key = this.getPrivacyConsentKey();
+
+    if (!key) {
+      return false;
+    }
+
+    const raw = localStorage.getItem(key);
+
+    if (!raw) {
+      return false;
+    }
+
+    try {
+      const acceptance = JSON.parse(raw) as { noticeVersion?: string | null };
+      return acceptance.noticeVersion === this.privacyNoticeVersion;
+    } catch {
+      localStorage.removeItem(key);
+      return false;
+    }
+  }
+
+  private getPrivacyConsentKey(): string | null {
+    const user = this.authService.getCurrentUser();
+    const userKey = user?.idusrbt ?? user?.email ?? null;
+
+    return userKey ? `${PRIVACY_CONSENT_KEY_PREFIX}.${userKey}` : null;
   }
 }

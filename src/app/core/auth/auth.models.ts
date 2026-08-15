@@ -110,6 +110,23 @@ export interface AuthOrganizationBrand {
   logoContentType?: string | null;
 }
 
+export interface AuthMenuItem {
+  idmenu: number;
+  canal: 'WEB' | 'APP' | string;
+  clave: string;
+  titulo: string;
+  descripcion?: string | null;
+  icono?: string | null;
+  ruta?: string | null;
+  orden: number;
+  puedever: boolean;
+  puedecrear: boolean;
+  puedeeditar: boolean;
+  puedeeliminar: boolean;
+  puedeejecutar: boolean;
+  children: AuthMenuItem[];
+}
+
 export interface RegistrationCodeUser {
   identidad: number;
   idperfil: number;

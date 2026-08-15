@@ -1,0 +1,142 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Eventos y citas</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="cargar()" [disabled]="loading">
+        <ion-icon slot="icon-only" name="refresh-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <section class="events-shell">
+    @if (loading) {
+      <div class="state-panel">
+        <ion-spinner name="crescent"></ion-spinner>
+        <span>Consultando invitaciones...</span>
+      </div>
+    } @else if (invitaciones.length === 0) {
+      <div class="state-panel">
+        <ion-icon name="calendar-clear-outline"></ion-icon>
+        <strong>No hay eventos pendientes</strong>
+      </div>
+    } @else {
+      @for (invitacion of invitaciones; track invitacion.idinvitacion) {
+        <ion-card [class.required-card]="!estaCancelada(invitacion) && invitacion.confirmacionRequerida && invitacion.estatusRespuesta !== 'CONFIRMADA'">
+          <ion-card-header>
+            <div class="card-heading">
+              <div class="event-icon">
+                <ion-icon name="calendar-number-outline"></ion-icon>
+              </div>
+              <div>
+                <ion-card-title>{{ invitacion.nombre || 'Evento escolar' }}</ion-card-title>
+                <ion-card-subtitle>{{ invitacion.nombreFamilia }}</ion-card-subtitle>
+              </div>
+              <ion-badge [color]="estaCancelada(invitacion) ? 'danger' : respuestaColor(invitacion)">
+                {{ estaCancelada(invitacion) ? 'CANCELADO' : (invitacion.estatusRespuesta || 'PENDIENTE') }}
+              </ion-badge>
+            </div>
+          </ion-card-header>
+
+          <ion-card-content>
+            @if (estaCancelada(invitacion)) {
+              <div class="required-notice">
+                <ion-icon name="ban-outline"></ion-icon>
+                <span>
+                  Evento cancelado.
+                  @if (invitacion.motivoCancelacion) {
+                    {{ invitacion.motivoCancelacion }}
+                  }
+                </span>
+              </div>
+            } @else if (invitacion.confirmacionRequerida && invitacion.estatusRespuesta !== 'CONFIRMADA') {
+              <div class="required-notice">
+                <ion-icon name="alert-circle-outline"></ion-icon>
+                <span>Debes confirmar para que la familia tenga acceso al evento.</span>
+              </div>
+            }
+
+            <div class="event-data">
+              <span><ion-icon name="time-outline"></ion-icon>{{ fechaLabel(invitacion) }}</span>
+              <span><ion-icon name="location-outline"></ion-icon>{{ invitacion.lugar || 'Lugar por confirmar' }}</span>
+            </div>
+
+            @if (invitacion.aviso) {
+              <p class="event-message">{{ invitacion.aviso }}</p>
+            }
+
+            @if (invitacion.respondio) {
+              <p class="shared-response">
+                Respondio {{ invitacion.respondio }}
+                @if (invitacion.fechaRespuesta) {
+                  <span>el {{ invitacion.fechaRespuesta | date:'dd/MM/yyyy HH:mm' }}</span>
+                }
+              </p>
+            }
+
+            @if (!estaCancelada(invitacion) && editingId === invitacion.idinvitacion) {
+              <div class="response-editor">
+                <div class="editor-heading">
+                  <strong>Acompanantes externos</strong>
+                  <ion-button fill="clear" size="small" (click)="agregarAcompanante(invitacion)" [disabled]="acompanantes.length >= maximoAcompanantes(invitacion)">
+                    <ion-icon slot="start" name="person-add-outline"></ion-icon>
+                    Agregar
+                  </ion-button>
+                </div>
+
+                @for (nombre of acompanantes; track $index) {
+                  <div class="companion-row">
+                    <ion-input
+                      class="uppercase-input"
+                      label="Nombre completo"
+                      labelPlacement="stacked"
+                      autocapitalize="characters"
+                      [value]="acompanantes[$index]"
+                      (ionInput)="actualizarAcompanante($index, $any($event.detail).value)">
+                    </ion-input>
+                    <ion-button fill="clear" color="danger" (click)="quitarAcompanante($index)">
+                      <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+                    </ion-button>
+                  </div>
+                }
+
+                <ion-textarea
+                  label="Comentario opcional"
+                  labelPlacement="stacked"
+                  [value]="comentarios"
+                  (ionInput)="comentarios = $any($event.detail).value ?? ''"
+                  autoGrow="true">
+                </ion-textarea>
+
+                <div class="editor-actions">
+                  <ion-button fill="outline" color="medium" (click)="cancelarEdicion()">Cancelar</ion-button>
+                  <ion-button (click)="confirmar(invitacion)" [disabled]="savingId === invitacion.idinvitacion">
+                    @if (savingId === invitacion.idinvitacion) {
+                      <ion-spinner name="crescent"></ion-spinner>
+                    } @else {
+                      Confirmar asistencia
+                    }
+                  </ion-button>
+                </div>
+              </div>
+            } @else if (!estaCancelada(invitacion)) {
+              <div class="card-actions">
+                <ion-button fill="outline" color="medium" (click)="declinar(invitacion)" [disabled]="savingId === invitacion.idinvitacion">
+                  No asistire
+                </ion-button>
+                <ion-button (click)="editar(invitacion)">
+                  <ion-icon slot="start" name="checkmark-circle-outline"></ion-icon>
+                  {{ invitacion.estatusRespuesta === 'CONFIRMADA' ? 'Editar respuesta' : 'Confirmar' }}
+                </ion-button>
+              </div>
+            }
+          </ion-card-content>
+        </ion-card>
+      }
+    }
+  </section>
+</ion-content>

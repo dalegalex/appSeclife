@@ -1,10 +1,12 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
-import { Capacitor, registerPlugin } from '@capacitor/core';
+import { Component, NgZone, OnDestroy, OnInit } from '@angular/core';
+import { App } from '@capacitor/app';
+import { Capacitor, PluginListenerHandle, registerPlugin } from '@capacitor/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { ToastController } from '@ionic/angular';
-import { Subscription } from 'rxjs';
+import { AlertController, ToastController } from '@ionic/angular';
+import { catchError, forkJoin, of, Subscription } from 'rxjs';
 import { ConductorAlumno, ConductorParada, ConductorRuta, TransporteRecorrido } from '../../models/conductor-ruta.model';
 import { ConductorRutasService } from '../../services/conductor-rutas.service';
+import { IncidenciasOperativasService, PoliticaIncidenciasOperativas, TipoIncidenciaOperativa } from '../../services/incidencias-operativas.service';
 import { currentMexicoMinutes, formatMexicoTime } from '../../services/transporte-date.util';
 import { TransporteOfflineSyncService } from '../../services/transporte-offline-sync.service';
 import { AuthService } from '../../../../core/auth/auth.service';
@@ -38,6 +40,8 @@ export class ConductorDashboardPage implements OnInit, OnDestroy {
   rutas: ConductorRuta[] = [];
   rutaActiva?: ConductorRuta;
   recorridoIniciado = false;
+
+  revisandoRecorridos = false;
   cargando = true;
   mensajeEstado = '';
   gpsActivo = false;
@@ -51,21 +55,31 @@ export class ConductorDashboardPage implements OnInit, OnDestroy {
   };
   fechaInicioRecorrido?: string | null;
   pendientesSincronizar = 0;
+  politicaIncidencias: PoliticaIncidenciasOperativas | null = null;
+  enviandoIncidencia = false;
 
   private gpsIntervalId?: number;
   private gpsVisualIntervalId?: number;
   private pendingSubscription?: Subscription;
   private backgroundGpsActivo = false;
+  private backgroundGpsIniciando = false;
+  private appStateListener?: PluginListenerHandle;
+  private appResumeListener?: PluginListenerHandle;
+  private gpsResumeRetryId?: number;
 
   constructor(
     private readonly rutasService: ConductorRutasService,
+    private readonly incidenciasService: IncidenciasOperativasService,
     private readonly offlineSyncService: TransporteOfflineSyncService,
     private readonly sanitizer: DomSanitizer,
     private readonly toastController: ToastController,
-    private readonly authService: AuthService
+    private readonly alertController: AlertController,
+    private readonly authService: AuthService,
+    private readonly ngZone: NgZone
   ) {}
 
   ngOnInit(): void {
+    void this.registrarReintentoGpsAlReanudar();
     this.cargando = true;
     this.mensajeEstado = '';
     this.pendingSubscription = this.offlineSyncService.pendingCount$.subscribe((count) => {
@@ -79,10 +93,7 @@ export class ConductorDashboardPage implements OnInit, OnDestroy {
         this.rutaActiva = rutas[0];
         this.cargando = false;
         this.mensajeEstado = rutas.length === 0 ? 'No hay rutas asignadas para este conductor.' : '';
-
-        if (this.rutaActiva) {
-          this.cargarRecorridoActual();
-        }
+        this.cargarRecorridosAsignados();
       },
       error: (error: Error) => {
         this.rutas = [];
@@ -96,10 +107,25 @@ export class ConductorDashboardPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.detenerGps();
     this.pendingSubscription?.unsubscribe();
+    void this.appStateListener?.remove();
+    void this.appResumeListener?.remove();
+    this.cancelarReintentoGpsAlReanudar();
   }
 
-  iniciarRecorrido(): void {
+  async iniciarRecorrido(): Promise<void> {
     if (!this.rutaActiva) {
+      return;
+    }
+
+    const rutaEnCurso = this.rutas.find((ruta) => ruta.estatus === 'en_recorrido' && ruta.idruta !== this.rutaActiva?.idruta);
+    if (rutaEnCurso) {
+      this.rutaActiva = rutaEnCurso;
+      this.cargarRecorridoActual();
+      this.presentToast(`Ya existe un recorrido en curso en ${rutaEnCurso.descripcion}. Finalizalo antes de iniciar otra ruta.`);
+      return;
+    }
+
+    if (!await this.confirmarUsoUbicacionSegundoPlano()) {
       return;
     }
 
@@ -110,11 +136,82 @@ export class ConductorDashboardPage implements OnInit, OnDestroy {
       }
 
       this.aplicarRecorrido(response.result);
-      this.iniciarGps();
-      this.presentToast('Recorrido iniciado. GPS activo.');
+      this.presentToast('Recorrido iniciado. Activando GPS...');
     });
   }
 
+  private async registrarReintentoGpsAlReanudar(): Promise<void> {
+    if (!Capacitor.isNativePlatform()) {
+      return;
+    }
+
+    this.appStateListener = await App.addListener('appStateChange', ({ isActive }) => {
+      this.ngZone.run(() => {
+        if (isActive && this.recorridoIniciado && !this.backgroundGpsActivo) {
+          this.programarReintentoGpsAlReanudar();
+        }
+      });
+    });
+
+    this.appResumeListener = await App.addListener('resume', () => {
+      this.ngZone.run(() => {
+        if (this.recorridoIniciado && !this.backgroundGpsActivo) {
+          this.programarReintentoGpsAlReanudar();
+        }
+      });
+    });
+  }
+
+  private programarReintentoGpsAlReanudar(intentos = 0): void {
+    this.cancelarReintentoGpsAlReanudar();
+    this.gpsResumeRetryId = window.setTimeout(() => {
+      this.gpsResumeRetryId = undefined;
+      if (!this.recorridoIniciado || this.backgroundGpsActivo) {
+        return;
+      }
+      if (this.backgroundGpsIniciando) {
+        if (intentos < 10) {
+          this.programarReintentoGpsAlReanudar(intentos + 1);
+        }
+        return;
+      }
+      this.iniciarGps();
+    }, 500);
+  }
+
+  private cancelarReintentoGpsAlReanudar(): void {
+    if (!this.gpsResumeRetryId) {
+      return;
+    }
+    window.clearTimeout(this.gpsResumeRetryId);
+    this.gpsResumeRetryId = undefined;
+  }
+
+  private async confirmarUsoUbicacionSegundoPlano(): Promise<boolean> {
+    const disclosureKey = 'seclife.transporte.backgroundLocationDisclosure.v2';
+    if (localStorage.getItem(disclosureKey) === 'accepted') {
+      return true;
+    }
+
+    const alert = await this.alertController.create({
+      header: 'Uso de ubicacion en segundo plano',
+      message: 'Seclife School recopila y envia datos de ubicacion precisa para habilitar el seguimiento en tiempo real del recorrido escolar por la institucion y los familiares autorizados, incluso cuando la app esta cerrada o no esta en uso. El seguimiento comienza unicamente cuando el conductor inicia el recorrido y se detiene al finalizarlo. Estos datos no se utilizan para publicidad.',
+      backdropDismiss: false,
+      buttons: [
+        { text: 'Ahora no', role: 'cancel' },
+        { text: 'Continuar', role: 'confirm' }
+      ]
+    });
+
+    await alert.present();
+    const result = await alert.onDidDismiss();
+    if (result.role !== 'confirm') {
+      return false;
+    }
+
+    localStorage.setItem(disclosureKey, 'accepted');
+    return true;
+  }
   async finalizarRecorrido(): Promise<void> {
     if (!this.rutaActiva?.idrecorrido) {
       this.presentToast('No hay recorrido en curso para finalizar.');
@@ -160,6 +257,96 @@ export class ConductorDashboardPage implements OnInit, OnDestroy {
     this.registrarEvento(alumno, 'INCIDENCIA', 'Incidencia registrada.');
   }
 
+  async reportarIncidenciaOperativa(): Promise<void> {
+    if (!this.rutaActiva?.idrecorrido || !this.recorridoIniciado) {
+      this.presentToast('Primero inicia el recorrido.');
+      return;
+    }
+
+    const politica = this.politicaIncidencias;
+    if (!politica?.puedeReportar) {
+      this.presentToast('La ruta o tu rol no tienen habilitado el envio de incidencias. Contacta al Colegio.');
+      return;
+    }
+
+    const opciones = [
+      { type: 'radio' as const, label: 'Retraso', value: 'RETRASO' },
+      { type: 'radio' as const, label: 'Trafico o cierre vial', value: 'TRAFICO_CORTE' },
+      { type: 'radio' as const, label: 'Falla mecanica', value: 'FALLA_MECANICA' },
+      { type: 'radio' as const, label: 'Percance', value: 'PERCANCE' },
+      { type: 'radio' as const, label: 'Cambio de ruta', value: 'CAMBIO_RUTA' },
+      { type: 'radio' as const, label: 'Emergencia', value: 'EMERGENCIA_MEDICA' }
+    ];
+    if (politica.permiteTextoLibreIncidencia) {
+      opciones.push({ type: 'radio', label: 'Otro mensaje', value: 'OTRO' });
+    }
+
+    const selector = await this.alertController.create({
+      header: 'Incidencia del recorrido',
+      message: 'Selecciona unicamente una situacion real que deba conocer el Colegio y los familiares de alumnos a bordo.',
+      inputs: opciones,
+      buttons: [{ text: 'Cancelar', role: 'cancel' }, { text: 'Continuar', role: 'confirm' }]
+    });
+    await selector.present();
+    const seleccion = await selector.onDidDismiss();
+    const tipo = seleccion.data?.values as TipoIncidenciaOperativa | undefined;
+    if (seleccion.role !== 'confirm' || !tipo) return;
+
+    let mensaje: string | null = null;
+    const esTextoLibre = tipo === 'OTRO';
+    if (esTextoLibre) {
+      const editor = await this.alertController.create({
+        header: 'Mensaje para autorizacion',
+        message: 'No incluyas diagnosticos, nombres ni datos personales sensibles.',
+        inputs: [{ name: 'mensaje', type: 'textarea', placeholder: 'Describe brevemente la situacion', attributes: { maxlength: 500 } }],
+        buttons: [{ text: 'Cancelar', role: 'cancel' }, { text: 'Continuar', role: 'confirm' }]
+      });
+      await editor.present();
+      const texto = await editor.onDidDismiss();
+      mensaje = String(texto.data?.values?.mensaje ?? '').trim();
+      if (texto.role !== 'confirm' || !mensaje) return;
+    }
+
+    const confirmacion = await this.alertController.create({
+      header: 'Confirmar envio',
+      message: esTextoLibre && politica.textoLibreRequiereAutorizacion
+        ? 'El mensaje quedara pendiente de autorizacion del Colegio. Confirmas que la informacion es verdadera y asumes la responsabilidad de reportarla.'
+        : 'Este aviso llegara a familiares autorizados de alumnos que continuan a bordo. Confirmas que la informacion es verdadera y asumes la responsabilidad de enviarla.',
+      backdropDismiss: false,
+      buttons: [{ text: 'Cancelar', role: 'cancel' }, { text: 'Acepto y enviar', role: 'confirm' }]
+    });
+    await confirmacion.present();
+    const confirmado = await confirmacion.onDidDismiss();
+    if (confirmado.role !== 'confirm') return;
+
+    this.enviandoIncidencia = true;
+    this.incidenciasService.reportar(this.rutaActiva.idrecorrido, {
+      tipoIncidente: tipo,
+      mensaje,
+      esTextoLibre,
+      aceptoResponsabilidad: true,
+      latitud: this.ultimaUbicacion?.latitud ?? null,
+      longitud: this.ultimaUbicacion?.longitud ?? null
+    }).subscribe({
+      next: response => {
+        this.enviandoIncidencia = false;
+        this.presentToast(response.message || 'Incidencia registrada.');
+      },
+      error: error => {
+        this.enviandoIncidencia = false;
+        this.presentToast(error?.error?.message || 'No fue posible registrar la incidencia.');
+      }
+    });
+  }
+
+  private cargarPoliticaIncidencias(): void {
+    if (!this.rutaActiva) return;
+    this.politicaIncidencias = null;
+    this.incidenciasService.consultarPolitica(this.rutaActiva.idruta).subscribe({
+      next: response => this.politicaIncidencias = response.result ?? null,
+      error: () => this.politicaIncidencias = null
+    });
+  }
   seleccionarRuta(idruta: number | string): void {
     const rutaSeleccionada = this.rutas.find((ruta) => ruta.idruta === Number(idruta));
     if (!rutaSeleccionada || rutaSeleccionada.idruta === this.rutaActiva?.idruta) {
@@ -241,7 +428,7 @@ export class ConductorDashboardPage implements OnInit, OnDestroy {
   }
 
   private iniciarGps(): void {
-    if (this.gpsIntervalId || this.backgroundGpsActivo) {
+    if (this.gpsIntervalId || this.backgroundGpsActivo || this.backgroundGpsIniciando) {
       return;
     }
 
@@ -261,6 +448,7 @@ export class ConductorDashboardPage implements OnInit, OnDestroy {
   }
 
   private detenerGps(): void {
+    this.cancelarReintentoGpsAlReanudar();
     if (this.gpsIntervalId) {
       window.clearInterval(this.gpsIntervalId);
       this.gpsIntervalId = undefined;
@@ -298,6 +486,8 @@ export class ConductorDashboardPage implements OnInit, OnDestroy {
       return;
     }
 
+    this.backgroundGpsIniciando = true;
+
     try {
       const segundoPlanoPermitido = await this.validarPermisoUbicacionSegundoPlano();
       if (!segundoPlanoPermitido) {
@@ -329,6 +519,8 @@ export class ConductorDashboardPage implements OnInit, OnDestroy {
       this.gpsIntervalId = window.setInterval(() => {
         this.enviarUbicacionActual();
       }, this.resolveGpsIntervalMs());
+    } finally {
+      this.backgroundGpsIniciando = false;
     }
   }
 
@@ -514,6 +706,50 @@ export class ConductorDashboardPage implements OnInit, OnDestroy {
     return Math.max(5, Number.isFinite(segundos) && segundos > 0 ? segundos : GPS_SYNC_INTERVAL_MS / 1000) * 1000;
   }
 
+  private cargarRecorridosAsignados(): void {
+    if (this.rutas.length === 0) {
+      this.revisandoRecorridos = false;
+      return;
+    }
+
+    this.revisandoRecorridos = true;
+    forkJoin(this.rutas.map((ruta) =>
+      this.rutasService.consultarRecorridoActual(ruta.idruta).pipe(
+        catchError(() => of({ result: null, message: null, codeNumber: 0 }))
+      )
+    )).subscribe((responses) => {
+      let recorridoEnCurso: TransporteRecorrido | null = null;
+
+      responses.forEach((response, index) => {
+        const ruta = this.rutas[index];
+        const recorrido = response.result;
+        ruta.idrecorrido = recorrido?.idrecorrido ?? null;
+        ruta.estatus = recorrido?.estatus === 'EN_CURSO'
+          ? 'en_recorrido'
+          : recorrido ? 'finalizada' : 'pendiente';
+
+        if (!recorridoEnCurso && recorrido?.estatus === 'EN_CURSO') {
+          recorridoEnCurso = recorrido;
+        }
+      });
+
+      if (recorridoEnCurso) {
+        const rutaEnCurso = this.rutas.find((ruta) => ruta.idruta === recorridoEnCurso?.idruta);
+        if (rutaEnCurso) {
+          this.rutaActiva = rutaEnCurso;
+        }
+
+        this.aplicarRecorrido(recorridoEnCurso);
+      } else {
+        this.recorridoIniciado = false;
+        this.fechaInicioRecorrido = undefined;
+        this.detenerGps();
+      }
+
+      this.revisandoRecorridos = false;
+    });
+  }
+
   private cargarRecorridoActual(): void {
     if (!this.rutaActiva) {
       return;
@@ -524,6 +760,7 @@ export class ConductorDashboardPage implements OnInit, OnDestroy {
         this.aplicarRecorrido(response.result);
       } else {
         this.recorridoIniciado = false;
+        this.rutaActiva!.idrecorrido = null;
         this.rutaActiva!.estatus = 'pendiente';
       }
     });
@@ -535,8 +772,8 @@ export class ConductorDashboardPage implements OnInit, OnDestroy {
     }
 
     this.rutaActiva.idrecorrido = recorrido.idrecorrido;
-    this.rutaActiva.estatus = recorrido.estatus === 'FINALIZADO' ? 'finalizada' : 'en_recorrido';
-    this.recorridoIniciado = recorrido.estatus !== 'FINALIZADO';
+    this.rutaActiva.estatus = recorrido.estatus === 'EN_CURSO' ? 'en_recorrido' : 'finalizada';
+    this.recorridoIniciado = recorrido.estatus === 'EN_CURSO';
     this.fechaInicioRecorrido = recorrido.fechaInicio ?? recorrido.fecha ?? null;
     this.rutasService.aplicarEventosRecorrido(this.rutaActiva, recorrido.eventos ?? []);
 
@@ -616,6 +853,10 @@ export class ConductorDashboardPage implements OnInit, OnDestroy {
   }
 
   get accionPrincipal(): string {
+    if (this.revisandoRecorridos) {
+      return 'Consultando recorridos...';
+    }
+
     if (!this.rutaActiva || this.rutaActiva.estatus === 'finalizada') {
       return 'Recorrido finalizado';
     }

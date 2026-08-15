@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "384975729242",
+    "project_id": "seclife-school",
+    "storage_bucket": "seclife-school.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:384975729242:android:71381eee11dbf659cd1e63",
+        "android_client_info": {
+          "package_name": "mx.com.seclife.schoolmaster"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "384975729242-l0qge3nv12lrsohnlilu83vqts9ni0sr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDAajvJ9ULYAXQoOfHf5llkDDp8QKBB2aQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "384975729242-l0qge3nv12lrsohnlilu83vqts9ni0sr.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

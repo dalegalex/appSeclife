@@ -1,0 +1,254 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Expediente Documental</ion-title>
+  </ion-toolbar>
+  <ion-toolbar class="tabs-toolbar">
+    <ion-segment [(ngModel)]="activeTab" mode="md">
+      <ion-segment-button value="representacion">
+        <ion-label>Representación</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="pendientes">
+        <ion-label>Por firmar</ion-label>
+        @if (pendingDocuments.length) { <ion-badge>{{ pendingDocuments.length }}</ion-badge> }
+      </ion-segment-button>
+      <ion-segment-button value="firmados">
+        <ion-label>Firmados</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="load($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  @if (loading) {
+    <div class="state-panel"><ion-spinner name="crescent"></ion-spinner><span>Consultando expediente</span></div>
+  } @else {
+    <main class="page-content">
+      @if (activeTab === 'representacion') {
+        <div class="section-heading">
+          <div>
+            <h1>Representación legal</h1>
+            <p>Solicitudes sujetas a revisión del Colegio</p>
+          </div>
+          <ion-button size="small" (click)="openRepresentation()">
+            <ion-icon slot="start" name="add-outline"></ion-icon>
+            Solicitud
+          </ion-button>
+        </div>
+
+        <input #supportPicker hidden type="file" accept="application/pdf" (change)="uploadAdditionalSupport($event)" />
+
+        @if (!representations.length) {
+          <div class="empty-state">
+            <ion-icon name="people-circle-outline"></ion-icon>
+            <strong>Sin solicitudes registradas</strong>
+          </div>
+        }
+        <section class="record-list">
+          @for (item of representations; track item.idrepresentacionlegal) {
+            <article class="record-card">
+              <div class="record-topline">
+                <div>
+                  <h2>{{ item.firmante }}</h2>
+                  <p>{{ studentName(item.idmatricula) }}</p>
+                </div>
+                <ion-chip [color]="statusColor(item.estatus)">{{ statusLabel(item.estatus) }}</ion-chip>
+              </div>
+              <dl>
+                <div><dt>Calidad jurídica</dt><dd>{{ item.calidadDescripcion }}</dd></div>
+                <div><dt>Vigencia</dt><dd>{{ formatDate(item.fechaInicio) }}</dd></div>
+                <div><dt>Soportes</dt><dd>{{ item.soportes }}</dd></div>
+              </dl>
+              @if (item.estatus === 'PENDIENTE') {
+                <div class="record-actions">
+                  <ion-button fill="clear" size="small" [disabled]="uploadingSupport" (click)="selectAdditionalSupport(item)">
+                    <ion-icon slot="start" name="attach-outline"></ion-icon>
+                    Adjuntar soporte
+                  </ion-button>
+                </div>
+              }
+            </article>
+          }
+        </section>
+      }
+
+      @if (activeTab === 'pendientes') {
+        <div class="section-heading">
+          <div><h1>Documentos por firmar</h1><p>Asignaciones vigentes para tu cuenta</p></div>
+        </div>
+        @if (!pendingDocuments.length) {
+          <div class="empty-state"><ion-icon name="checkmark-done-outline"></ion-icon><strong>Sin documentos pendientes</strong></div>
+        }
+        <section class="record-list">
+          @for (item of pendingDocuments; track item.idasignacion) {
+            <article class="record-card document-card">
+              <div class="document-icon"><ion-icon name="document-text-outline"></ion-icon></div>
+              <div class="document-body">
+                <div class="record-topline">
+                  <div><h2>{{ item.documento }}</h2><p>{{ item.claveDocumento }} · Versión {{ item.numeroVersion }}</p></div>
+                  <ion-chip color="warning">PENDIENTE</ion-chip>
+                </div>
+                <dl>
+                  <div><dt>Disponible</dt><dd>{{ formatDate(item.fechaDisponible) }}</dd></div>
+                  <div><dt>Fecha límite</dt><dd>{{ formatDate(item.fechaLimite) }}</dd></div>
+                </dl>
+                <div class="record-actions">
+                  <ion-button size="small" (click)="reviewDocument(item)">
+                    <ion-icon slot="start" name="create-outline"></ion-icon>Revisar y firmar
+                  </ion-button>
+                  <ion-button fill="clear" color="danger" size="small" (click)="reject(item)">Rechazar</ion-button>
+                </div>
+              </div>
+            </article>
+          }
+        </section>
+      }
+
+      @if (activeTab === 'firmados') {
+        <div class="section-heading"><div><h1>Documentos firmados</h1><p>Constancias disponibles y cumplimientos conjuntos</p></div></div>
+        @if (!signedDocuments.length) {
+          <div class="empty-state"><ion-icon name="document-lock-outline"></ion-icon><strong>Sin documentos firmados</strong></div>
+        }
+        <section class="record-list">
+          @for (item of signedDocuments; track item.idasignacion) {
+            <article class="record-card document-card">
+              <div class="document-icon complete"><ion-icon name="shield-checkmark-outline"></ion-icon></div>
+              <div class="document-body">
+                <div class="record-topline">
+                  <div><h2>{{ item.documento }}</h2><p>{{ item.claveDocumento }} · Versión {{ item.numeroVersion }}</p></div>
+                  <ion-chip [color]="statusColor(item.estatusFirmante)">{{ statusLabel(item.estatusFirmante) }}</ion-chip>
+                </div>
+                <div class="record-actions">
+                  <ion-button fill="outline" size="small" [disabled]="openingFile" (click)="openDocument(item)">
+                    <ion-icon slot="start" name="eye-outline"></ion-icon>Documento
+                  </ion-button>
+                  @if (item.evidenciaDisponible) {
+                    <ion-button size="small" [disabled]="openingFile" (click)="openEvidence(item)">
+                      <ion-icon slot="start" name="ribbon-outline"></ion-icon>Constancia
+                    </ion-button>
+                  }
+                </div>
+              </div>
+            </article>
+          }
+        </section>
+      }
+    </main>
+  }
+</ion-content>
+
+<ion-modal [isOpen]="representationModalOpen" (didDismiss)="representationModalOpen = false">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-buttons slot="start"><ion-button (click)="representationModalOpen = false">Cancelar</ion-button></ion-buttons>
+        <ion-title>Nueva representación</ion-title>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <form class="modal-form" (ngSubmit)="saveRepresentation()">
+        <ion-list inset="true">
+          <ion-item>
+            <ion-select label="Alumno" labelPlacement="stacked" interface="action-sheet" [(ngModel)]="representationForm.idmatricula" name="student" (ionChange)="onStudentChange()">
+              @for (item of context.alumnos; track item.idmatricula) { <ion-select-option [value]="item.idmatricula">{{ item.nombre }}</ion-select-option> }
+            </ion-select>
+          </ion-item>
+          <ion-item>
+            <ion-select label="Representante propuesto" labelPlacement="stacked" interface="action-sheet" [(ngModel)]="representationForm.idfamiliamiembro" name="member">
+              @for (item of familyMembers; track item.idfamiliamiembro) { <ion-select-option [value]="item.idfamiliamiembro">{{ item.nombre }} · {{ item.parentesco }}</ion-select-option> }
+            </ion-select>
+          </ion-item>
+          <ion-item>
+            <ion-select label="Calidad jurídica" labelPlacement="stacked" interface="action-sheet" [(ngModel)]="representationForm.claveCalidad" name="quality">
+              @for (item of context.calidades; track item.clave) { <ion-select-option [value]="item.clave">{{ item.descripcion }}</ion-select-option> }
+            </ion-select>
+          </ion-item>
+          <ion-item><ion-textarea label="Observaciones" labelPlacement="stacked" autoGrow="true" maxlength="1000" [(ngModel)]="representationForm.observaciones" name="observations"></ion-textarea></ion-item>
+          <ion-item>
+            <ion-toggle [(ngModel)]="hasLegalSupport" name="hasSupport">Existe documento acreditativo</ion-toggle>
+          </ion-item>
+        </ion-list>
+
+        @if (hasLegalSupport) {
+          <section class="support-fields">
+            <ion-select label="Tipo de soporte" labelPlacement="stacked" interface="action-sheet" [(ngModel)]="supportType" name="supportType">
+              <ion-select-option value="RESOLUCION_JUDICIAL">Resolución judicial</ion-select-option>
+              <ion-select-option value="RESOLUCION_CUSTODIA">Resolución de custodia</ion-select-option>
+              <ion-select-option value="RESOLUCION_TUTELA">Resolución de tutela</ion-select-option>
+              <ion-select-option value="CONVENIO_APROBADO">Convenio aprobado</ion-select-option>
+              <ion-select-option value="PODER_REPRESENTACION">Poder de representación</ion-select-option>
+              <ion-select-option value="OTRO_ACREDITATIVO">Otro acreditativo</ion-select-option>
+            </ion-select>
+            <label class="file-field"><span>Documento PDF</span><input type="file" accept="application/pdf" (change)="onSupportSelected($event)" /></label>
+          </section>
+        }
+
+        <ion-button expand="block" type="submit" [disabled]="savingRepresentation">
+          @if (savingRepresentation) { <ion-spinner name="crescent"></ion-spinner> } @else { <ion-icon slot="start" name="send-outline"></ion-icon>Enviar al Colegio }
+        </ion-button>
+      </form>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<ion-modal class="signature-modal" [isOpen]="documentModalOpen" (didDismiss)="documentModalOpen = false" (didPresent)="initializeCanvas()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-buttons slot="start"><ion-button (click)="documentModalOpen = false">Cerrar</ion-button></ion-buttons>
+        <ion-title>Firma documental</ion-title>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      @if (loadingDetail) {
+        <div class="state-panel"><ion-spinner name="crescent"></ion-spinner><span>Preparando documento</span></div>
+      } @else if (detail && selectedDocument) {
+        <section class="signing-content">
+          <div class="document-summary">
+            <div><h2>{{ detail.documento }}</h2><p>{{ detail.claveDocumento }} · Versión {{ detail.numeroVersion }}</p></div>
+            <ion-button fill="outline" size="small" [disabled]="openingFile" (click)="openDocument(selectedDocument)">
+              <ion-icon slot="start" name="eye-outline"></ion-icon>Abrir PDF
+            </ion-button>
+          </div>
+          <div class="student-band">
+            @for (student of detail.alumnos; track student.idmatricula) {
+              <div><strong>{{ student.nombre }}</strong><span>{{ statusLabel(student.politicaFirma) }} · {{ student.firmasRequeridas }} firma(s)</span></div>
+            }
+          </div>
+
+          @if (!otp) {
+            <section class="signature-area">
+              <div class="signature-heading"><h3>Firma gráfica</h3><ion-button fill="clear" size="small" (click)="clearSignature()"><ion-icon slot="start" name="refresh-outline"></ion-icon>Limpiar</ion-button></div>
+              <canvas #signatureCanvas width="900" height="300"
+                (pointerdown)="startSignature($event)" (pointermove)="drawSignature($event)"
+                (pointerup)="stopSignature()" (pointercancel)="stopSignature()" (pointerleave)="stopSignature()"></canvas>
+              <ion-item lines="none" class="legal-check">
+                <ion-checkbox [(ngModel)]="legalAccepted" labelPlacement="end">Confirmo que revisé el documento y que esta firma expresa mi voluntad.</ion-checkbox>
+              </ion-item>
+              <ion-button expand="block" [disabled]="savingSignature || !hasSignature || !legalAccepted" (click)="submitSignature()">
+                @if (savingSignature) { <ion-spinner name="crescent"></ion-spinner> } @else { <ion-icon slot="start" name="lock-closed-outline"></ion-icon>Solicitar código OTP }
+              </ion-button>
+            </section>
+          } @else {
+            <section class="otp-area">
+              <ion-icon name="mail-unread-outline"></ion-icon>
+              <h3>Confirmación OTP</h3>
+              <p>{{ otp.destino }} · vence {{ formatDate(otp.fechaExpiracion) }}</p>
+              @if (otp.codigoPrueba) { <ion-note color="warning">Código de prueba: {{ otp.codigoPrueba }}</ion-note> }
+              <ion-input label="Código de seis dígitos" labelPlacement="stacked" inputmode="numeric" maxlength="6" [(ngModel)]="otpCode"></ion-input>
+              <ion-button expand="block" [disabled]="confirmingOtp || otpCode.length !== 6" (click)="confirmOtp()">
+                @if (confirmingOtp) { <ion-spinner name="crescent"></ion-spinner> } @else { Confirmar firma }
+              </ion-button>
+            </section>
+          }
+        </section>
+      }
+    </ion-content>
+  </ng-template>
+</ion-modal>

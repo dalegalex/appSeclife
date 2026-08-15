@@ -117,6 +117,7 @@ export interface LecturaAsistidaAlumno {
   idgpo?: number | null;
   idciclo?: number | null;
   gradoGrupo?: string | null;
+  colorGrupo?: string | null;
   idparentesco?: number | null;
   parentesco?: string | null;
   tipoRelacion?: string | null;

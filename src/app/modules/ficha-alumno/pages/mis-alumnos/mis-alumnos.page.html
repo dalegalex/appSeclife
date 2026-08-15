@@ -19,10 +19,11 @@
 
   <section class="student-summary">
     <div class="avatar">
-      <img *ngIf="detalle?.alumno?.foto || selectedAlumno?.foto; else studentIcon" [src]="detalle?.alumno?.foto || selectedAlumno?.foto" alt="" />
-      <ng-template #studentIcon>
+      @if (studentPhotoSrc) {
+        <img [src]="studentPhotoSrc" alt="" />
+      } @else {
         <ion-icon name="school-outline"></ion-icon>
-      </ng-template>
+      }
     </div>
     <div>
       <span>Ficha familiar</span>
@@ -31,318 +32,378 @@
     </div>
   </section>
 
-  <section *ngIf="alumnos.length > 1" class="student-selector">
-    <ion-segment scrollable="true" [value]="selectedIdmatricula" (ionChange)="seleccionarAlumno($any($event.detail.value))">
-      <ion-segment-button *ngFor="let alumno of alumnos; trackBy: trackByAlumno" [value]="alumno.idmatricula">
-        <ion-label>{{ alumno.nombreCorto || alumno.nombre || 'Alumno' }}</ion-label>
-      </ion-segment-button>
-    </ion-segment>
-  </section>
+  @if (alumnos.length > 1) {
+    <section class="student-selector">
+      <ion-segment scrollable="true" [value]="selectedIdmatricula" (ionChange)="seleccionarAlumno($any($event.detail.value))">
+        @for (alumno of alumnos; track trackByAlumno($index, alumno)) {
+          <ion-segment-button [value]="alumno.idmatricula">
+            <ion-label>{{ alumno.nombreCorto || alumno.nombre || 'Alumno' }}</ion-label>
+          </ion-segment-button>
+        }
+      </ion-segment>
+    </section>
+  }
 
-  <section class="loading-state" *ngIf="cargando">
-    <ion-spinner name="crescent"></ion-spinner>
-    <p>Consultando ficha...</p>
-  </section>
+  @if (cargando) {
+    <section class="loading-state">
+      <ion-spinner name="crescent"></ion-spinner>
+      <p>Consultando ficha...</p>
+    </section>
+  }
 
-  <ng-container *ngIf="!cargando && detalle">
+  @if (!cargando && detalle) {
     <ion-segment scrollable="true" [value]="activeTab" (ionChange)="activeTab = $any($event.detail.value)">
-      <ion-segment-button *ngFor="let tab of tabs" [value]="tab.value">
-        <ion-label>{{ tab.label }}</ion-label>
-      </ion-segment-button>
+      @for (tab of tabs; track tab.value) {
+        <ion-segment-button [value]="tab.value">
+          <ion-label>{{ tab.label }}</ion-label>
+        </ion-segment-button>
+      }
     </ion-segment>
 
     <form [formGroup]="fichaForm" class="ficha-form">
-      <section *ngIf="activeTab === 'inscripcion'" class="form-section">
-        <ion-list lines="full">
-          <ion-item>
-            <ion-label position="stacked">Alumno</ion-label>
-            <ion-input [value]="detalle.alumno?.nombreCompleto || ''" readonly></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Matricula</ion-label>
-            <ion-input [value]="detalle.alumno?.matricula || ''" readonly></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">CURP</ion-label>
-            <ion-input [value]="detalle.alumno?.curp || ''" readonly></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Ciclo de ingreso</ion-label>
-            <ion-input [value]="value('cicloIngreso', 'ciclo_ingreso')" readonly></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Grado de ingreso</ion-label>
-            <ion-input [value]="value('gradoIngreso', 'grado_ingreso')" readonly></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Estatus de inscripcion</ion-label>
-            <ion-input [value]="value('estatusInscripcion', 'estatus_inscripcion')" readonly></ion-input>
-          </ion-item>
-        </ion-list>
-      </section>
+      @if (activeTab === 'inscripcion') {
+        <section class="form-section">
+          <ion-list lines="full">
+            <ion-item>
+              <ion-label position="stacked">Alumno</ion-label>
+              <ion-input [value]="detalle.alumno?.nombreCompleto || ''" readonly></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Matricula</ion-label>
+              <ion-input [value]="detalle.alumno?.matricula || ''" readonly></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">CURP</ion-label>
+              <ion-input [value]="detalle.alumno?.curp || ''" readonly></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Ciclo de ingreso</ion-label>
+              <ion-input [value]="value('cicloIngreso', 'ciclo_ingreso')" readonly></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Grado de ingreso</ion-label>
+              <ion-input [value]="value('gradoIngreso', 'grado_ingreso')" readonly></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Estatus de inscripcion</ion-label>
+              <ion-input [value]="value('estatusInscripcion', 'estatus_inscripcion')" readonly></ion-input>
+            </ion-item>
+          </ion-list>
+        </section>
+      }
 
-      <section *ngIf="activeTab === 'contacto'" class="form-section">
-        <ion-list lines="full">
-          <ion-item>
-            <ion-label position="stacked">Calle</ion-label>
-            <ion-input formControlName="direccionCalle"></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Numero</ion-label>
-            <ion-input formControlName="direccionNumero"></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Colonia</ion-label>
-            <ion-input formControlName="direccionColonia"></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Municipio</ion-label>
-            <ion-input formControlName="direccionMunicipio"></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Estado</ion-label>
-            <ion-input formControlName="direccionEstado"></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">CP</ion-label>
-            <ion-input formControlName="direccionCp"></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Referencia de domicilio</ion-label>
-            <ion-textarea rows="3" formControlName="referenciaDomicilio"></ion-textarea>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Telefono casa</ion-label>
-            <ion-input formControlName="telefonoCasa"></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Correo institucional</ion-label>
-            <ion-input class="email-lowercase" formControlName="emailInstitucional"></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Correo personal</ion-label>
-            <ion-input class="email-lowercase" formControlName="emailPersonal"></ion-input>
-          </ion-item>
-        </ion-list>
-      </section>
+      @if (activeTab === 'contacto') {
+        <section class="form-section">
+          <ion-list lines="full">
+            <ion-item>
+              <ion-label position="stacked">Calle</ion-label>
+              <ion-input formControlName="direccionCalle"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Numero</ion-label>
+              <ion-input formControlName="direccionNumero"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Colonia</ion-label>
+              <ion-input formControlName="direccionColonia"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Municipio</ion-label>
+              <ion-input formControlName="direccionMunicipio"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Estado</ion-label>
+              <ion-input formControlName="direccionEstado"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">CP</ion-label>
+              <ion-input formControlName="direccionCp"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Referencia de domicilio</ion-label>
+              <ion-textarea rows="3" formControlName="referenciaDomicilio"></ion-textarea>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Telefono casa</ion-label>
+              <ion-input formControlName="telefonoCasa"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Correo institucional</ion-label>
+              <ion-input class="email-lowercase" formControlName="emailInstitucional"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Correo personal</ion-label>
+              <ion-input class="email-lowercase" formControlName="emailPersonal"></ion-input>
+            </ion-item>
+          </ion-list>
+        </section>
+      }
 
-      <section *ngIf="activeTab === 'medica'" class="form-section">
-        <ion-list lines="full">
-          <ion-item>
-            <ion-label position="stacked">Tipo de sangre</ion-label>
-            <ion-input formControlName="tipoSangre"></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Alergias</ion-label>
-            <ion-textarea rows="3" formControlName="alergias"></ion-textarea>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Enfermedades cronicas</ion-label>
-            <ion-textarea rows="3" formControlName="enfermedadesCronicas"></ion-textarea>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Medicamentos permanentes</ion-label>
-            <ion-textarea rows="3" formControlName="medicamentosPermanentes"></ion-textarea>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Discapacidad</ion-label>
-            <ion-input formControlName="discapacidad"></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Necesidad especial</ion-label>
-            <ion-input formControlName="necesidadEspecial"></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Medico familiar</ion-label>
-            <ion-input formControlName="medicoFamiliar"></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Telefono medico</ion-label>
-            <ion-input formControlName="telefonoMedico"></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Hospital preferente</ion-label>
-            <ion-input formControlName="hospitalPreferente"></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Seguro medico</ion-label>
-            <ion-input formControlName="seguroMedico"></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Poliza de seguro</ion-label>
-            <ion-input formControlName="polizaSeguro"></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Observaciones enfermeria</ion-label>
-            <ion-textarea rows="4" formControlName="observacionesEnfermeria"></ion-textarea>
-          </ion-item>
-        </ion-list>
-      </section>
+      @if (activeTab === 'medica') {
+        <section class="form-section">
+          <ion-list lines="full">
+            <ion-item>
+              <ion-label position="stacked">Tipo de sangre</ion-label>
+              <ion-input formControlName="tipoSangre"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Alergias</ion-label>
+              <ion-textarea rows="3" formControlName="alergias"></ion-textarea>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Enfermedades cronicas</ion-label>
+              <ion-textarea rows="3" formControlName="enfermedadesCronicas"></ion-textarea>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Medicamentos permanentes</ion-label>
+              <ion-textarea rows="3" formControlName="medicamentosPermanentes"></ion-textarea>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Discapacidad</ion-label>
+              <ion-input formControlName="discapacidad"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Necesidad especial</ion-label>
+              <ion-input formControlName="necesidadEspecial"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Medico familiar</ion-label>
+              <ion-input formControlName="medicoFamiliar"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Telefono medico</ion-label>
+              <ion-input formControlName="telefonoMedico"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Hospital preferente</ion-label>
+              <ion-input formControlName="hospitalPreferente"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Seguro medico</ion-label>
+              <ion-input formControlName="seguroMedico"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Poliza de seguro</ion-label>
+              <ion-input formControlName="polizaSeguro"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Observaciones enfermeria</ion-label>
+              <ion-textarea rows="4" formControlName="observacionesEnfermeria"></ion-textarea>
+            </ion-item>
+          </ion-list>
+        </section>
+      }
 
-      <section *ngIf="activeTab === 'academica'" class="form-section">
-        <ion-list lines="full">
-          <ion-item>
-            <ion-label position="stacked">Escuela de procedencia</ion-label>
-            <ion-input [value]="value('escuelaProcedencia', 'escuela_procedencia')" readonly></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Tutor academico</ion-label>
-            <ion-input [value]="value('tutorAcademico', 'tutor_academico')" readonly></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Necesidad educativa</ion-label>
-            <ion-textarea rows="3" [value]="value('necesidadEducativa', 'necesidad_educativa')" readonly></ion-textarea>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Adecuacion curricular</ion-label>
-            <ion-textarea rows="3" [value]="value('adecuacionCurricular', 'adecuacion_curricular')" readonly></ion-textarea>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">Observaciones escolares</ion-label>
-            <ion-textarea rows="4" [value]="value('observacionesEscolares', 'observaciones_escolares')" readonly></ion-textarea>
-          </ion-item>
-        </ion-list>
-      </section>
+      @if (activeTab === 'academica') {
+        <section class="form-section">
+          <ion-list lines="full">
+            <ion-item>
+              <ion-label position="stacked">Escuela de procedencia</ion-label>
+              <ion-input [value]="value('escuelaProcedencia', 'escuela_procedencia')" readonly></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Tutor academico</ion-label>
+              <ion-input [value]="value('tutorAcademico', 'tutor_academico')" readonly></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Necesidad educativa</ion-label>
+              <ion-textarea rows="3" [value]="value('necesidadEducativa', 'necesidad_educativa')" readonly></ion-textarea>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Adecuacion curricular</ion-label>
+              <ion-textarea rows="3" [value]="value('adecuacionCurricular', 'adecuacion_curricular')" readonly></ion-textarea>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Observaciones escolares</ion-label>
+              <ion-textarea rows="4" [value]="value('observacionesEscolares', 'observaciones_escolares')" readonly></ion-textarea>
+            </ion-item>
+          </ion-list>
+        </section>
+      }
     </form>
 
-    <section *ngIf="activeTab === 'documentos'" class="documents-section">
-      <ion-list lines="none" class="document-list">
-        <ion-item-sliding *ngFor="let doc of documentos(); trackBy: trackByDocumento" class="document-sliding">
-          <ion-item class="document-item">
-            <ion-icon slot="start" name="document-text-outline"></ion-icon>
-            <ion-label>
-              <div class="document-heading">
-                <div>
-                  <h3>{{ doc.descripcion }}</h3>
-                  <p>{{ doc.documentoNombre || 'Sin archivo asociado' }}</p>
+    @if (activeTab === 'documentos') {
+      <section class="documents-section">
+        <ion-list lines="none" class="document-list">
+          @for (doc of documentos(); track trackByDocumento($index, doc)) {
+            <ion-item-sliding class="document-sliding">
+              <ion-item class="document-item">
+                <ion-icon slot="start" name="document-text-outline"></ion-icon>
+                <ion-label>
+                  <div class="document-heading">
+                    <div>
+                      <h3>{{ doc.descripcion }}</h3>
+                      <p>{{ doc.documentoNombre || 'Sin archivo asociado' }}</p>
+                    </div>
+                    <ion-badge [color]="statusColor(doc.estatus)">{{ doc.estatus || 'PENDIENTE' }}</ion-badge>
+                  </div>
+                  @if (doc.sitrequerido) {
+                    <p class="document-note">Documento requerido por el Colegio</p>
+                  }
+                  @if (doc.observaciones) {
+                    <p class="document-note">{{ doc.observaciones }}</p>
+                  }
+                  @if (documentoUploading === doc.idctalumnofichadocumento) {
+                    <div class="uploading">
+                      <ion-spinner name="crescent"></ion-spinner>
+                      <span>Procesando documento...</span>
+                    </div>
+                  }
+                  @if (documentoOpening === doc.idalumnofichadocumento) {
+                    <div class="uploading">
+                      <ion-spinner name="crescent"></ion-spinner>
+                      <span>Abriendo documento...</span>
+                    </div>
+                  }
+                </ion-label>
+              </ion-item>
+
+              <ion-item-options side="end">
+                @if (tieneArchivo(doc)) {
+                  <ion-item-option color="medium" [disabled]="documentoOpening === doc.idalumnofichadocumento" (click)="abrirDocumento(doc)">
+                    <ion-icon slot="top" name="eye-outline"></ion-icon>
+                    Ver
+                  </ion-item-option>
+                }
+                @if (puedeModificarDocumento(doc)) {
+                  <ion-item-option color="primary" class="document-swipe-option" (click)="abrirGaleria(doc)">
+                    <ion-icon slot="top" name="images-outline"></ion-icon>
+                    Galeria
+                  </ion-item-option>
+                }
+                @if (puedeModificarDocumento(doc)) {
+                  <ion-item-option color="tertiary" class="document-swipe-option" (click)="abrirCamara(doc)">
+                    <ion-icon slot="top" name="camera-outline"></ion-icon>
+                    Camara
+                  </ion-item-option>
+                }
+                @if (tieneArchivo(doc) && puedeModificarDocumento(doc)) {
+                  <ion-item-option color="danger" (click)="eliminarDocumento(doc)">
+                    <ion-icon slot="top" name="trash-outline"></ion-icon>
+                    Eliminar
+                  </ion-item-option>
+                }
+              </ion-item-options>
+            </ion-item-sliding>
+          }
+        </ion-list>
+      </section>
+    }
+
+    @if (activeTab === 'autorizaciones') {
+      <section class="documents-section">
+        @if (!autorizaciones().length) {
+          <ion-card>
+            <ion-card-content>
+              <p class="document-note">No hay autorizaciones digitales vigentes para responder.</p>
+            </ion-card-content>
+          </ion-card>
+        }
+        @for (autorizacion of autorizaciones(); track trackByAutorizacion($index, autorizacion)) {
+          <ion-card class="authorization-card">
+            <ion-card-header>
+              <ion-card-title>{{ autorizacion.descripcion }}</ion-card-title>
+              <ion-card-subtitle>
+                <ion-badge [color]="statusColor(autorizacion.respuesta)">{{ respuestaLabel(autorizacion.respuesta) }}</ion-badge>
+              </ion-card-subtitle>
+            </ion-card-header>
+            <ion-card-content>
+              @if (versionAutorizacionLabel(autorizacion)) {
+                <p class="document-note">{{ versionAutorizacionLabel(autorizacion) }}</p>
+              }
+              <p>{{ autorizacion.textoAutorizacion || 'Autorizacion solicitada por el Colegio.' }}</p>
+              @if (autorizacion.hashTextoHex) {
+                <div class="authorization-meta">
+                  <span>Hash texto</span>
+                  <strong>{{ hashShort(autorizacion.hashTextoHex) }}</strong>
                 </div>
-                <ion-badge [color]="statusColor(doc.estatus)">{{ doc.estatus || 'PENDIENTE' }}</ion-badge>
+              }
+              @if (tieneAdjuntoAutorizacion(autorizacion)) {
+                <div class="school-observation">
+                  <strong>Documento adjunto</strong>
+                  <span>{{ adjuntoAutorizacionLabel(autorizacion) }}</span>
+                  <ion-button size="small" fill="clear" color="primary" (click)="abrirAdjuntoAutorizacion(autorizacion)">
+                    <ion-icon slot="start" name="open-outline"></ion-icon>
+                    Abrir adjunto
+                  </ion-button>
+                </div>
+              }
+              @if (validationLabel(autorizacion)) {
+                <p class="document-note">{{ validationLabel(autorizacion) }}</p>
+              }
+              @if (observacionColegio(autorizacion)) {
+                <div class="school-observation">
+                  <strong>Observacion del Colegio</strong>
+                  <span>{{ observacionColegio(autorizacion) }}</span>
+                </div>
+              }
+              @if (autorizacionRespondida(autorizacion) && !autorizacionValidada(autorizacion)) {
+                <p class="document-note">Puedes modificar tu respuesta mientras el Colegio no la valide.</p>
+              }
+              @if (autorizacionValidada(autorizacion)) {
+                <p class="document-note">Respuesta validada por el Colegio. Para cambiarla solicita su liberacion.</p>
+              }
+              <div class="authorization-actions">
+                @if (autorizacionRespondida(autorizacion)) {
+                  <ion-button size="small" fill="outline" color="medium" (click)="abrirConstanciaAutorizacion(autorizacion)">
+                    <ion-icon slot="start" name="document-text-outline"></ion-icon>
+                    Constancia
+                  </ion-button>
+                }
+                <ion-button size="small" color="success" (click)="responderAutorizacion(autorizacion, 'ACEPTADO')" [disabled]="autorizacionValidada(autorizacion) || autorizacionSaving === autorizacion.idctalumnofichaautorizacion">
+                  <ion-icon slot="start" name="checkmark-circle-outline"></ion-icon>
+                  Acepto
+                </ion-button>
+                <ion-button size="small" color="danger" fill="outline" (click)="responderAutorizacion(autorizacion, 'RECHAZADO')" [disabled]="autorizacionValidada(autorizacion) || autorizacion.permiteRechazo === false || autorizacionSaving === autorizacion.idctalumnofichaautorizacion">
+                  <ion-icon slot="start" name="close-circle-outline"></ion-icon>
+                  No acepto
+                </ion-button>
               </div>
-              <p class="document-note" *ngIf="doc.sitrequerido">Documento requerido por el Colegio</p>
-              <p class="document-note" *ngIf="doc.observaciones">{{ doc.observaciones }}</p>
-              <div class="uploading" *ngIf="documentoUploading === doc.idctalumnofichadocumento">
-                <ion-spinner name="crescent"></ion-spinner>
-                <span>Procesando documento...</span>
-              </div>
-              <div class="uploading" *ngIf="documentoOpening === doc.idalumnofichadocumento">
-                <ion-spinner name="crescent"></ion-spinner>
-                <span>Abriendo documento...</span>
-              </div>
-            </ion-label>
+            </ion-card-content>
+          </ion-card>
+        }
+      </section>
+    }
+
+    @if (activeTab === 'servicios') {
+      <section class="form-section">
+        <ion-list lines="full">
+          <ion-item>
+            <ion-icon slot="start" name="bus-outline"></ion-icon>
+            <ion-label>Transporte escolar</ion-label>
+            <ion-badge slot="end" [color]="boolValue('transporteEscolar', 'transporte_escolar') ? 'success' : 'medium'">
+              {{ boolValue('transporteEscolar', 'transporte_escolar') ? 'ACTIVO' : 'SIN SERVICIO' }}
+            </ion-badge>
           </ion-item>
-
-          <ion-item-options side="end">
-            <ion-item-option color="medium" *ngIf="tieneArchivo(doc)" [disabled]="documentoOpening === doc.idalumnofichadocumento" (click)="abrirDocumento(doc)">
-              <ion-icon slot="top" name="eye-outline"></ion-icon>
-              Ver
-            </ion-item-option>
-            <ion-item-option color="primary" class="document-swipe-option" *ngIf="puedeModificarDocumento(doc)" (click)="abrirGaleria(doc)">
-              <ion-icon slot="top" name="images-outline"></ion-icon>
-              Galeria
-            </ion-item-option>
-            <ion-item-option color="tertiary" class="document-swipe-option" *ngIf="puedeModificarDocumento(doc)" (click)="abrirCamara(doc)">
-              <ion-icon slot="top" name="camera-outline"></ion-icon>
-              Camara
-            </ion-item-option>
-            <ion-item-option color="danger" *ngIf="tieneArchivo(doc) && puedeModificarDocumento(doc)" (click)="eliminarDocumento(doc)">
-              <ion-icon slot="top" name="trash-outline"></ion-icon>
-              Eliminar
-            </ion-item-option>
-          </ion-item-options>
-        </ion-item-sliding>
-      </ion-list>
-    </section>
-
-    <section *ngIf="activeTab === 'autorizaciones'" class="documents-section">
-      <ion-card *ngIf="!autorizaciones().length">
-        <ion-card-content>
-          <p class="document-note">No hay autorizaciones digitales vigentes para responder.</p>
-        </ion-card-content>
-      </ion-card>
-      <ion-card *ngFor="let autorizacion of autorizaciones(); trackBy: trackByAutorizacion" class="authorization-card">
-        <ion-card-header>
-          <ion-card-title>{{ autorizacion.descripcion }}</ion-card-title>
-          <ion-card-subtitle>
-            <ion-badge [color]="statusColor(autorizacion.respuesta)">{{ respuestaLabel(autorizacion.respuesta) }}</ion-badge>
-          </ion-card-subtitle>
-        </ion-card-header>
-        <ion-card-content>
-          <p class="document-note" *ngIf="versionAutorizacionLabel(autorizacion)">{{ versionAutorizacionLabel(autorizacion) }}</p>
-          <p>{{ autorizacion.textoAutorizacion || 'Autorizacion solicitada por el Colegio.' }}</p>
-          <div class="authorization-meta" *ngIf="autorizacion.hashTextoHex">
-            <span>Hash texto</span>
-            <strong>{{ hashShort(autorizacion.hashTextoHex) }}</strong>
-          </div>
-          <div class="school-observation" *ngIf="tieneAdjuntoAutorizacion(autorizacion)">
-            <strong>Documento adjunto</strong>
-            <span>{{ adjuntoAutorizacionLabel(autorizacion) }}</span>
-            <ion-button size="small" fill="clear" color="primary" (click)="abrirAdjuntoAutorizacion(autorizacion)">
-              <ion-icon slot="start" name="open-outline"></ion-icon>
-              Abrir adjunto
-            </ion-button>
-          </div>
-          <p class="document-note" *ngIf="validationLabel(autorizacion)">{{ validationLabel(autorizacion) }}</p>
-          <div class="school-observation" *ngIf="observacionColegio(autorizacion)">
-            <strong>Observacion del Colegio</strong>
-            <span>{{ observacionColegio(autorizacion) }}</span>
-          </div>
-          <p class="document-note" *ngIf="autorizacionRespondida(autorizacion) && !autorizacionValidada(autorizacion)">Puedes modificar tu respuesta mientras el Colegio no la valide.</p>
-          <p class="document-note" *ngIf="autorizacionValidada(autorizacion)">Respuesta validada por el Colegio. Para cambiarla solicita su liberacion.</p>
-          <div class="authorization-actions">
-            <ion-button *ngIf="autorizacionRespondida(autorizacion)" size="small" fill="outline" color="medium" (click)="abrirConstanciaAutorizacion(autorizacion)">
-              <ion-icon slot="start" name="document-text-outline"></ion-icon>
-              Constancia
-            </ion-button>
-            <ion-button size="small" color="success" (click)="responderAutorizacion(autorizacion, 'ACEPTADO')" [disabled]="autorizacionValidada(autorizacion) || autorizacionSaving === autorizacion.idctalumnofichaautorizacion">
-              <ion-icon slot="start" name="checkmark-circle-outline"></ion-icon>
-              Acepto
-            </ion-button>
-            <ion-button size="small" color="danger" fill="outline" (click)="responderAutorizacion(autorizacion, 'RECHAZADO')" [disabled]="autorizacionValidada(autorizacion) || autorizacion.permiteRechazo === false || autorizacionSaving === autorizacion.idctalumnofichaautorizacion">
-              <ion-icon slot="start" name="close-circle-outline"></ion-icon>
-              No acepto
-            </ion-button>
-          </div>
-        </ion-card-content>
-      </ion-card>
-    </section>
-
-    <section *ngIf="activeTab === 'servicios'" class="form-section">
-      <ion-list lines="full">
-        <ion-item>
-          <ion-icon slot="start" name="bus-outline"></ion-icon>
-          <ion-label>Transporte escolar</ion-label>
-          <ion-badge slot="end" [color]="boolValue('transporteEscolar', 'transporte_escolar') ? 'success' : 'medium'">
-            {{ boolValue('transporteEscolar', 'transporte_escolar') ? 'ACTIVO' : 'SIN SERVICIO' }}
-          </ion-badge>
-        </ion-item>
-        <ion-item>
-          <ion-icon slot="start" name="restaurant-outline"></ion-icon>
-          <ion-label>Comedor</ion-label>
-          <ion-badge slot="end" [color]="boolValue('comedor') ? 'success' : 'medium'">
-            {{ boolValue('comedor') ? 'ACTIVO' : 'SIN SERVICIO' }}
-          </ion-badge>
-        </ion-item>
-        <ion-item>
-          <ion-label position="stacked">Beca</ion-label>
-          <ion-input [value]="value('beca')" readonly></ion-input>
-        </ion-item>
-        <ion-item>
-          <ion-label position="stacked">Seguro escolar</ion-label>
-          <ion-input [value]="value('seguroEscolar', 'seguro_escolar')" readonly></ion-input>
-        </ion-item>
-        <ion-item>
-          <ion-label position="stacked">Credencial</ion-label>
-          <ion-input [value]="value('credencialEstatus', 'credencial_estatus')" readonly></ion-input>
-        </ion-item>
-        <ion-item>
-          <ion-label position="stacked">TAG</ion-label>
-          <ion-input [value]="value('tagEstatus', 'tag_estatus')" readonly></ion-input>
-        </ion-item>
-        <ion-item>
-          <ion-label position="stacked">Observaciones de servicios</ion-label>
-          <ion-textarea rows="4" [value]="value('observacionesServicios', 'observaciones_servicios')" readonly></ion-textarea>
-        </ion-item>
-      </ion-list>
-    </section>
-  </ng-container>
+          <ion-item>
+            <ion-icon slot="start" name="restaurant-outline"></ion-icon>
+            <ion-label>Comedor</ion-label>
+            <ion-badge slot="end" [color]="boolValue('comedor') ? 'success' : 'medium'">
+              {{ boolValue('comedor') ? 'ACTIVO' : 'SIN SERVICIO' }}
+            </ion-badge>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Beca</ion-label>
+            <ion-input [value]="value('beca')" readonly></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Seguro escolar</ion-label>
+            <ion-input [value]="value('seguroEscolar', 'seguro_escolar')" readonly></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Credencial</ion-label>
+            <ion-input [value]="value('credencialEstatus', 'credencial_estatus')" readonly></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">TAG</ion-label>
+            <ion-input [value]="value('tagEstatus', 'tag_estatus')" readonly></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Observaciones de servicios</ion-label>
+            <ion-textarea rows="4" [value]="value('observacionesServicios', 'observaciones_servicios')" readonly></ion-textarea>
+          </ion-item>
+        </ion-list>
+      </section>
+    }
+  }
 </ion-content>

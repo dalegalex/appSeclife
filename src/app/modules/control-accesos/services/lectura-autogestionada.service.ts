@@ -32,7 +32,8 @@ export class LecturaAutogestionadaService {
   consultarCatalogos(idorg: number): Observable<AutogestionCatalogos> {
     const params = new HttpParams()
       .set('idorg', String(idorg))
-      .set('sitactivo', 'true');
+      .set('sitactivo', 'true')
+      .set('soloVigentes', 'true');
 
     return this.http.get<SpResponse<AutogestionCatalogos>>(`${this.baseUrl}/catalogos`, { params }).pipe(
       map((response) => {

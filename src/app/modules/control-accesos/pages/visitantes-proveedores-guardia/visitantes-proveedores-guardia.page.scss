@@ -188,3 +188,51 @@ ion-card {
   font-weight: 800;
   box-shadow: 0 10px 24px rgba(15, 23, 42, .12);
 }
+.visitor-avatar-button {
+  position: relative;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.visitor-avatar-button:focus-visible {
+  outline: 3px solid rgba(3, 105, 161, .28);
+  outline-offset: 2px;
+}
+
+.photo-zoom-indicator {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(15, 23, 42, .82);
+  color: #ffffff;
+  font-size: .9rem;
+}
+
+.photo-modal-content {
+  --background: #111827;
+}
+
+.photo-modal-frame {
+  width: 100%;
+  min-height: 100%;
+  padding: 16px;
+  display: grid;
+  place-items: center;
+}
+
+.photo-modal-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 720px;
+  max-height: calc(100vh - 120px);
+  object-fit: contain;
+  border-radius: 8px;
+  background: #ffffff;
+}

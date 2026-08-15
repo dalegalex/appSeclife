@@ -33,6 +33,16 @@ const routes: Routes = [
     loadChildren: () => import('./modules/ficha-alumno/ficha-alumno.module').then(m => m.FichaAlumnoModule)
   },
   {
+    path: 'expediente-documental',
+    canActivate: [AuthGuard],
+    loadChildren: () => import('./modules/expediente-documental/expediente-documental.module').then(m => m.ExpedienteDocumentalModule)
+  },
+  {
+    path: 'notificaciones',
+    canActivate: [AuthGuard],
+    loadChildren: () => import('./modules/notificaciones-push/notificaciones-push.module').then(m => m.NotificacionesPushModule)
+  },
+  {
     path: 'cuenta',
     canActivate: [AuthGuard],
     loadChildren: () => import('./modules/cuenta/cuenta.module').then(m => m.CuentaModule)

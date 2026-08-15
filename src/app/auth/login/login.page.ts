@@ -54,7 +54,6 @@ export class LoginPage implements AfterViewInit {
   localRegisterCode = '';
   localRegisterCodeSent = false;
   previewLoading = false;
-  nativeGoogleUnavailable = false;
   private nativeGoogleInitialized = false;
 
   constructor(
@@ -72,8 +71,8 @@ export class LoginPage implements AfterViewInit {
     this.loadGoogleIdentity();
   }
 
-  private loadGoogleIdentity(forceNativeFallback = false): void {
-    if (this.isNative && !forceNativeFallback) {
+  private loadGoogleIdentity(): void {
+    if (this.isNative) {
       return;
     }
 
@@ -97,19 +96,26 @@ export class LoginPage implements AfterViewInit {
   }
 
   showNativeGoogleButton(): boolean {
-    return this.isNative && !this.nativeGoogleUnavailable;
+    return this.isNative;
   }
 
   showWebGoogleButton(): boolean {
-    return !this.isNative || this.nativeGoogleUnavailable;
+    return !this.isNative;
   }
 
   async signInWithNativeGoogle(): Promise<void> {
     this.loading = true;
     this.clearError();
+    this.logAuthStep('native-google-start', {
+      appId: 'mx.com.seclife.schoolmaster',
+      mode: this.mode,
+      webClientIdSuffix: this.clientIdSuffix(environment.googleClientId),
+      androidClientIdSuffix: this.clientIdSuffix(environment.googleAndroidClientId),
+    });
 
     try {
       await this.initializeNativeGoogle();
+      this.logAuthStep('native-google-initialized');
 
       const login = await SocialLogin.login({
         provider: 'google',
@@ -117,6 +123,11 @@ export class LoginPage implements AfterViewInit {
           filterByAuthorizedAccounts: false,
           autoSelectEnabled: false,
         },
+      });
+      this.logAuthStep('native-google-result', {
+        provider: login.provider,
+        responseType: login.result?.responseType,
+        ...this.summarizeGoogleLoginResult(login.result),
       });
 
       const idToken = login.result.responseType === 'online' ? login.result.idToken : null;
@@ -136,17 +147,24 @@ export class LoginPage implements AfterViewInit {
       }
     } catch (error) {
       const code = (error as { code?: string })?.code;
+      this.logAuthStep('native-google-error', {
+        code,
+        detail: this.safeStringifyError(error),
+      });
 
-      if (code !== 'USER_CANCELLED') {
+      if (code === 'USER_CANCELLED') {
+        this.nativeGoogleInitialized = false;
+        this.setError(
+          'No fue posible validar Google',
+          'Google cerro el acceso antes de entregar la credencial. Verifica la configuracion Android de la aplicacion o intenta nuevamente.'
+        );
+      } else {
         if (this.isMissingGoogleCredentialProviderError(error)) {
-          this.nativeGoogleUnavailable = true;
           this.nativeGoogleInitialized = false;
           this.setError(
             'Google no disponible en el dispositivo',
-            'La terminal no encontro el proveedor nativo de credenciales de Google. Se habilito el acceso alterno con Google en pantalla.'
+            'La terminal no encontro el proveedor nativo de credenciales de Google. Utiliza correo personal o intenta nuevamente.'
           );
-          this.loadGoogleIdentity(true);
-          setTimeout(() => this.renderGoogleButton());
           return;
         }
 
@@ -527,6 +545,8 @@ export class LoginPage implements AfterViewInit {
   }
 
   private applyAuthError(error: unknown): void {
+    this.logAuthError(error);
+
     const message = this.extractErrorMessage(error);
     const normalized = message.toLowerCase();
 
@@ -597,8 +617,24 @@ export class LoginPage implements AfterViewInit {
       return error.error?.message || error.message || '';
     }
 
-    const candidate = error as { message?: string; error?: { message?: string } };
-    return candidate?.error?.message || candidate?.message || '';
+    const candidate = error as {
+      code?: string;
+      message?: string;
+      errorMessage?: string;
+      error?: { message?: string; errorMessage?: string; code?: string } | string;
+    };
+
+    if (typeof candidate?.error === 'string') {
+      return candidate.error;
+    }
+
+    return candidate?.error?.message
+      || candidate?.error?.errorMessage
+      || candidate?.error?.code
+      || candidate?.message
+      || candidate?.errorMessage
+      || candidate?.code
+      || this.safeStringifyError(error);
   }
 
   private resolveApiUrl(): string {
@@ -613,5 +649,51 @@ export class LoginPage implements AfterViewInit {
   private clearError(): void {
     this.errorTitle = '';
     this.errorMessage = '';
+  }
+
+  private logAuthError(error: unknown): void {
+    const detail = this.safeStringifyError(error);
+    console.error('[LoginPage] Error de autenticacion', detail);
+  }
+
+  private logAuthStep(step: string, detail?: Record<string, unknown>): void {
+    console.info('[LoginPage] Google auth', step, detail ?? {});
+  }
+
+  private clientIdSuffix(clientId?: string | null): string | null {
+    const value = clientId ?? '';
+    return value ? value.slice(-18) : null;
+  }
+
+  private summarizeGoogleLoginResult(result: unknown): Record<string, unknown> {
+    const candidate = result as {
+      idToken?: string | null;
+      accessToken?: string | null;
+      profile?: { email?: string | null } | null;
+    };
+
+    return {
+      hasIdToken: !!candidate?.idToken,
+      hasAccessToken: !!candidate?.accessToken,
+      email: candidate?.profile?.email ?? null,
+    };
+  }
+
+  private safeStringifyError(error: unknown): string {
+    if (error instanceof HttpErrorResponse) {
+      return JSON.stringify({
+        status: error.status,
+        statusText: error.statusText,
+        message: error.message,
+        error: error.error,
+        url: error.url,
+      });
+    }
+
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return String(error ?? '');
+    }
   }
 }

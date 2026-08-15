@@ -173,6 +173,32 @@
   margin: 10px 0;
 }
 
+.map-expanded-card {
+  inset: 0;
+  margin: 0;
+  position: fixed;
+  z-index: 99999;
+
+  :is(ion-card-header, .route-state, .map-facts, ion-card-content > ion-button) {
+    display: none;
+  }
+
+  ion-card-content,
+  .parent-map-shell {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    margin: 0;
+    padding: 0;
+  }
+
+
+  .parent-map-frame {
+    flex: 1;
+    height: auto;
+    margin: 0;
+  }
+}
 .card-heading {
   align-items: flex-start;
   display: flex;
@@ -285,27 +311,6 @@
   border-radius: 8px;
   margin-bottom: 12px;
   overflow: hidden;
-
-  &.is-expanded {
-    border: 0;
-    border-radius: 0;
-    inset: 0;
-    margin: 0;
-    position: fixed;
-    z-index: 10000;
-
-    .parent-map-toolbar {
-      border-radius: 0;
-      padding-top: calc(env(safe-area-inset-top) + 8px);
-    }
-
-    .parent-map-frame {
-      border: 0;
-      border-radius: 0;
-      height: calc(100vh - 54px - env(safe-area-inset-top));
-      margin: 0;
-    }
-  }
 }
 
 .parent-map-toolbar {

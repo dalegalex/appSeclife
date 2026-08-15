@@ -30,6 +30,7 @@ export class VisitantesProveedoresGuardiaPage implements OnDestroy {
   comentarios = '';
   pase: VisitanteProveedorPase | null = null;
   resultado: VisitanteProveedorPase | null = null;
+  fotoAmpliada = false;
   loading = false;
   saving = false;
   nfcActivo = false;
@@ -231,10 +232,10 @@ export class VisitantesProveedoresGuardiaPage implements OnDestroy {
       idmedioIdentificacion: 4,
       comentarios: this.comentarios.trim() || null,
     }).subscribe({
-      next: async (resultado) => {
+      next: async () => {
         this.saving = false;
-        this.resultado = resultado;
         await this.showToast('Entrada registrada y gafete asociado.', 'success');
+        this.limpiar();
       },
       error: async (error) => {
         this.saving = false;
@@ -264,12 +265,10 @@ export class VisitantesProveedoresGuardiaPage implements OnDestroy {
       idmedioIdentificacion: 4,
       comentarios: this.comentarios.trim() || null,
     }).subscribe({
-      next: async (resultado) => {
+      next: async () => {
         this.saving = false;
-        this.resultado = resultado;
-        this.pase = resultado;
-        this.gafeteValidado = resultado;
         await this.showToast('Salida registrada y gafete liberado.', 'success');
+        this.limpiar();
       },
       error: async (error) => {
         this.saving = false;
@@ -298,6 +297,16 @@ export class VisitantesProveedoresGuardiaPage implements OnDestroy {
     await this.validarGafete(codigo);
   }
 
+  ampliarFoto(): void {
+    if (this.logoSrc(this.pase)) {
+      this.fotoAmpliada = true;
+    }
+  }
+
+  cerrarFoto(): void {
+    this.fotoAmpliada = false;
+  }
+
   limpiar(): void {
     this.codigoPase = '';
     this.codigoGafete = '';
@@ -305,6 +314,7 @@ export class VisitantesProveedoresGuardiaPage implements OnDestroy {
     this.comentarios = '';
     this.pase = null;
     this.resultado = null;
+    this.fotoAmpliada = false;
     this.loading = false;
     this.saving = false;
   }

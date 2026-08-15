@@ -71,7 +71,7 @@ export class RedFamiliarPadrePage implements OnInit {
     comentarios: '',
   };
   codigoForm = {
-    modo: 'PROVISIONAL' as ModoCompartirAlumno,
+    modo: 'PERMANENTE' as ModoCompartirAlumno,
     vigenciaFin: this.defaultShareDate(),
     maxUsos: 1,
     comentarios: '',
@@ -335,7 +335,7 @@ export class RedFamiliarPadrePage implements OnInit {
     this.showAlumnoForm = false;
     this.codigoGenerado = null;
     this.codigoForm = {
-      modo: 'PROVISIONAL',
+      modo: 'PERMANENTE',
       vigenciaFin: this.defaultShareDate(),
       maxUsos: 1,
       comentarios: '',
@@ -710,6 +710,41 @@ export class RedFamiliarPadrePage implements OnInit {
         await this.showToast('Alumno eliminado de la red familiar.', 'success');
       },
       error: async (error) => this.showToast(this.errorMessage(error, 'No fue posible eliminar el alumno.'), 'danger'),
+    });
+  }
+
+  async retirarAlumnoCompartido(alumno: AlumnoFamiliar): Promise<void> {
+    const idfamilia = this.idfamilia;
+
+    if (!idfamilia) {
+      await this.showToast('No fue posible resolver la familia destino.', 'danger');
+      return;
+    }
+
+    const confirmed = await this.confirmar(
+      'Quitar de mi red',
+      `Se retirara a ${alumno.alumno} de tu alcance o de la red que administras, segun tus permisos. La familia de origen no se modifica.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.redFamiliarService.retirarAlumnoCompartido(alumno.idmatricula, this.idorg, idfamilia).subscribe({
+      next: async (resultado) => {
+        this.loading = true;
+        this.recargarRed({
+          onError: async (error) => {
+            await this.showToast(this.errorMessage(error, 'El retiro se guardo, pero no fue posible refrescar la red familiar.'), 'warning');
+          },
+        });
+        const alcance = resultado.aplicaRedCompleta ? 'de la red familiar administrada' : 'de tu alcance familiar';
+        await this.showToast(`Alumno retirado ${alcance}.`, 'success');
+      },
+      error: async (error) => this.showToast(
+        this.errorMessage(error, 'No fue posible retirar el alumno compartido.'),
+        'danger'
+      ),
     });
   }
 
@@ -1561,7 +1596,6 @@ export class RedFamiliarPadrePage implements OnInit {
 
   puedeBloquearTag(miembro: MiembroFamiliar): boolean {
     return !!miembro.idtag
-      && !miembro.esMaster
       && !this.esMiembroExterno(miembro)
       && !this.esInvitadoProvisional(miembro);
   }

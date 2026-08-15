@@ -1,0 +1,145 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start"><ion-back-button defaultHref="/control-accesos/red-familiar"></ion-back-button></ion-buttons>
+    <ion-title>Eventos familiares</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="nueva()"><ion-icon slot="icon-only" name="add-outline"></ion-icon></ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="cargar(); $any($event.target).complete()"><ion-refresher-content></ion-refresher-content></ion-refresher>
+  <section class="event-shell">
+    <div class="activation-band">
+      <div>
+        <span class="eyebrow">Pase recibido</span>
+        <h1>Confirmar invitacion</h1>
+      </div>
+      <ion-button fill="clear" (click)="escanear()"><ion-icon slot="icon-only" name="qr-code-outline"></ion-icon></ion-button>
+      <ion-input [(ngModel)]="codigo" inputmode="numeric" maxlength="8" placeholder="Codigo de 8 digitos"></ion-input>
+      <ion-button (click)="resolver()" [disabled]="codigo.trim().length !== 8">Consultar</ion-button>
+    </div>
+
+    <div *ngIf="loading" class="loading-state"><ion-spinner name="crescent"></ion-spinner><span>Cargando eventos...</span></div>
+
+    <section *ngIf="eventoInvitado" class="invitation-detail">
+      <div class="detail-heading">
+        <div><span class="eyebrow">Invitacion</span><h2>{{ eventoInvitado.nombre }}</h2></div>
+        <ion-button fill="clear" color="medium" (click)="eventoInvitado = null"><ion-icon slot="icon-only" name="close-outline"></ion-icon></ion-button>
+      </div>
+      <p>{{ eventoInvitado.descripcion }}</p>
+      <dl>
+        <div><dt>Familia anfitriona</dt><dd>{{ eventoInvitado.familiaAnfitriona }}</dd></div>
+        <div><dt>Responsable</dt><dd>{{ eventoInvitado.anfitrion }}</dd></div>
+        <div><dt>Fecha</dt><dd>{{ eventoInvitado.fechaEvento | date:'dd/MM/yyyy' }} {{ eventoInvitado.horaEvento }}</dd></div>
+        <div><dt>Domicilio</dt><dd>{{ eventoInvitado.domicilio }}</dd></div>
+        <div><dt>Telefono</dt><dd>{{ eventoInvitado.telefonoContacto }}</dd></div>
+      </dl>
+      <h3>Alumnos que asistiran</h3>
+      <div class="student-row" *ngFor="let alumno of eventoInvitado.alumnos">
+        <ion-checkbox
+          [checked]="!!alumno.seleccionado"
+          (ionChange)="actualizarSeleccionAlumno(alumno, $event.detail.checked)"
+          labelPlacement="end"
+        >{{ alumno.alumno }}</ion-checkbox>
+        <ion-toggle *ngIf="alumno.seleccionado && eventoInvitado.requiereAutorizacionSalida"
+          [checked]="!!alumno.autorizaSalida"
+          (ionChange)="alumno.autorizaSalida = $event.detail.checked"
+          labelPlacement="start"
+        >Autorizar salida</ion-toggle>
+      </div>
+      <p class="consent-note" *ngIf="eventoInvitado.requiereAutorizacionSalida">
+        La asistencia y la autorizacion de salida son decisiones independientes.
+      </p>
+      <div class="actions">
+        <ion-button color="medium" fill="outline" (click)="responder(false)" [disabled]="saving">No asistiremos</ion-button>
+        <ion-button (click)="responder(true)" [disabled]="saving"><ion-spinner *ngIf="saving" name="crescent"></ion-spinner>Confirmar</ion-button>
+      </div>
+    </section>
+
+    <section *ngIf="showForm" class="event-form">
+      <div class="detail-heading"><div><span class="eyebrow">Nuevo</span><h2>Evento familiar</h2></div>
+        <ion-button fill="clear" color="medium" (click)="cerrarForm()"><ion-icon slot="icon-only" name="close-outline"></ion-icon></ion-button></div>
+      <ion-input label="Nombre" labelPlacement="stacked" [(ngModel)]="form.nombre" maxlength="160"></ion-input>
+      <ion-textarea label="Descripcion" labelPlacement="stacked" [(ngModel)]="form.descripcion" maxlength="600" [autoGrow]="true"></ion-textarea>
+      <div class="form-grid">
+        <ion-input type="date" label="Fecha" labelPlacement="stacked" [(ngModel)]="form.fechaEvento"></ion-input>
+        <ion-input type="time" label="Hora del evento" labelPlacement="stacked" [(ngModel)]="form.horaEvento"></ion-input>
+        <ion-input type="time" label="Salida del Colegio" labelPlacement="stacked" [(ngModel)]="form.horaSalidaColegio"></ion-input>
+        <ion-input type="number" label="Alumnos invitados" labelPlacement="stacked" [(ngModel)]="form.maxAlumnosInvitados" min="1" max="200"></ion-input>
+      </div>
+      <ion-select label="Persona anfitriona que recoge" labelPlacement="stacked" [(ngModel)]="form.idfamiliamiembroAnfitrion">
+        <ion-select-option *ngFor="let familiar of anfitriones" [value]="familiar.idfamiliamiembro">{{ familiar.familiar }}</ion-select-option>
+      </ion-select>
+      <ion-input label="Ubicacion general" labelPlacement="stacked" [(ngModel)]="form.ubicacionGeneral" placeholder="Colonia o referencia para el pase"></ion-input>
+      <ion-textarea label="Domicilio particular" labelPlacement="stacked" [(ngModel)]="form.domicilio" [autoGrow]="true"></ion-textarea>
+      <ion-input label="Telefono de contacto" labelPlacement="stacked" [(ngModel)]="form.telefonoContacto" type="tel"></ion-input>
+      <ion-toggle [(ngModel)]="form.requiereAutorizacionSalida" labelPlacement="end">Solicitar autorizacion de salida</ion-toggle>
+      <ion-button expand="block" (click)="guardar()" [disabled]="saving || !form.nombre.trim() || !form.descripcion.trim() || !form.domicilio.trim()">
+        <ion-spinner *ngIf="saving" name="crescent"></ion-spinner><ion-icon *ngIf="!saving" slot="start" name="save-outline"></ion-icon>Guardar y publicar
+      </ion-button>
+    </section>
+
+    <section *ngIf="pase" class="pass-preview">
+      <div><span class="eyebrow">Pase emitido</span><h2>{{ pase.nombre }}</h2><p>{{ pase.familiaAnfitriona }}</p></div>
+      <img [src]="paseQr" alt="Codigo QR del evento familiar">
+      <strong>{{ pase.codigo }}</strong>
+      <p>{{ pase.leyenda }}</p>
+      <ion-button expand="block" (click)="compartirPase()"><ion-icon slot="start" name="share-social-outline"></ion-icon>Compartir pase</ion-button>
+    </section>
+
+    <section *ngIf="eventoRespuestas" class="response-detail">
+      <div class="detail-heading">
+        <div><span class="eyebrow">Confirmaciones</span><h2>{{ eventoRespuestas.nombre }}</h2></div>
+        <ion-button fill="clear" color="medium" (click)="cerrarRespuestas()" aria-label="Cerrar confirmaciones">
+          <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+        </ion-button>
+      </div>
+      <div *ngIf="loadingRespuestas" class="response-loading"><ion-spinner name="crescent"></ion-spinner></div>
+      <div *ngIf="!loadingRespuestas" class="response-list">
+        <article class="family-response" *ngFor="let respuesta of respuestas">
+          <div class="family-heading">
+            <div><span class="family-id">Familia {{ respuesta.idfamiliaInvitada }}</span><h3>{{ respuesta.familiaInvitada }}</h3></div>
+            <ion-chip [color]="respuesta.estatusRespuesta === 'CONFIRMADA' ? 'success' : 'medium'">{{ respuesta.estatusRespuesta }}</ion-chip>
+          </div>
+          <div class="confirmed-student" *ngFor="let alumno of respuesta.alumnos">
+            <div><strong>{{ alumno.alumno }}</strong><span>{{ alumno.grupo }}</span></div>
+            <ion-chip [color]="alumno.autorizaSalida ? 'success' : 'medium'">
+              <ion-icon [name]="alumno.autorizaSalida ? 'shield-checkmark-outline' : 'person-outline'"></ion-icon>
+              {{ alumno.autorizaSalida ? 'Salida autorizada contigo' : 'Solo asistencia' }}
+            </ion-chip>
+          </div>
+        </article>
+        <div class="empty-state" *ngIf="!respuestas.length"><ion-icon name="people-outline"></ion-icon><p>Aun no hay respuestas registradas.</p></div>
+      </div>
+    </section>
+
+    <div class="section-heading"><div><span class="eyebrow">Red familiar</span><h2>Mis eventos</h2></div>
+      <ion-button fill="outline" size="small" (click)="nueva()"><ion-icon slot="start" name="add-outline"></ion-icon>Nuevo</ion-button></div>
+    <div class="event-list" *ngIf="!loading">
+      <ion-item-sliding *ngFor="let evento of eventos">
+        <ion-item lines="none" class="event-slide-item">
+          <article class="event-row">
+            <div class="date-box"><strong>{{ evento.fechaEvento | date:'dd' }}</strong><span>{{ evento.fechaEvento | date:'MMM' }}</span></div>
+            <div class="event-copy"><h3>{{ evento.nombre }}</h3><p>{{ evento.familiaAnfitriona }} | {{ evento.ubicacionGeneral || 'Domicilio particular' }}</p>
+              <div class="chips"><ion-chip [color]="evento.estatus === 'PUBLICADO' ? 'success' : 'medium'">{{ evento.estatus }}</ion-chip>
+                <ion-chip *ngIf="evento.esAnfitrion">{{ evento.confirmados || 0 }}/{{ evento.maxAlumnosInvitados }} alumnos</ion-chip>
+                <ion-chip *ngIf="!evento.esAnfitrion">{{ evento.estatusRespuesta || 'PENDIENTE' }}</ion-chip></div></div>
+            <ion-button *ngIf="evento.esAnfitrion && evento.estatus === 'BORRADOR'" fill="clear" (click)="publicar(evento)" aria-label="Publicar evento"><ion-icon slot="icon-only" name="send-outline"></ion-icon></ion-button>
+            <ion-button *ngIf="evento.esAnfitrion && evento.estatus === 'PUBLICADO'" fill="clear" (click)="consultarRespuestas(evento)" aria-label="Ver confirmaciones">
+              <ion-icon slot="icon-only" name="people-outline"></ion-icon>
+            </ion-button>
+          </article>
+        </ion-item>
+        <ion-item-options *ngIf="evento.esAnfitrion && evento.estatus === 'PUBLICADO' && evento.tokenUid" side="end">
+          <ion-item-option color="primary" (click)="consultarPase(evento)">
+            <ion-icon slot="top" name="share-social-outline"></ion-icon>
+            Ver pase
+          </ion-item-option>
+        </ion-item-options>
+      </ion-item-sliding>
+      <div class="empty-state" *ngIf="!eventos.length"><ion-icon name="calendar-outline"></ion-icon><p>No hay eventos familiares registrados.</p></div>
+    </div>
+  </section>
+</ion-content>

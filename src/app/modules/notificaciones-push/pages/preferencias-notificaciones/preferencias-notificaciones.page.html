@@ -1,0 +1,73 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/notificaciones/historial"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Preferencias</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <section class="preferences-shell">
+    <header class="page-heading">
+      <div class="heading-icon">
+        <ion-icon name="options-outline" aria-hidden="true"></ion-icon>
+      </div>
+      <div>
+        <h1>Preferencias</h1>
+        <p>{{ activeCount() }} de {{ preferences().length }} avisos activos</p>
+      </div>
+    </header>
+
+    @if (loading()) {
+      <section class="loading-state" aria-live="polite">
+        <ion-spinner name="crescent"></ion-spinner>
+        <span>Consultando preferencias...</span>
+      </section>
+    } @else if (errorMessage(); as message) {
+      <section class="message-state error" role="alert">
+        <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
+        <p>{{ message }}</p>
+        <ion-button fill="outline" size="small" (click)="loadPreferences()">
+          <ion-icon slot="start" name="refresh-outline"></ion-icon>
+          Reintentar
+        </ion-button>
+      </section>
+    } @else if (groups().length === 0) {
+      <section class="message-state">
+        <ion-icon name="notifications-off-outline" aria-hidden="true"></ion-icon>
+        <p>No hay tipos de notificacion disponibles.</p>
+      </section>
+    } @else {
+      @for (group of groups(); track group.key) {
+        <section class="preference-group">
+          <header>
+            <ion-icon [name]="group.icon" aria-hidden="true"></ion-icon>
+            <h2>{{ group.title }}</h2>
+          </header>
+
+          <ion-list lines="full">
+            @for (preference of group.items; track preference.tipoEvento) {
+              <ion-item>
+                <ion-label>
+                  <h3>{{ preference.descripcion }}</h3>
+                </ion-label>
+                <div slot="end" class="toggle-control">
+                  @if (isSaving(preference.tipoEvento)) {
+                    <ion-spinner name="crescent"></ion-spinner>
+                  }
+                  <ion-toggle
+                    [checked]="preference.activo"
+                    [disabled]="isSaving(preference.tipoEvento)"
+                    [attr.aria-label]="preference.descripcion"
+                    (ionChange)="togglePreference(preference, $event.detail.checked)"
+                  ></ion-toggle>
+                </div>
+              </ion-item>
+            }
+          </ion-list>
+        </section>
+      }
+    }
+  </section>
+</ion-content>

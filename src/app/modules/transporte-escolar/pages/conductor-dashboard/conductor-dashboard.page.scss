@@ -341,6 +341,14 @@ ion-list-header {
   min-width: 86px;
 }
 
+.register-student-button {
+  --border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  height: 36px;
+  margin-inline-start: 8px;
+}
+
 .swipe-hint {
   border-right: 4px solid #f59e0b;
 }

@@ -30,6 +30,17 @@
       <p>Modulos operativos para colegio, conductor y familia.</p>
     </div>
 
+    @if (authService.appMenuError()) {
+      <ion-card color="danger">
+        <ion-card-header>
+          <ion-card-title>Permisos no disponibles</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          No fue posible consultar los modulos autorizados.
+          <ion-button fill="clear" color="light" (click)="reloadMenu()">Reintentar</ion-button>
+        </ion-card-content>
+      </ion-card>
+    }
     @if (canUseCredencialDigital()) {
     <ion-card button routerLink="/control-accesos/credencial-digital" class="credential-card">
       <ion-card-header>
@@ -45,6 +56,23 @@
     </ion-card>
     }
 
+    @if (canUseNotifications()) {
+    <ion-card button routerLink="/notificaciones/historial" class="notifications-card">
+      @if (unreadNotificationCount() > 0) {
+        <ion-badge class="notifications-unread-badge" color="danger">{{ unreadNotificationCount() }}</ion-badge>
+      }
+      <ion-card-header>
+        <div class="module-icon">
+          <ion-icon name="notifications-outline"></ion-icon>
+        </div>
+        <ion-card-title>Notificaciones</ion-card-title>
+        <ion-card-subtitle>Mis notificaciones</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        Consultar avisos recientes y administrar tus preferencias.
+      </ion-card-content>
+    </ion-card>
+    }
     @if (canUseConductor()) {
     <ion-card button routerLink="/transporte-escolar/conductor">
       <ion-card-header>
@@ -105,7 +133,22 @@
     </ion-card>
     }
 
-    @if (canUseRedFamiliar()) {
+    @if (canUseExpedienteDocumental()) {
+    <ion-card button routerLink="/expediente-documental">
+      <ion-card-header>
+        <div class="module-icon">
+          <ion-icon name="document-lock-outline"></ion-icon>
+        </div>
+        <ion-card-title>Expediente Documental</ion-card-title>
+        <ion-card-subtitle>Representacion y firma</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        Consultar documentos pendientes, firmados y evidencias digitales de la familia.
+      </ion-card-content>
+    </ion-card>
+    }
+
+    @if (canUseRedFamiliar('/control-accesos/red-familiar')) {
     <ion-card button routerLink="/control-accesos/red-familiar">
       <ion-card-header>
         <div class="module-icon">
@@ -120,7 +163,46 @@
     </ion-card>
     }
 
-    @if (canUseRedFamiliar()) {
+    @if (canUseRedFamiliar('/control-accesos/red-familiar/eventos')) {
+    <ion-card button routerLink="/control-accesos/red-familiar/eventos">
+      <ion-card-header>
+        <div class="module-icon">
+          <ion-icon name="calendar-clear-outline"></ion-icon>
+        </div>
+        <ion-card-title>Eventos familiares</ion-card-title>
+        <ion-card-subtitle>Pases sociales</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        Crear eventos, compartir el pase QR y responder invitaciones de otras familias.
+      </ion-card-content>
+    </ion-card>
+    }
+
+    @if (canUseRedFamiliar('/control-accesos/eventos')) {
+    <ion-card button routerLink="/control-accesos/eventos" class="events-card">
+      @if (pendingEventCount() > 0) {
+        <ion-badge
+          class="events-pending-badge"
+          color="danger"
+          [attr.aria-label]="pendingEventCount() + ' eventos pendientes por atender'"
+        >
+          {{ pendingEventCount() }}
+        </ion-badge>
+      }
+      <ion-card-header>
+        <div class="module-icon">
+          <ion-icon name="calendar-number-outline"></ion-icon>
+        </div>
+        <ion-card-title>Eventos y Citas</ion-card-title>
+        <ion-card-subtitle>Invitaciones familiares</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        Consultar invitaciones, confirmar asistencia y registrar acompanantes.
+      </ion-card-content>
+    </ion-card>
+    }
+
+    @if (canUseRedFamiliar('/control-accesos/bitacora')) {
     <ion-card button routerLink="/control-accesos/bitacora">
       <ion-card-header>
         <div class="module-icon">
@@ -135,7 +217,7 @@
     </ion-card>
     }
 
-    @if (canUseRedFamiliar()) {
+    @if (canUseRedFamiliar('/control-accesos/avisos-asistencia')) {
     <ion-card button routerLink="/control-accesos/avisos-asistencia">
       <ion-card-header>
         <div class="module-icon">
@@ -150,7 +232,7 @@
     </ion-card>
     }
 
-    @if (canUseControlAccesos()) {
+    @if (canUseControlAccesos('/control-accesos/lectura-asistida')) {
     <ion-card button routerLink="/control-accesos/lectura-asistida">
       <ion-card-header>
         <div class="module-icon">
@@ -165,7 +247,7 @@
     </ion-card>
     }
 
-    @if (canUseControlAccesos()) {
+    @if (canUseControlAccesos('/control-accesos/lectura-autogestionada')) {
     <ion-card button routerLink="/control-accesos/lectura-autogestionada">
       <ion-card-header>
         <div class="module-icon">
@@ -180,7 +262,7 @@
     </ion-card>
     }
 
-    @if (canUseControlAccesos()) {
+    @if (canUseControlAccesos('/control-accesos/carrusel')) {
     <ion-card button routerLink="/control-accesos/carrusel">
       <ion-card-header>
         <div class="module-icon">
@@ -195,7 +277,7 @@
     </ion-card>
     }
 
-    @if (canUseControlAccesos()) {
+    @if (canUseControlAccesos('/control-accesos/carrusel-visor')) {
     <ion-card button routerLink="/control-accesos/carrusel-visor">
       <ion-card-header>
         <div class="module-icon">
@@ -210,7 +292,7 @@
     </ion-card>
     }
 
-    @if (canUseControlAccesos()) {
+    @if (canUseControlAccesos('/control-accesos/visitantes-proveedores')) {
     <ion-card button routerLink="/control-accesos/visitantes-proveedores">
       <ion-card-header>
         <div class="module-icon">
@@ -226,6 +308,7 @@
     }
 
 
+    @if (canUseHomeExtras()) {
     <div class="pending-modules">
       <h2>Proximos modulos</h2>
       <ion-chip disabled="true">
@@ -241,6 +324,7 @@
         <ion-label>Perfil</ion-label>
       </ion-chip>
     </div>
+    }
 
     <div class="seclife-footmark">
       <img src="assets/brand/brand-seclife-full.png" alt="Seclife" />

@@ -1,0 +1,114 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Mis notificaciones</ion-title>
+    <ion-buttons slot="end">
+      <ion-button routerLink="/notificaciones/preferencias" title="Preferencias" aria-label="Preferencias">
+        <ion-icon slot="icon-only" name="settings-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <section class="notifications-shell">
+    <header class="page-heading">
+      <div>
+        <h1>Mis notificaciones</h1>
+        <p>{{ totalNoLeidas() }} sin leer de {{ total() }} encontradas</p>
+      </div>
+      @if (totalNoLeidas() > 0) {
+        <ion-badge color="danger">{{ totalNoLeidas() }}</ion-badge>
+      }
+    </header>
+
+    <ion-searchbar
+      placeholder="Buscar en titulo o mensaje"
+      [debounce]="400"
+      [value]="filters().texto"
+      (ionChange)="onSearch($event)"
+    ></ion-searchbar>
+
+    <ion-segment
+      scrollable="true"
+      [value]="filters().estado"
+      (ionChange)="onReadFilter($event)"
+    >
+      <ion-segment-button value="">
+        <ion-label>Todas</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="NO_LEIDAS">
+        <ion-label>No leidas</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="LEIDAS">
+        <ion-label>Leidas</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+
+    @if (loading()) {
+      <section class="loading-state" aria-live="polite">
+        <ion-spinner name="crescent"></ion-spinner>
+        <span>Consultando notificaciones...</span>
+      </section>
+    } @else if (errorMessage(); as message) {
+      <section class="message-state error" role="alert">
+        <ion-icon name="cloud-offline-outline" aria-hidden="true"></ion-icon>
+        <p>{{ message }}</p>
+        <ion-button fill="outline" size="small" (click)="reload()">
+          <ion-icon slot="start" name="refresh-outline"></ion-icon>
+          Reintentar
+        </ion-button>
+      </section>
+    } @else if (notifications().length === 0) {
+      <section class="message-state">
+        <ion-icon name="notifications-off-outline" aria-hidden="true"></ion-icon>
+        <p>No hay notificaciones que coincidan con la busqueda.</p>
+      </section>
+    } @else {
+      <ion-list class="notification-list" lines="none">
+        @for (item of notifications(); track item.idnotificacion) {
+          <ion-item
+            button
+            detail="false"
+            [class.unread]="!item.leida"
+            [disabled]="markingAsRead().has(item.idnotificacion)"
+            (click)="openNotification(item)"
+          >
+            <div slot="start" class="notification-icon">
+              <ion-icon [name]="moduleIcon(item.moduloOrigen)" aria-hidden="true"></ion-icon>
+            </div>
+            <ion-label>
+              <div class="notification-title-line">
+                <h2>{{ item.titulo }}</h2>
+                @if (!item.leida) {
+                  <span class="unread-dot" aria-label="No leida"></span>
+                }
+              </div>
+              <p class="notification-body">{{ item.cuerpo }}</p>
+              <small>
+                {{ item.tipoEventoDescripcion }} | {{ formatDate(item.fechaCreacion) }}
+              </small>
+            </ion-label>
+          </ion-item>
+        }
+      </ion-list>
+
+      <p class="loaded-count">
+        Mostrando {{ notifications().length }} de {{ total() }}
+      </p>
+
+      <ion-infinite-scroll
+        threshold="160px"
+        [disabled]="notifications().length >= total()"
+        (ionInfinite)="loadMore($event)"
+      >
+        <ion-infinite-scroll-content
+          loadingSpinner="crescent"
+          loadingText="Cargando 20 notificaciones mas..."
+        ></ion-infinite-scroll-content>
+      </ion-infinite-scroll>
+    }
+  </section>
+</ion-content>
