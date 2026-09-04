@@ -1,0 +1,46 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start"><ion-back-button defaultHref="/home"></ion-back-button></ion-buttons>
+    <ion-title>Seguridad</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <main class="security-page">
+    @if (authService.supportContext(); as support) {
+      <header><ion-icon name="eye-outline"></ion-icon><div><h1>Modo soporte</h1><p>Consulta temporal y exclusivamente de lectura.</p></div></header>
+      <section class="support-current">
+        <small>Cuenta consultada</small>
+        <strong>{{ support.subjectNombre }}</strong>
+        <span>Vence {{ support.expiresAt | date:'medium' }}</span>
+      </section>
+      <div class="notice">GpsApi bloquea cualquier alta, modificacion, eliminacion, firma o ejecucion mientras esta sesion se encuentre activa.</div>
+      @if (error()) { <div class="notice error" role="alert">{{ error() }}</div> }
+      <ion-button expand="block" color="danger" (click)="endSupport()" [disabled]="supportBusy()">
+        <ion-icon slot="start" name="log-out-outline"></ion-icon>
+        Finalizar modo soporte
+      </ion-button>
+    } @else {
+      <header><ion-icon name="finger-print-outline"></ion-icon><div><h1>{{ capability().label }}</h1><p>Protege el acceso a Seclife en este dispositivo.</p></div></header>
+      <section class="status-row"><div><strong>Estado</strong><span>{{ capability().configured ? 'Activado' : (capability().available ? 'Disponible' : 'No disponible') }}</span></div><ion-icon [name]="capability().configured ? 'checkmark-circle' : 'information-circle-outline'" [class.active]="capability().configured"></ion-icon></section>
+      <p class="privacy-note">La huella o el rostro se valida exclusivamente por Android o iOS. Seclife no recibe ni almacena tus datos biometricos.</p>
+      @if (!capability().available && capability().reason) { <div class="notice">{{ capability().reason }}</div> }
+      @if (error()) { <div class="notice error" role="alert">{{ error() }}</div> }
+      @if (capability().configured) {
+        <ion-button expand="block" color="danger" fill="outline" (click)="confirmDisable()" [disabled]="loading()">Desactivar acceso biometrico</ion-button>
+      } @else {
+        <ion-button expand="block" (click)="enable()" [disabled]="loading() || !capability().available"><ion-icon slot="start" name="finger-print-outline"></ion-icon>Activar en este dispositivo</ion-button>
+      }
+
+      @if (canActivateSupport) {
+        <section class="support-activation">
+          <div class="section-heading"><ion-icon name="shield-checkmark-outline"></ion-icon><div><h2>Acceso de soporte autorizado</h2><p>Activa una solicitud previamente aprobada.</p></div></div>
+          <ion-input label="Codigo de 8 digitos" labelPlacement="stacked" inputmode="numeric" maxlength="8" [formControl]="supportCode"></ion-input>
+          <p>El codigo es distinto al acceso normal y se muestra al administrador en PSeclife.</p>
+          <ion-button expand="block" fill="outline" (click)="activateSupport()" [disabled]="supportBusy() || supportCode.invalid"><ion-icon slot="start" name="eye-outline"></ion-icon>Iniciar modo lectura</ion-button>
+        </section>
+      }
+      @if (loading()) { <ion-spinner name="crescent"></ion-spinner> }
+    }
+  </main>
+</ion-content>

@@ -1,6 +1,9 @@
-import { AfterViewInit, Component, NgZone } from '@angular/core';
+import { AfterViewInit, Component, NgZone, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { FormControl } from '@angular/forms';
 import { Router } from '@angular/router';
+import { AlertController } from '@ionic/angular';
+import { BiometricAuthError } from '@capgo/capacitor-native-biometric';
 import { SocialLogin } from '@capgo/capacitor-social-login';
 import { Capacitor } from '@capacitor/core';
 import { firstValueFrom } from 'rxjs';
@@ -36,30 +39,58 @@ declare global {
 })
 export class LoginPage implements AfterViewInit {
   readonly isNative = Capacitor.isNativePlatform();
+  readonly biometricCapability = signal({
+    available: false,
+    configured: false,
+    label: 'Biometria',
+    reason: null as string | null,
+  });
+  readonly controls = {
+    codereg: new FormControl('', { nonNullable: true }),
+    registrationName: new FormControl('', { nonNullable: true }),
+    registrationLastName: new FormControl('', { nonNullable: true }),
+    registrationFamilyName: new FormControl('', { nonNullable: true }),
+    registrationPhone: new FormControl('', { nonNullable: true }),
+    localLoginEmail: new FormControl('', { nonNullable: true }),
+    localLoginCode: new FormControl('', { nonNullable: true }),
+    localRegisterEmail: new FormControl('', { nonNullable: true }),
+    localRegisterCode: new FormControl('', { nonNullable: true }),
+  };
   loading = false;
   errorTitle = '';
   errorMessage = '';
   mode: 'login' | 'register' | 'local' = 'login';
-  codereg = '';
   registrationPreview: RegistrationCodePreview | null = null;
-  registrationName = '';
-  registrationLastName = '';
-  registrationFamilyName = '';
   registrationRequiresFamilyName = false;
-  registrationPhone = '';
-  localLoginEmail = '';
-  localLoginCode = '';
   localLoginCodeSent = false;
-  localRegisterEmail = '';
-  localRegisterCode = '';
   localRegisterCodeSent = false;
   previewLoading = false;
   private nativeGoogleInitialized = false;
 
+  get codereg(): string { return this.controls.codereg.value; }
+  set codereg(value: string) { this.controls.codereg.setValue(value); }
+  get registrationName(): string { return this.controls.registrationName.value; }
+  set registrationName(value: string) { this.controls.registrationName.setValue(value); }
+  get registrationLastName(): string { return this.controls.registrationLastName.value; }
+  set registrationLastName(value: string) { this.controls.registrationLastName.setValue(value); }
+  get registrationFamilyName(): string { return this.controls.registrationFamilyName.value; }
+  set registrationFamilyName(value: string) { this.controls.registrationFamilyName.setValue(value); }
+  get registrationPhone(): string { return this.controls.registrationPhone.value; }
+  set registrationPhone(value: string) { this.controls.registrationPhone.setValue(value); }
+  get localLoginEmail(): string { return this.controls.localLoginEmail.value; }
+  set localLoginEmail(value: string) { this.controls.localLoginEmail.setValue(value); }
+  get localLoginCode(): string { return this.controls.localLoginCode.value; }
+  set localLoginCode(value: string) { this.controls.localLoginCode.setValue(value); }
+  get localRegisterEmail(): string { return this.controls.localRegisterEmail.value; }
+  set localRegisterEmail(value: string) { this.controls.localRegisterEmail.setValue(value); }
+  get localRegisterCode(): string { return this.controls.localRegisterCode.value; }
+  set localRegisterCode(value: string) { this.controls.localRegisterCode.setValue(value); }
+
   constructor(
     private readonly authService: AuthService,
     private readonly router: Router,
-    private readonly zone: NgZone
+    private readonly zone: NgZone,
+    private readonly alertController: AlertController
   ) {}
 
   ngAfterViewInit(): void {
@@ -69,6 +100,25 @@ export class LoginPage implements AfterViewInit {
     }
 
     this.loadGoogleIdentity();
+    void this.refreshBiometricCapability();
+  }
+
+  async signInWithBiometric(): Promise<void> {
+    this.loading = true;
+    this.clearError();
+    try {
+      await this.authService.loginWithBiometric();
+      await this.router.navigateByUrl('/home', { replaceUrl: true });
+    } catch (error) {
+      const code = Number((error as { code?: number | string })?.code);
+      if (code === BiometricAuthError.USER_CANCEL || code === BiometricAuthError.USER_FALLBACK) {
+        return;
+      }
+      this.applyAuthError(error);
+      await this.refreshBiometricCapability();
+    } finally {
+      this.loading = false;
+    }
   }
 
   private loadGoogleIdentity(): void {
@@ -454,15 +504,56 @@ export class LoginPage implements AfterViewInit {
     this.loading = true;
     this.clearError();
     this.authService.verifyLocalAuth(normalizedEmail, normalizedCode).subscribe({
-      next: () => {
+      next: async () => {
         this.loading = false;
-        this.router.navigateByUrl('/home', { replaceUrl: true });
+        await this.offerBiometricActivation();
+        await this.router.navigateByUrl('/home', { replaceUrl: true });
       },
       error: (error) => {
         this.loading = false;
         this.applyAuthError(error);
       },
     });
+  }
+
+  private async refreshBiometricCapability(): Promise<void> {
+    this.biometricCapability.set(await this.authService.getBiometricCapability());
+  }
+
+  private async offerBiometricActivation(): Promise<void> {
+    if (!this.isNative) {
+      return;
+    }
+
+    const capability = await this.authService.getBiometricCapability();
+    this.biometricCapability.set(capability);
+    if (!capability.available || capability.configured) {
+      return;
+    }
+
+    const alert = await this.alertController.create({
+      header: `Activar ${capability.label}`,
+      message: 'En los proximos ingresos podras autenticarte en este dispositivo sin volver a consultar el codigo enviado por correo. Seclife no recibe ni almacena tu huella o rostro.',
+      buttons: [
+        { text: 'Ahora no', role: 'cancel' },
+        { text: 'Activar', role: 'confirm' },
+      ],
+      backdropDismiss: false,
+    });
+    await alert.present();
+    const result = await alert.onDidDismiss();
+    if (result.role !== 'confirm') {
+      return;
+    }
+
+    try {
+      this.biometricCapability.set(await this.authService.enableBiometricAccess());
+    } catch (error) {
+      const code = Number((error as { code?: number | string })?.code);
+      if (code !== BiometricAuthError.USER_CANCEL && code !== BiometricAuthError.USER_FALLBACK) {
+        this.applyAuthError(error);
+      }
+    }
   }
 
   isFamilyProfile(idperfil?: number | string | null): boolean {

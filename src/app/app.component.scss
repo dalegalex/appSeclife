@@ -155,3 +155,96 @@ ion-menu ion-item {
   gap: 10px;
   padding: 12px;
 }
+
+.session-lock-modal {
+  --height: 100%;
+  --width: 100%;
+
+  ion-content {
+    --background: #f8fbff;
+  }
+}
+
+.session-lock {
+  align-items: center;
+  color: #172033;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin: 0 auto;
+  max-width: 420px;
+  min-height: 100%;
+  padding: 32px 24px;
+  text-align: center;
+
+  > img {
+    background: #ffffff;
+    border: 1px solid #dbeafe;
+    border-radius: 8px;
+    height: 68px;
+    object-fit: contain;
+    padding: 7px;
+    width: 68px;
+  }
+
+  > ion-icon {
+    color: #0f62fe;
+    font-size: 34px;
+    margin-top: 22px;
+  }
+
+  h1 {
+    font-size: 24px;
+    line-height: 1.2;
+    margin: 12px 0 0;
+  }
+
+  p {
+    color: #475569;
+    font-size: 15px;
+    line-height: 1.5;
+    margin: 12px 0 24px;
+  }
+
+  ion-button {
+    margin: 6px 0;
+    max-width: 340px;
+    text-transform: none;
+    width: 100%;
+  }
+}
+
+.session-lock-error {
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  border-radius: 8px;
+  color: #9f1239;
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0 0 14px;
+  max-width: 340px;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+
+.support-mode-banner {
+  align-items: center;
+  background: #172554;
+  bottom: 0;
+  color: #ffffff;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto 1fr auto;
+  left: 0;
+  padding: 9px 12px calc(9px + env(safe-area-inset-bottom));
+  position: fixed;
+  right: 0;
+  z-index: 30000;
+
+  > ion-icon { font-size: 22px; }
+  strong, span { display: block; }
+  strong { font-size: 13px; }
+  span { color: #bfdbfe; font-size: 11px; }
+  ion-button { --color: #ffffff; margin: 0; text-transform: none; }
+}

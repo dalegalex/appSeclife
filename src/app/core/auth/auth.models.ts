@@ -18,10 +18,28 @@ export interface AuthUser {
   sitactivo: boolean;
 }
 
+export interface SupportSessionContext {
+  supportSessionId: number;
+  supportSessionUid: string;
+  supportRequestId: number;
+  actorIdusrbt: number;
+  actorNombre?: string | null;
+  subjectIdusrbt: number;
+  subjectNombre?: string | null;
+  scope: 'APPSECLIFE_READONLY' | string;
+  expiresAt: string;
+}
+
 export interface AuthSession {
   token: string;
   expiresAt: string;
   user: AuthUser;
+  support?: SupportSessionContext | null;
+}
+
+export interface EndSupportSessionResponse {
+  finalizada: boolean;
+  message: string;
 }
 
 export interface GoogleLoginRequest {
@@ -63,6 +81,33 @@ export interface LocalAuthStartResponse {
   message: string;
   expiresAt: string;
   codigoPrueba?: string | null;
+}
+
+export interface BiometricCredentialEnrollRequest {
+  deviceUid: string;
+  platform: 'ANDROID' | 'IOS';
+  deviceModel?: string | null;
+  operatingSystem?: string | null;
+  appVersion?: string | null;
+}
+
+export interface BiometricCredentialEnrollResponse {
+  deviceUid: string;
+  credential: string;
+  expiresAt: string;
+}
+
+export interface BiometricLoginRequest {
+  deviceUid: string;
+  credential: string;
+}
+
+export interface BiometricCapability {
+  available: boolean;
+  configured: boolean;
+  deviceCredentialAvailable: boolean;
+  label: string;
+  reason: string | null;
 }
 
 export interface RegistrationCodePreview {

@@ -136,6 +136,30 @@ ion-segment-button {
   min-height: 44px;
 }
 
+.biometric-login-button {
+  --background: #123f68;
+  --background-hover: #0f3659;
+  --color: #ffffff;
+  min-height: 46px;
+}
+
+.access-divider {
+  align-items: center;
+  color: #64748b;
+  display: flex;
+  font-size: 12px;
+  gap: 10px;
+  justify-content: center;
+
+  &::before,
+  &::after {
+    background: #dbeafe;
+    content: '';
+    flex: 1;
+    height: 1px;
+  }
+}
+
 .local-register-panel {
   border-top: 1px solid #dbeafe;
   display: flex;

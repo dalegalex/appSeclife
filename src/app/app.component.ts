@@ -2,6 +2,7 @@ import { Component, effect, untracked } from '@angular/core';
 import { Router } from '@angular/router';
 import { environment } from '../environments/environment';
 import { AuthService } from './core/auth/auth.service';
+import { SessionSecurityService } from './core/auth/session-security.service';
 import { DRIVER_TRANSPORT_ENABLED } from './core/platform/platform-capabilities';
 import { NotificacionesPushRegistrationService } from './modules/notificaciones-push/services/notificaciones-push-registration.service';
 
@@ -27,6 +28,8 @@ export class AppComponent {
   readonly appVersionLabel = `v${environment.appVersion} (${environment.appChannel})`;
   readonly privacyNoticeUrl = PRIVACY_NOTICE_URL;
   readonly privacyNoticeVersion = PRIVACY_NOTICE_VERSION;
+  readonly canDismissPrivacyConsent = (): boolean => !this.privacyConsentRequired;
+  readonly canDismissSessionLock = (): boolean => !this.sessionSecurity.locked();
 
   private readonly adminProfiles = [1, 2, 3];
   private readonly allMenuItems: AppMenuItem[] = [
@@ -174,9 +177,11 @@ export class AppComponent {
 
   constructor(
     public readonly authService: AuthService,
+    public readonly sessionSecurity: SessionSecurityService,
     private readonly router: Router,
     private readonly notificacionesPushRegistrationService: NotificacionesPushRegistrationService
   ) {
+    void this.sessionSecurity.initialize();
     effect(() => {
       if (this.authService.isAuthenticated()) {
         untracked(() => {
@@ -262,7 +267,9 @@ export class AppComponent {
   }
 
   get privacyConsentRequired(): boolean {
-    return this.authService.isAuthenticated() && !this.hasAcceptedCurrentPrivacyNotice();
+    return this.authService.isAuthenticated()
+      && !this.authService.isSupportSession()
+      && !this.hasAcceptedCurrentPrivacyNotice();
   }
 
   acceptPrivacyNotice(): void {
@@ -289,6 +296,7 @@ export class AppComponent {
 
   signOut(): void {
     void this.notificacionesPushRegistrationService.unregisterCurrentDevice();
+    this.sessionSecurity.reset();
     this.authService.signOut();
     this.router.navigateByUrl('/auth/login', { replaceUrl: true });
   }

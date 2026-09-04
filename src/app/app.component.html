@@ -48,6 +48,15 @@
 
       @if (authService.isAuthenticated()) {
         <ion-list lines="none" class="privacy-menu">
+          <ion-menu-toggle autoHide="false">
+            <ion-item routerDirection="root" routerLink="/cuenta/seguridad" detail="false">
+              <ion-icon slot="start" name="finger-print-outline"></ion-icon>
+              <ion-label>
+                <h2>Seguridad y soporte</h2>
+                <p>Biometria y acceso autorizado</p>
+              </ion-label>
+            </ion-item>
+          </ion-menu-toggle>
           <ion-item button detail="false" (click)="openPrivacyNotice()">
             <ion-icon slot="start" name="shield-checkmark-outline"></ion-icon>
             <ion-label>
@@ -91,10 +100,22 @@
     <ion-router-outlet></ion-router-outlet>
   </div>
 
+  @if (authService.supportContext(); as support) {
+    <section class="support-mode-banner" role="status">
+      <ion-icon name="eye-outline"></ion-icon>
+      <div>
+        <strong>Modo soporte: solo lectura</strong>
+        <span>{{ support.subjectNombre }} · vence {{ support.expiresAt | date:'shortTime' }}</span>
+      </div>
+      <ion-button fill="clear" size="small" routerLink="/cuenta/seguridad">Finalizar</ion-button>
+    </section>
+  }
+
   <ion-modal
     class="privacy-consent-modal"
     [isOpen]="privacyConsentRequired"
     [backdropDismiss]="false"
+    [canDismiss]="canDismissPrivacyConsent"
   >
     <ng-template>
       <ion-header>
@@ -131,6 +152,54 @@
           <ion-button expand="block" (click)="acceptPrivacyNotice()">
             Acepto el aviso de privacidad
           </ion-button>
+        </section>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <ion-modal
+    class="session-lock-modal"
+    [isOpen]="sessionSecurity.locked()"
+    [backdropDismiss]="false"
+    [canDismiss]="canDismissSessionLock"
+  >
+    <ng-template>
+      <ion-content>
+        <section class="session-lock">
+          <img src="assets/brand/brand-seclife-symbol.png" alt="Seclife" />
+          <ion-icon name="lock-closed-outline" aria-hidden="true"></ion-icon>
+          <h1>Seclife bloqueado</h1>
+          <p>{{ sessionSecurity.message() }}</p>
+
+          @if (sessionSecurity.error()) {
+            <div class="session-lock-error" role="alert">
+              {{ sessionSecurity.error() }}
+            </div>
+          }
+
+          <ion-button
+            expand="block"
+            [disabled]="sessionSecurity.busy() || sessionSecurity.unlockMethod() === 'CHECKING'"
+            (click)="sessionSecurity.unlock()"
+          >
+            @if (sessionSecurity.busy() || sessionSecurity.unlockMethod() === 'CHECKING') {
+              <ion-spinner slot="start" name="crescent"></ion-spinner>
+            } @else {
+              <ion-icon slot="start" [name]="sessionSecurity.unlockActionIcon()"></ion-icon>
+            }
+            {{ sessionSecurity.unlockActionLabel() }}
+          </ion-button>
+
+          @if (sessionSecurity.canUnlockLocally()) {
+            <ion-button
+              fill="clear"
+              expand="block"
+              [disabled]="sessionSecurity.busy()"
+              (click)="sessionSecurity.useAlternativeLogin()"
+            >
+              {{ sessionSecurity.alternativeActionLabel() }}
+            </ion-button>
+          }
         </section>
       </ion-content>
     </ng-template>
