@@ -17,6 +17,11 @@ export class CarruselVisorPage implements OnDestroy {
   bitacora: CarruselPaquete[] = [];
   loading = false;
   connecting = false;
+  fotoModalAbierto = false;
+  fotoModalLoading = false;
+  fotoModalNombre = '';
+  fotoModalUrl: string | null = null;
+  fotoModalError: string | null = null;
   private subscriptions = new Subscription();
   private refrescoTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -157,6 +162,43 @@ export class CarruselVisorPage implements OnDestroy {
       return `${paquete.placas}${paquete.autoDescripcion ? ' | ' + paquete.autoDescripcion : ''}`;
     }
     return 'Sin auto';
+  }
+
+  async mostrarFotoAlumno(alumno: CarruselAlumnoEntrega): Promise<void> {
+    if (!alumno.tieneFoto || !alumno.fotoSubjectKey) {
+      return;
+    }
+
+    this.fotoModalAbierto = true;
+    this.fotoModalLoading = true;
+    this.fotoModalNombre = alumno.alumno?.trim() || 'Alumno';
+    this.fotoModalUrl = null;
+    this.fotoModalError = null;
+    this.cdRef.detectChanges();
+
+    try {
+      const foto = await firstValueFrom(this.carruselService.consultarFotoCredencial(alumno.fotoSubjectKey, this.idorg));
+      const source = foto?.fotoUrl?.trim();
+      if (!source) {
+        throw new Error('La fotografia ya no se encuentra disponible.');
+      }
+      this.fotoModalUrl = /^data:image\//i.test(source)
+        ? source
+        : `data:${foto?.fotoContentType || 'image/jpeg'};base64,${source}`;
+    } catch (error: any) {
+      this.fotoModalError = error?.error?.message || error?.message || 'No fue posible cargar la fotografia.';
+    } finally {
+      this.fotoModalLoading = false;
+      this.cdRef.detectChanges();
+    }
+  }
+
+  cerrarFotoModal(): void {
+    this.fotoModalAbierto = false;
+    this.fotoModalLoading = false;
+    this.fotoModalNombre = '';
+    this.fotoModalUrl = null;
+    this.fotoModalError = null;
   }
 
   ngOnDestroy(): void {

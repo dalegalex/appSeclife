@@ -29,11 +29,12 @@ export class LecturaAutogestionadaService {
 
   constructor(private readonly http: HttpClient) {}
 
-  consultarCatalogos(idorg: number): Observable<AutogestionCatalogos> {
+  consultarCatalogos(idorg: number, dispositivoUid: string): Observable<AutogestionCatalogos> {
     const params = new HttpParams()
       .set('idorg', String(idorg))
       .set('sitactivo', 'true')
-      .set('soloVigentes', 'true');
+      .set('soloVigentes', 'true')
+      .set('dispositivoUid', dispositivoUid);
 
     return this.http.get<SpResponse<AutogestionCatalogos>>(`${this.baseUrl}/catalogos`, { params }).pipe(
       map((response) => {

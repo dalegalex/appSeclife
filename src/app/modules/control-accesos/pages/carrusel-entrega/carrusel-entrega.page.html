@@ -99,7 +99,20 @@
             <div>
               <span class="eyebrow">{{ paquete.isla || 'Isla pendiente' }}</span>
               <h2>{{ paquete.nombreFamilia || 'Familia' }}</h2>
-              <p>{{ paquete.familiarRecoge || 'Familiar' }}</p>
+              <div class="collector-line">
+                <button
+                  type="button"
+                  class="photo-trigger"
+                  [class.has-photo]="paquete.familiarTieneFoto"
+                  [disabled]="!paquete.familiarTieneFoto || !paquete.familiarFotoSubjectKey"
+                  [attr.aria-label]="paquete.familiarTieneFoto ? 'Ver fotografía de ' + (paquete.familiarRecoge || 'familiar') : 'Familiar sin fotografía'"
+                  [title]="paquete.familiarTieneFoto ? 'Ver fotografía' : 'Sin fotografía'"
+                  (click)="mostrarFoto(paquete.familiarFotoSubjectKey, paquete.familiarRecoge)"
+                >
+                  <ion-icon name="person-circle-outline"></ion-icon>
+                </button>
+                <p>{{ paquete.familiarRecoge || 'Familiar' }}</p>
+              </div>
             </div>
             <ion-badge [color]="estadoColor(paquete.estatus)">{{ paquete.estatus }}</ion-badge>
           </div>
@@ -108,10 +121,16 @@
             <ion-item *ngFor="let alumno of paquete.alumnos" class="student-row" [class.done]="alumno.estatus === 'ENTREGADO'">
               <ion-label>
                 <div class="student-title">
-                  <button type="button" class="photo-trigger" (click)="cargarFotoAlumno(alumno)" [disabled]="alumno.fotoLoading">
-                    <ion-spinner *ngIf="alumno.fotoLoading" name="crescent"></ion-spinner>
-                    <img *ngIf="!alumno.fotoLoading && imageSrc(alumno.foto) as fotoSrc" [src]="fotoSrc" alt="">
-                    <ion-icon *ngIf="!alumno.fotoLoading && !imageSrc(alumno.foto)" name="person-circle-outline"></ion-icon>
+                  <button
+                    type="button"
+                    class="photo-trigger"
+                    [class.has-photo]="alumno.tieneFoto"
+                    [disabled]="!alumno.tieneFoto || !alumno.fotoSubjectKey"
+                    [attr.aria-label]="alumno.tieneFoto ? 'Ver fotografía de ' + alumno.alumno : 'Alumno sin fotografía'"
+                    [title]="alumno.tieneFoto ? 'Ver fotografía' : 'Sin fotografía'"
+                    (click)="mostrarFoto(alumno.fotoSubjectKey, alumno.alumno)"
+                  >
+                    <ion-icon name="person-circle-outline"></ion-icon>
                   </button>
                   <h3>{{ alumno.alumno }}</h3>
                 </div>
@@ -135,3 +154,31 @@
     </ng-container>
   </section>
 </ion-content>
+
+<ion-modal class="person-photo-modal" [isOpen]="fotoModalAbierto" (didDismiss)="cerrarFotoModal()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>{{ fotoModalNombre }}</ion-title>
+        <ion-buttons slot="end">
+          <ion-button fill="clear" aria-label="Cerrar fotografía" (click)="cerrarFotoModal()">
+            <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="person-photo-content">
+      <div class="person-photo-state">
+        @if (fotoModalLoading) {
+          <ion-spinner name="crescent"></ion-spinner>
+          <p>Consultando fotografía...</p>
+        } @else if (fotoModalUrl) {
+          <img [src]="fotoModalUrl" [alt]="'Fotografía de ' + fotoModalNombre">
+        } @else {
+          <ion-icon name="image-outline"></ion-icon>
+          <p>{{ fotoModalError || 'Fotografía no disponible.' }}</p>
+        }
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>

@@ -48,6 +48,7 @@ export interface AutogestionPunto {
   ingresoAutomatico?: boolean | null;
   emitirAudio?: boolean | null;
   nfcHabilitado?: boolean | null;
+  ventanaAntiduplicadoSeg?: number | null;
   pinConfigurado?: boolean | null;
   sesionAbierta?: AutogestionSesion | null;
   idareavisita?: number | null;
@@ -71,6 +72,10 @@ export interface AutogestionSesion {
   ingresoAutomatico?: boolean | null;
   emitirAudio?: boolean | null;
   nfcHabilitado?: boolean | null;
+  ventanaAntiduplicadoSeg?: number | null;
+  dispositivoUid?: string | null;
+  nombreDispositivo?: string | null;
+  esDispositivoActual?: boolean | null;
 }
 
 export interface AbrirSesionAutogestionRequest {
@@ -83,6 +88,8 @@ export interface AbrirSesionAutogestionRequest {
   fecha?: string | null;
   ingresoAutomatico?: boolean | null;
   emitirAudio?: boolean | null;
+  dispositivoUid: string;
+  nombreDispositivo?: string | null;
   comentarios?: string | null;
 }
 
@@ -103,10 +110,15 @@ export interface AutogestionEventoLectura {
   horaProgramada?: string | null;
   maxParticipantesFamilia?: number | null;
   aviso?: string | null;
+  modalidadAcceso?: 'ABIERTO' | 'POR_INVITACION' | string | null;
+  idinvitacion?: number | null;
+  idfamilia?: number | null;
   idtag?: number | null;
   codigo?: string | null;
   idperfil?: number | null;
   idusrbt?: number | null;
+  idmatricula?: number | null;
+  tipoAsistente?: 'ALUMNO' | 'FAMILIAR' | 'PERSONAL DEL COLEGIO' | string | null;
   participante?: string | null;
   siguienteMovimiento?: 'ENTRADA' | 'SALIDA' | string | null;
   ultimoMovimiento?: 'ENTRADA' | 'SALIDA' | string | null;
@@ -168,6 +180,8 @@ export interface AutogestionEventoRegistro {
   idtag?: number | null;
   idperfil?: number | null;
   idusrbt?: number | null;
+  idmatricula?: number | null;
+  profileLabel?: string | null;
   tipoMovimiento?: 'ENTRADA' | 'SALIDA' | string | null;
   fechaHoraEvento?: string | null;
   participantes?: number | null;
@@ -183,4 +197,7 @@ export interface AutogestionAsistenciaRegistro {
   idmatricula?: number | null;
   tipoMovimiento?: 'ENTRADA' | 'SALIDA' | string | null;
   fechaHoraEvento?: string | null;
+  duplicado?: boolean | null;
+  ventanaAntiduplicadoSeg?: number | null;
+  segundosRestantes?: number | null;
 }

@@ -232,6 +232,21 @@
     </ion-card>
     }
 
+    @if (canUseControlAccesos('/control-accesos/enrolamiento')) {
+    <ion-card button routerLink="/control-accesos/enrolamiento">
+      <ion-card-header>
+        <div class="module-icon">
+          <ion-icon name="camera-outline"></ion-icon>
+        </div>
+        <ion-card-title>Fotografia y TAG</ion-card-title>
+        <ion-card-subtitle>Enrolamiento de credenciales</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        Registrar fotografias y asignar credenciales NFC a alumnos, familiares y personal.
+      </ion-card-content>
+    </ion-card>
+    }
+
     @if (canUseControlAccesos('/control-accesos/lectura-asistida')) {
     <ion-card button routerLink="/control-accesos/lectura-asistida">
       <ion-card-header>

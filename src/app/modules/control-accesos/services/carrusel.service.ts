@@ -154,6 +154,28 @@ export class CarruselService {
     );
   }
 
+  consultarFotoCredencial(subjectKey: string, idorg?: number | null): Observable<{
+    fotoUrl?: string | null;
+    fotoContentType?: string | null;
+  } | null> {
+    let params = new HttpParams()
+      .set('subjectKey', subjectKey)
+      .set('mostrarFoto', 'true');
+    if (idorg) {
+      params = params.set('idorg', String(idorg));
+    }
+
+    return this.http.get<SpResponse<{
+      fotoUrl?: string | null;
+      fotoContentType?: string | null;
+    }>>(`${this.apiUrl}/control-accesos/credencial-fotos`, { params }).pipe(
+      map((response) => {
+        this.assertSuccess(response);
+        return response.result;
+      })
+    );
+  }
+
   confirmarEntrega(idcarrusellectura: number, request: ConfirmarEntregaCarruselRequest): Observable<unknown> {
     return this.http.post<SpResponse<unknown>>(`${this.baseUrl}/avisos/${idcarrusellectura}/entrega`, request).pipe(
       map((response) => {

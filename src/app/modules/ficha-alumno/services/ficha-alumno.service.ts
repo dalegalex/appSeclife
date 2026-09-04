@@ -246,9 +246,11 @@ export class FichaAlumnoService {
       return response.data as T;
     }
 
-    const responseMessage = typeof response.data?.message === 'string' && response.data.message.trim()
-      ? response.data.message
-      : `GpsApi devolvio HTTP ${response.status} sin detalle.`;
+    const responseMessage = response.status === 403 && this.authService.isSupportSession()
+      ? 'El acceso de soporte es exclusivamente de consulta. No se permite guardar ni modificar informacion del familiar.'
+      : typeof response.data?.message === 'string' && response.data.message.trim()
+        ? response.data.message
+        : `GpsApi devolvio HTTP ${response.status} sin detalle.`;
     const error = new Error(responseMessage);
     Object.assign(error, {
       status: response.status,
@@ -270,9 +272,11 @@ export class FichaAlumnoService {
     });
 
     if (response.status < 200 || response.status >= 300) {
-      const responseMessage = typeof response.data?.message === 'string' && response.data.message.trim()
-        ? response.data.message
-        : `GpsApi devolvio HTTP ${response.status} sin detalle.`;
+      const responseMessage = response.status === 403 && this.authService.isSupportSession()
+        ? 'El acceso de soporte es exclusivamente de consulta. No se permite guardar ni modificar informacion del familiar.'
+        : typeof response.data?.message === 'string' && response.data.message.trim()
+          ? response.data.message
+          : `GpsApi devolvio HTTP ${response.status} sin detalle.`;
       console.error('[FichaAlumnoService] blob error response', {
         context,
         status: response.status,

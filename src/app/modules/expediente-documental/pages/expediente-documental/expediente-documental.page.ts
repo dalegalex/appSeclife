@@ -4,6 +4,7 @@ import { Capacitor } from '@capacitor/core';
 import { Directory, Filesystem } from '@capacitor/filesystem';
 import { AlertController, ToastController } from '@ionic/angular';
 import { firstValueFrom } from 'rxjs';
+import { environment } from '../../../../../environments/environment';
 import {
   AlumnoExpediente,
   CalidadRepresentacion,
@@ -55,6 +56,7 @@ export class ExpedienteDocumentalPage implements OnInit {
   legalAccepted = false;
   otp: OtpRegistration | null = null;
   otpCode = '';
+  readonly mostrarOtpPrueba = !environment.production;
 
   constructor(
     private readonly service: ExpedienteDocumentalService,
@@ -238,8 +240,9 @@ export class ExpedienteDocumentalPage implements OnInit {
       const jpeg = await this.canvasBlob();
       const response = await firstValueFrom(this.service.registrarFirma(this.selectedDocument.idasignacion, jpeg));
       this.otp = response.result;
-      this.otpCode = this.otp.codigoPrueba ?? '';
-      const otpMessage = this.otp.codigoPrueba
+      const codigoPrueba = this.mostrarOtpPrueba ? this.otp.codigoPrueba ?? '' : '';
+      this.otpCode = codigoPrueba;
+      const otpMessage = codigoPrueba
         ? 'Codigo OTP de prueba generado.'
         : `Codigo enviado a ${this.otp.destino}.`;
       await this.toast(otpMessage, 'success');

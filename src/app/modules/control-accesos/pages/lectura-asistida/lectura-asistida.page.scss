@@ -15,7 +15,7 @@
 
 .tool-row {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(44px, 1fr));
   gap: 8px;
 }
 
@@ -245,4 +245,37 @@ ion-footer ion-toolbar {
 .ua-filter-summary.active {
   background: rgba(var(--ion-color-primary-rgb), 0.14);
   color: var(--ion-color-primary);
+}
+
+.manual-identification-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(var(--ion-color-warning-rgb), 0.42);
+  border-radius: 8px;
+  background: rgba(var(--ion-color-warning-rgb), 0.12);
+  color: var(--ion-color-dark);
+}
+
+.identity-search-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+}
+
+.identity-results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.identity-result.unavailable {
+  opacity: 0.68;
+}
+
+.identity-result-data {
+  flex: 1;
+  min-width: 0;
 }

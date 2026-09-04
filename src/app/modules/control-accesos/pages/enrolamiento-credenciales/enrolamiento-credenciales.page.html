@@ -1,0 +1,142 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start"><ion-back-button defaultHref="/home"></ion-back-button></ion-buttons>
+    <ion-title>Fotografia y TAG</ion-title>
+  </ion-toolbar>
+  <ion-toolbar class="profile-toolbar">
+    <ion-segment [value]="perfil()" (ionChange)="seleccionarPerfil($event.detail.value)">
+      <ion-segment-button [value]="5"><ion-label>Alumnos</ion-label></ion-segment-button>
+      <ion-segment-button [value]="4"><ion-label>Familiares</ion-label></ion-segment-button>
+      <ion-segment-button [value]="1"><ion-label>Personal</ion-label></ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <section class="enrollment-shell">
+    <div class="search-bar">
+      <ion-searchbar
+        [value]="searchText()"
+        (ionInput)="onSearchInput($event)"
+        (keyup.enter)="buscar()"
+        [placeholder]="perfil() === 5 ? 'Nombre, apellidos, CURP o matricula' : 'Nombre, apellidos, CURP o identificador'"
+        enterkeyhint="search"
+        debounce="0"
+      ></ion-searchbar>
+      <ion-button aria-label="Buscar" title="Buscar" (click)="buscar()" [disabled]="loading()">
+        <ion-icon slot="icon-only" name="search-outline"></ion-icon>
+      </ion-button>
+    </div>
+
+    <div class="results-heading">
+      <div>
+        <h1>{{ tituloPerfil() }}</h1>
+        <p>{{ sujetos().length }} registros cargados</p>
+      </div>
+      <div class="legend" aria-label="Indicadores">
+        <span title="Correo"><ion-icon name="mail-outline"></ion-icon></span>
+        <span title="Fotografia"><ion-icon name="camera-outline"></ion-icon></span>
+        <span title="TAG NFC"><ion-icon name="radio-outline"></ion-icon></span>
+      </div>
+    </div>
+
+    @if (loading()) {
+      <div class="loading-state"><ion-spinner name="crescent"></ion-spinner><span>Consultando registros...</span></div>
+    } @else if (!sujetos().length) {
+      <div class="empty-state">
+        <ion-icon name="people-outline"></ion-icon>
+        <h2>Sin resultados</h2>
+        <p>Ajusta la busqueda o consulta otro perfil.</p>
+      </div>
+    } @else {
+      <div class="subject-list">
+        @for (sujeto of sujetos(); track sujeto.subjectKey) {
+          <ion-item-sliding #sliding>
+            <ion-item-options side="end">
+              <ion-item-option color="primary" expandable (click)="elegirFoto(sujeto, sliding)">
+                <ion-icon slot="top" name="camera-outline"></ion-icon>
+                Foto
+              </ion-item-option>
+              <ion-item-option color="tertiary" expandable [disabled]="nfcEsperandoSubjectKey() !== null" (click)="leerTag(sujeto, sliding)">
+                <ion-icon slot="top" name="radio-outline"></ion-icon>
+                NFC
+              </ion-item-option>
+            </ion-item-options>
+
+            <ion-item class="subject-card" lines="none">
+              <button
+                type="button"
+                class="avatar"
+                slot="start"
+                [class.has-photo]="sujeto.tieneFoto"
+                [disabled]="!sujeto.tieneFoto"
+                [attr.aria-label]="sujeto.tieneFoto ? 'Ver fotografia de ' + sujeto.displayName : 'Sin fotografia registrada'"
+                [title]="sujeto.tieneFoto ? 'Ver fotografia' : 'Sin fotografia registrada'"
+                (click)="verFoto(sujeto)"
+              >
+                <ion-icon [name]="sujeto.tieneFoto ? 'person-circle' : 'person-circle-outline'"></ion-icon>
+              </button>
+              <ion-label>
+                <h2>{{ sujeto.displayName }}</h2>
+                <p class="identity">{{ identificador(sujeto) }}</p>
+                @if (contexto(sujeto)) { <p class="context">{{ contexto(sujeto) }}</p> }
+                <div class="status-row">
+                  <span [class.ok]="sujeto.tieneCorreo" [class.missing]="!sujeto.tieneCorreo">
+                    <ion-icon name="mail-outline"></ion-icon>{{ sujeto.tieneCorreo ? 'Correo' : 'Sin correo' }}
+                  </span>
+                  <span [class.ok]="sujeto.tieneFoto" [class.missing]="!sujeto.tieneFoto">
+                    <ion-icon name="camera-outline"></ion-icon>{{ sujeto.tieneFoto ? 'Foto' : 'Sin foto' }}
+                  </span>
+                  <span [class.ok]="sujeto.tieneTag && !sujeto.tagBloqueado" [class.missing]="!sujeto.tieneTag || sujeto.tagBloqueado">
+                    <ion-icon name="radio-outline"></ion-icon>{{ mascaraCodigo(sujeto.codigo) }}
+                  </span>
+                  @if (nfcEsperandoSubjectKey() === sujeto.subjectKey) {
+                    <span class="nfc-waiting">
+                      <ion-icon name="time-outline"></ion-icon>Esperando...
+                    </span>
+                  }
+                </div>
+              </ion-label>
+              <ion-icon class="slide-hint" slot="end" name="chevron-back-outline" title="Desliza para ver acciones"></ion-icon>
+            </ion-item>
+          </ion-item-sliding>
+        }
+      </div>
+    }
+
+    <ion-infinite-scroll [disabled]="!hasMore()" threshold="120px" (ionInfinite)="cargarMas($event)">
+      <ion-infinite-scroll-content loadingSpinner="crescent" loadingText="Cargando mas registros..."></ion-infinite-scroll-content>
+    </ion-infinite-scroll>
+  </section>
+</ion-content>
+<ion-modal
+  class="photo-preview-modal"
+  [isOpen]="fotoModalAbierto()"
+  (didDismiss)="cerrarFoto()"
+>
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>{{ fotoModalSujeto()?.displayName || 'Fotografia' }}</ion-title>
+        <ion-buttons slot="end">
+          <ion-button aria-label="Cerrar" title="Cerrar" (click)="cerrarFoto()">
+            <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="photo-preview-content">
+      <div class="photo-preview-state">
+        @if (fotoModalCargando()) {
+          <ion-spinner name="crescent"></ion-spinner>
+          <span>Cargando fotografia...</span>
+        } @else if (fotoModalUrl()) {
+          <img [src]="fotoModalUrl()" [alt]="'Fotografia de ' + (fotoModalSujeto()?.displayName || 'persona')" />
+        } @else {
+          <ion-icon name="image-outline"></ion-icon>
+          <ion-text color="danger">{{ fotoModalError() || 'Fotografia no disponible.' }}</ion-text>
+        }
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>

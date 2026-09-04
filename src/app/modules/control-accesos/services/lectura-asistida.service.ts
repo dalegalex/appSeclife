@@ -4,9 +4,12 @@ import { Capacitor } from '@capacitor/core';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import {
+  BuscarIdentidadesLecturaAsistidaResponse,
   LecturaAsistidaRegistroResponse,
   LecturaAsistidaResponse,
   RegistrarLecturaAsistidaRequest,
+  ResolverIdentidadLecturaAsistidaRequest,
+  TipoBusquedaIdentidad,
   UnidadAdministrativaLectura,
   ResolverLecturaAsistidaParams,
   SpResponse,
@@ -49,6 +52,41 @@ export class LecturaAsistidaService {
     }
 
     return this.http.get<SpResponse<LecturaAsistidaResponse>>(this.baseUrl, { params: httpParams }).pipe(
+      map((response) => {
+        this.assertSuccess(response);
+        return response.result as LecturaAsistidaResponse;
+      })
+    );
+  }
+
+  buscarIdentidades(
+    idorg: number,
+    tipoPortador: TipoBusquedaIdentidad,
+    searchText: string
+  ): Observable<BuscarIdentidadesLecturaAsistidaResponse> {
+    const params = new HttpParams()
+      .set('idorg', String(idorg))
+      .set('tipoPortador', tipoPortador)
+      .set('searchText', searchText.trim());
+
+    return this.http.get<SpResponse<BuscarIdentidadesLecturaAsistidaResponse>>(
+      `${this.baseUrl}/identidades`,
+      { params }
+    ).pipe(
+      map((response) => {
+        this.assertSuccess(response);
+        return response.result ?? { resultados: [] };
+      })
+    );
+  }
+
+  resolverIdentidadManual(
+    request: ResolverIdentidadLecturaAsistidaRequest
+  ): Observable<LecturaAsistidaResponse> {
+    return this.http.post<SpResponse<LecturaAsistidaResponse>>(
+      `${this.baseUrl}/identidades/resolver`,
+      request
+    ).pipe(
       map((response) => {
         this.assertSuccess(response);
         return response.result as LecturaAsistidaResponse;

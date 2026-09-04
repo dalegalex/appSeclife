@@ -5,8 +5,14 @@
     </ion-buttons>
     <ion-title>Lectura autogestionada</ion-title>
     <ion-buttons *ngIf="sesionAbierta" slot="end">
-      <ion-button color="warning" fill="clear" (click)="solicitarDesbloqueoConfiguracion()">
-        <ion-icon slot="icon-only" name="lock-closed-outline"></ion-icon>
+      <ion-button
+        color="warning"
+        fill="clear"
+        title="Liberar punto"
+        aria-label="Liberar punto"
+        (click)="solicitarDesbloqueoConfiguracion()"
+      >
+        <ion-icon slot="icon-only" name="lock-open-outline"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
@@ -50,6 +56,18 @@
 
       </ion-card-content>
     </ion-card>
+
+    <div *ngIf="sesionAbierta" class="connected-point">
+      <ion-icon name="location-outline"></ion-icon>
+      <div>
+        <span class="eyebrow">Punto conectado</span>
+        <strong>{{ sesion?.punto || puntoSeleccionado?.descripcion || 'Punto de autogestion' }}</strong>
+        <small>
+          {{ puntoSeleccionado?.codigo || 'Sin codigo' }} ·
+          {{ sesion?.modo === 'EVENTO' ? 'Evento' : 'Asistencia' }}
+        </small>
+      </div>
+    </div>
 
     <ion-card *ngIf="!sesionAbierta || modo === 'EVENTO'" class="event-card">
       <ion-card-content>
@@ -232,6 +250,9 @@
           <span class="eyebrow">{{ lectura.siguienteMovimiento === 'SALIDA' ? 'Registrar salida' : 'Registrar entrada' }}</span>
           <h2>{{ lectura.participante || 'Participante' }}</h2>
           <p>{{ lectura.evento }}</p>
+          <ion-chip color="primary">
+            <ion-label>{{ lectura.tipoAsistente || 'ASISTENTE' }}</ion-label>
+          </ion-chip>
           <div class="movement-badge" [class.movement-out]="lectura.siguienteMovimiento === 'SALIDA'">
             <ion-icon name="repeat-outline"></ion-icon>
             <span>{{ lectura.siguienteMovimiento }}</span>

@@ -11,10 +11,12 @@ import { Subscription, firstValueFrom } from 'rxjs';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { scanQrCode } from '../../../../core/qr-scanner';
 import {
+  IdentidadLecturaAsistida,
   LecturaAsistidaAlumno,
   LecturaAsistidaAuto,
   LecturaAsistidaResponse,
   SentidoAcceso,
+  TipoBusquedaIdentidad,
   UnidadAdministrativaLectura,
 } from '../../models/lectura-asistida.model';
 import { LecturaAsistidaService } from '../../services/lectura-asistida.service';
@@ -49,8 +51,18 @@ export class LecturaAsistidaPage implements OnDestroy {
   idcarruselsesionSeleccionada: number | null = null;
   puntoLecturaCarrusel: CarruselDispositivo | null = null;
   cargandoCarruseles = false;
+  modalBusquedaAbierto = false;
+  tipoBusquedaIdentidad: TipoBusquedaIdentidad = 'FAMILIAR';
+  textoBusquedaIdentidad = '';
+  resultadosIdentidad: IdentidadLecturaAsistida[] = [];
+  buscandoIdentidad = false;
+  identificacionManual = false;
+  identidadManualSeleccionada: IdentidadLecturaAsistida | null = null;
   private nfcListener: PluginListenerHandle | null = null;
   private nfcProcesando = false;
+  private paginaActiva = false;
+  private nfcHabilitadoPorUsuario = true;
+  private nfcRecoveryTimer: ReturnType<typeof setTimeout> | null = null;
   private ultimoCodigoNfc: string | null = null;
   private ultimaLecturaNfcAt = 0;
   private audioContext: AudioContext | null = null;
@@ -75,6 +87,20 @@ export class LecturaAsistidaPage implements OnDestroy {
   get idorg(): number {
     return this.authService.getCurrentUser()?.idorg ?? 0;
   }
+
+  async ionViewWillEnter(): Promise<void> {
+    this.paginaActiva = true;
+    this.nfcHabilitadoPorUsuario = true;
+    this.limpiarRecuperacionNfc();
+    await this.activarNfc(true);
+  }
+
+  ionViewDidLeave(): void {
+    this.paginaActiva = false;
+    this.limpiarRecuperacionNfc();
+    void this.detenerLecturaNfc();
+  }
+
   get unidadesFiltroActivo(): boolean {
     return this.unidadesAdministrativas.length > 0
       && this.unidadesSeleccionadas.size > 0
@@ -111,6 +137,10 @@ export class LecturaAsistidaPage implements OnDestroy {
 
   get avisoCarruselValido(): boolean {
     return !this.modoAviso || !!this.idcarruselsesionSeleccionada;
+  }
+
+  get puedeIdentificarManualmente(): boolean {
+    return this.authService.canExecuteAppRoute('/control-accesos/lectura-asistida');
   }
 
 
@@ -193,15 +223,88 @@ export class LecturaAsistidaPage implements OnDestroy {
         iduas: this.iduasFiltroRequest(),
       }));
 
-      this.lectura = lectura;
-      for (const alumno of lectura.alumnos ?? []) {
-        if (this.alumnoDisponible(alumno) && this.esAlumnoNucleo(alumno)) {
-          this.seleccion.add(alumno.idmatricula);
-        }
-      }
-      this.preseleccionarEntrega();
+      this.aplicarLectura(lectura);
     } catch (error: any) {
-      await this.showToast(error?.error?.message || error?.message || 'No fue posible validar la credencial.', 'danger');
+      await this.showToast(this.requestErrorMessage(error, 'No fue posible validar la credencial.'), 'danger');
+    } finally {
+      this.loading = false;
+      this.cdRef.detectChanges();
+    }
+  }
+
+  async abrirBusquedaManual(): Promise<void> {
+    if (!this.puedeIdentificarManualmente) {
+      await this.showToast('No tienes permiso para identificar personas manualmente.', 'warning');
+      return;
+    }
+
+    this.modalBusquedaAbierto = true;
+    this.textoBusquedaIdentidad = '';
+    this.resultadosIdentidad = [];
+  }
+
+  cerrarBusquedaManual(): void {
+    if (this.buscandoIdentidad || this.loading) {
+      return;
+    }
+
+    this.modalBusquedaAbierto = false;
+  }
+
+  cambiarTipoBusquedaIdentidad(tipo: TipoBusquedaIdentidad): void {
+    this.tipoBusquedaIdentidad = tipo;
+    this.resultadosIdentidad = [];
+  }
+
+  async buscarIdentidades(): Promise<void> {
+    const searchText = this.textoBusquedaIdentidad.trim();
+    if (searchText.length < 3) {
+      await this.showToast('Captura al menos 3 caracteres para buscar.', 'warning');
+      return;
+    }
+
+    this.buscandoIdentidad = true;
+    try {
+      const response = await firstValueFrom(this.lecturaService.buscarIdentidades(
+        this.idorg,
+        this.tipoBusquedaIdentidad,
+        searchText
+      ));
+      this.resultadosIdentidad = response.resultados ?? [];
+    } catch (error: any) {
+      this.resultadosIdentidad = [];
+      await this.showToast(this.requestErrorMessage(error, 'No fue posible buscar personas.'), 'danger');
+    } finally {
+      this.buscandoIdentidad = false;
+      this.cdRef.detectChanges();
+    }
+  }
+
+  async seleccionarIdentidad(identidad: IdentidadLecturaAsistida): Promise<void> {
+    if (!identidad.credencialDisponible) {
+      await this.showToast(identidad.motivoNoDisponible || 'La identidad no esta disponible.', 'warning');
+      return;
+    }
+
+    this.loading = true;
+    this.resetLectura(false);
+    try {
+      const lectura = await firstValueFrom(this.lecturaService.resolverIdentidadManual({
+        idorg: this.idorg,
+        idmatricula: identidad.idmatricula ?? null,
+        idusrbtMiembro: identidad.idusrbt ?? null,
+        sentido: this.sentido,
+        mostrarFoto: this.mostrarFoto,
+        iduas: this.iduasFiltroRequest(),
+      }));
+
+      this.identificacionManual = true;
+      this.identidadManualSeleccionada = identidad;
+      this.codigo = '';
+      this.aplicarLectura(lectura);
+      this.modalBusquedaAbierto = false;
+    } catch (error: any) {
+      await this.showToast(this.requestErrorMessage(error, 'No fue posible validar la identidad.'), 'danger');
     } finally {
       this.loading = false;
       this.cdRef.detectChanges();
@@ -259,14 +362,17 @@ export class LecturaAsistidaPage implements OnDestroy {
 
     this.lecturaService.registrarLectura({
       idorg: this.idorg,
-      codigo: this.codigo.trim(),
-      codigoLeido: this.codigo.trim(),
+      identificacionManual: this.identificacionManual,
+      idmatricula: this.identificacionManual ? this.identidadManualSeleccionada?.idmatricula ?? null : null,
+      idusrbtMiembro: this.identificacionManual ? this.identidadManualSeleccionada?.idusrbt ?? null : null,
+      codigo: this.identificacionManual ? null : this.codigo.trim(),
+      codigoLeido: this.identificacionManual ? null : this.codigo.trim(),
       sentido: this.sentido,
       modoAviso: false,
       idautofamiliar: this.tipoEntrega === 'AUTO' ? this.idautofamiliarSeleccionado : null,
       otroAuto: this.tipoEntrega === 'OTRO_AUTO' || this.tipoEntrega === 'PEATONAL',
       comentarios: this.comentariosEntrega(),
-      origenModulo: 'LECTURA_ASISTIDA_APP',
+      origenModulo: this.identificacionManual ? 'LECTURA_ASISTIDA_MANUAL' : 'LECTURA_ASISTIDA_APP',
       alumnos,
     }).subscribe({
       next: async () => {
@@ -280,7 +386,7 @@ export class LecturaAsistidaPage implements OnDestroy {
       },
       error: async (error) => {
         this.saving = false;
-        await this.showToast(error?.error?.message || error?.message || 'No fue posible registrar la lectura.', 'danger');
+        await this.showToast(this.requestErrorMessage(error, 'No fue posible registrar la lectura.'), 'danger');
       },
     });
   }
@@ -304,8 +410,8 @@ export class LecturaAsistidaPage implements OnDestroy {
       const paquete = await firstValueFrom(this.carruselService.registrarAviso(this.idcarruselsesionSeleccionada, {
         idorg: this.idorg,
         idcarruseldispositivo: this.puntoLecturaCarrusel?.idcarruseldispositivo ?? null,
-        codigo: this.codigo.trim(),
-        codigoLeido: this.codigo.trim(),
+        codigo: this.identificacionManual ? null : this.codigo.trim(),
+        codigoLeido: this.identificacionManual ? 'IDENTIFICACION_MANUAL' : this.codigo.trim(),
         idfamiliamiembro: this.lectura.familiar?.idfamiliamiembro ?? null,
         idinvitadoexternoRecoge: this.lectura.familiar?.idinvitadoexterno ?? null,
         idautofamiliar: this.tipoEntrega === 'AUTO' ? this.idautofamiliarSeleccionado : null,
@@ -325,7 +431,7 @@ export class LecturaAsistidaPage implements OnDestroy {
       await this.showToast(`Aviso enviado a ${carrusel}. Lista para la siguiente lectura.`, 'success');
     } catch (error: any) {
       this.saving = false;
-      await this.showToast(error?.error?.message || error?.message || 'No fue posible enviar el aviso al carrusel.', 'danger');
+      await this.showToast(this.requestErrorMessage(error, 'No fue posible enviar el aviso al carrusel.'), 'danger');
     }
   }
 
@@ -365,7 +471,7 @@ export class LecturaAsistidaPage implements OnDestroy {
       this.puntoLecturaCarrusel = punto;
     } catch (error: any) {
       this.puntoLecturaCarrusel = null;
-      await this.showToast(error?.error?.message || error?.message || 'No fue posible conectar el lector al carrusel.', 'danger');
+      await this.showToast(this.requestErrorMessage(error, 'No fue posible conectar el lector al carrusel.'), 'danger');
     } finally {
       this.cdRef.detectChanges();
     }
@@ -412,8 +518,12 @@ export class LecturaAsistidaPage implements OnDestroy {
       return;
     }
 
+    const reactivarNfc = this.nfcHabilitadoPorUsuario && this.nfcActivo;
+    if (reactivarNfc) {
+      await this.detenerLecturaNfc();
+    }
+
     this.qrActivo = true;
-    this.nfcActivo = false;
 
     try {
       const result = await scanQrCode({
@@ -442,6 +552,9 @@ export class LecturaAsistidaPage implements OnDestroy {
       await this.showToast('Lectura QR cancelada o no disponible.', 'medium');
     } finally {
       this.qrActivo = false;
+      if (this.paginaActiva && reactivarNfc) {
+        await this.restaurarNfcDespuesQr();
+      }
     }
   }
 
@@ -492,36 +605,56 @@ export class LecturaAsistidaPage implements OnDestroy {
         await this.showToast('No hay carruseles abiertos para recibir avisos.', 'warning');
       }
     } catch (error: any) {
-      await this.showToast(error?.error?.message || error?.message || 'No fue posible consultar carruseles activos.', 'danger');
+      await this.showToast(this.requestErrorMessage(error, 'No fue posible consultar carruseles activos.'), 'danger');
     } finally {
       this.cargandoCarruseles = false;
       this.cdRef.detectChanges();
     }
   }
 
-  async activarNfc(): Promise<void> {
-    if (this.loading || this.saving) {
+  async activarNfc(automatico = false): Promise<void> {
+    if (this.loading || this.saving || this.qrActivo) {
+      return;
+    }
+
+    if (automatico && !this.nfcHabilitadoPorUsuario) {
       return;
     }
 
     if (this.nfcActivo) {
+      if (automatico) {
+        return;
+      }
+
+      this.nfcHabilitadoPorUsuario = false;
+      this.limpiarRecuperacionNfc();
       await this.detenerLecturaNfc();
-      await this.showToast('Lectura NFC detenida.', 'medium');
+      await this.showToast('Lectura NFC desactivada.', 'medium');
       return;
     }
 
-    this.qrActivo = false;
+    if (!automatico) {
+      this.nfcHabilitadoPorUsuario = true;
+    }
 
     try {
       const { supported } = await CapacitorNfc.isSupported();
       if (!supported) {
-        await this.showToast('Este dispositivo no cuenta con NFC.', 'warning');
+        if (!automatico) {
+          await this.showToast('Este dispositivo no cuenta con NFC.', 'warning');
+        }
         return;
       }
 
       const { status } = await CapacitorNfc.getStatus();
       if (status === 'NFC_DISABLED') {
-        await this.showToast('Activa NFC en el dispositivo para leer credenciales fisicas.', 'warning');
+        if (!automatico) {
+          await this.showToast('Activa NFC en el dispositivo para leer credenciales fisicas.', 'warning');
+        }
+        return;
+      }
+
+      if (!this.paginaActiva) {
         return;
       }
 
@@ -537,10 +670,14 @@ export class LecturaAsistidaPage implements OnDestroy {
         iosSessionType: 'tag',
       });
       this.nfcActivo = true;
-      await this.showToast('NFC listo. Acerca la credencial al dispositivo.', 'medium');
+      if (!automatico) {
+        await this.showToast('NFC listo. Acerca la credencial al dispositivo.', 'medium');
+      }
     } catch (error) {
-      await this.detenerLecturaNfc(false);
-      await this.showToast('No fue posible activar la lectura NFC.', 'danger');
+      await this.detenerLecturaNfc();
+      if (!automatico) {
+        await this.showToast('No fue posible activar la lectura NFC.', 'danger');
+      }
     }
   }
 
@@ -599,7 +736,9 @@ export class LecturaAsistidaPage implements OnDestroy {
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
     void this.desconectarPuntoCarrusel();
-    void this.detenerLecturaNfc(false);
+    this.paginaActiva = false;
+    this.limpiarRecuperacionNfc();
+    void this.detenerLecturaNfc();
   }
 
   fotoSrc(value?: string | null): string | null {
@@ -613,6 +752,10 @@ export class LecturaAsistidaPage implements OnDestroy {
   estadoAlumno(alumno: LecturaAsistidaAlumno): string {
     if (alumno.permisoAusencia) {
       return 'PERMISO DE AUSENCIA';
+    }
+
+    if (this.alumnoRequiereEntregaFamiliar(alumno)) {
+      return 'REQUIERE ENTREGA A FAMILIAR';
     }
 
     if (this.alumnoEnAvisoCarrusel(alumno)) {
@@ -638,6 +781,12 @@ export class LecturaAsistidaPage implements OnDestroy {
     return alumno.ultimaLectura?.sentido === this.sentido;
   }
 
+  alumnoRequiereEntregaFamiliar(alumno: LecturaAsistidaAlumno): boolean {
+    return this.sentido === 'SALIDA'
+      && this.lectura?.tipoLectura === 'ALUMNO'
+      && alumno.salidaAutonomaAutorizada !== true;
+  }
+
   alumnoEnAvisoCarrusel(alumno: LecturaAsistidaAlumno): boolean {
     return this.sentido === 'SALIDA' && (alumno.estatusSalida ?? '').toUpperCase() === 'MODO_AVISO';
   }
@@ -653,6 +802,10 @@ export class LecturaAsistidaPage implements OnDestroy {
   estadoColor(alumno: LecturaAsistidaAlumno): string {
     if (this.alumnoConSalidaRegistrada(alumno)) {
       return 'medium';
+    }
+
+    if (this.alumnoRequiereEntregaFamiliar(alumno)) {
+      return 'danger';
     }
 
     if (alumno.permisoAusencia || this.alumnoAdvertenciaRepetida(alumno) || this.alumnoSinEntradaParaSalida(alumno)) {
@@ -675,6 +828,7 @@ export class LecturaAsistidaPage implements OnDestroy {
       return;
     }
 
+    this.limpiarRecuperacionNfc();
     const codigoLeido = this.extraerCodigoNfc(event);
     if (!codigoLeido) {
       await this.showToast('No se pudo obtener un codigo valido del TAG NFC.', 'warning');
@@ -697,7 +851,7 @@ export class LecturaAsistidaPage implements OnDestroy {
       await this.resolver();
     } finally {
       this.nfcProcesando = false;
-      if (this.nfcActivo) {
+      if (this.paginaActiva && this.nfcActivo) {
         await this.delay(250);
         await this.reiniciarEscaneoNfc();
       }
@@ -846,6 +1000,51 @@ export class LecturaAsistidaPage implements OnDestroy {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  private async restaurarNfcDespuesQr(): Promise<void> {
+    const ultimaLecturaAntesDeRecuperar = this.ultimaLecturaNfcAt;
+    await this.delay(1200);
+
+    if (!this.paginaActiva || !this.nfcHabilitadoPorUsuario || this.qrActivo) {
+      return;
+    }
+
+    await this.activarNfc(true);
+    if (!this.nfcActivo) {
+      return;
+    }
+
+    this.limpiarRecuperacionNfc();
+    this.nfcRecoveryTimer = setTimeout(() => {
+      this.nfcRecoveryTimer = null;
+      this.zone.run(() => {
+        void this.verificarRecuperacionNfc(ultimaLecturaAntesDeRecuperar);
+      });
+    }, 2500);
+  }
+
+  private async verificarRecuperacionNfc(ultimaLecturaAntesDeRecuperar: number): Promise<void> {
+    if (
+      !this.paginaActiva
+      || !this.nfcHabilitadoPorUsuario
+      || this.qrActivo
+      || this.loading
+      || this.saving
+      || this.ultimaLecturaNfcAt !== ultimaLecturaAntesDeRecuperar
+    ) {
+      return;
+    }
+
+    await this.detenerLecturaNfc();
+    await this.delay(250);
+    await this.activarNfc(true);
+  }
+
+  private limpiarRecuperacionNfc(): void {
+    if (this.nfcRecoveryTimer) {
+      clearTimeout(this.nfcRecoveryTimer);
+      this.nfcRecoveryTimer = null;
+    }
+  }
 
   private async reiniciarEscaneoNfc(): Promise<void> {
     try {
@@ -858,7 +1057,9 @@ export class LecturaAsistidaPage implements OnDestroy {
       await this.iniciarEscaneoNfc();
     } catch {
       this.nfcActivo = false;
-      await this.showToast('La lectura NFC se detuvo. Activa NFC nuevamente.', 'warning');
+      if (this.paginaActiva) {
+        await this.showToast('La lectura NFC se detuvo. Activa NFC nuevamente.', 'warning');
+      }
     }
   }
   private async detenerLecturaNfc(updateState = true): Promise<void> {
@@ -883,12 +1084,24 @@ export class LecturaAsistidaPage implements OnDestroy {
 
   private resetLectura(clearCode = true): void {
     this.lectura = null;
+    this.identificacionManual = false;
+    this.identidadManualSeleccionada = null;
     this.seleccion.clear();
     this.tipoEntrega = null;
     this.idautofamiliarSeleccionado = null;
     if (clearCode) {
       this.codigo = '';
     }
+  }
+
+  private aplicarLectura(lectura: LecturaAsistidaResponse): void {
+    this.lectura = lectura;
+    for (const alumno of lectura.alumnos ?? []) {
+      if (this.alumnoDisponible(alumno) && this.esAlumnoNucleo(alumno)) {
+        this.seleccion.add(alumno.idmatricula);
+      }
+    }
+    this.preseleccionarEntrega();
   }
 
   private preseleccionarEntrega(): void {
@@ -930,5 +1143,15 @@ export class LecturaAsistidaPage implements OnDestroy {
       position: 'bottom',
     });
     await toast.present();
+  }
+
+  private requestErrorMessage(error: any, fallback: string): string {
+    if (error?.status === 401) {
+      return 'La sesion vencio. Inicia sesion nuevamente para continuar.';
+    }
+    if (error?.status === 0) {
+      return 'No fue posible conectar con Seclife. Revisa tu conexion WiFi o datos moviles e intenta nuevamente.';
+    }
+    return error?.error?.message || fallback;
   }
 }

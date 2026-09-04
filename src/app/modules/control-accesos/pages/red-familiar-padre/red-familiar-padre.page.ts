@@ -197,6 +197,10 @@ export class RedFamiliarPadrePage implements OnInit {
   }
 
   get puedeGuardarMiembro(): boolean {
+    if (this.miembroFormDatosBloqueados()) {
+      return !!this.idfamilia && !!this.editingMiembro?.idfamiliamiembro;
+    }
+
     return !!this.miembroForm.nombre.trim() && !!this.miembroForm.apellidos.trim() && !!this.idfamilia;
   }
 
@@ -414,14 +418,7 @@ export class RedFamiliarPadrePage implements OnInit {
     }
 
     this.savingMiembro = true;
-    const request: GuardarMiembroFamiliarRequest = {
-      ...this.miembroForm,
-      nombre: this.toUpper(this.miembroForm.nombre),
-      apellidos: this.toUpper(this.miembroForm.apellidos),
-      cel: this.miembroForm.cel?.trim() || null,
-      emailContacto: this.miembroForm.emailContacto?.trim() || null,
-      idorg: this.idorg,
-    };
+    const request = this.buildGuardarMiembroRequest();
 
     const request$ = this.editingMiembro
       ? this.redFamiliarService.actualizarMiembro(idfamilia, this.editingMiembro.idfamiliamiembro, request)
@@ -1448,6 +1445,11 @@ export class RedFamiliarPadrePage implements OnInit {
       return;
     }
 
+    if (!this.puedeEditarFotoMiembro(miembro)) {
+      await this.showToast('La fotografia solo puede modificarse mientras la TAG esta asignada.', 'warning');
+      return;
+    }
+
     const actionSheet = await this.actionSheetController.create({
       header: 'Fotografia del familiar',
       buttons: [
@@ -1485,6 +1487,11 @@ export class RedFamiliarPadrePage implements OnInit {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     input.value = '';
+
+    if (!this.puedeEditarFotoMiembro(miembro)) {
+      await this.showToast('La fotografia solo puede modificarse mientras la TAG esta asignada.', 'warning');
+      return;
+    }
 
     if (!file) {
       return;
@@ -1600,6 +1607,23 @@ export class RedFamiliarPadrePage implements OnInit {
       && !this.esInvitadoProvisional(miembro);
   }
 
+  miembroTieneEdicionLimitada(miembro?: MiembroFamiliar | null): boolean {
+    return !!miembro
+      && !this.esMiembroExterno(miembro)
+      && !this.esInvitadoProvisional(miembro)
+      && miembro.idsittag !== 1;
+  }
+
+  puedeEditarFotoMiembro(miembro: MiembroFamiliar): boolean {
+    return !this.esMiembroExterno(miembro)
+      && !this.esInvitadoProvisional(miembro)
+      && !this.miembroTieneEdicionLimitada(miembro);
+  }
+
+  miembroFormDatosBloqueados(): boolean {
+    return this.miembroTieneEdicionLimitada(this.editingMiembro);
+  }
+
   bloqueoTagLabel(miembro: MiembroFamiliar): string {
     return miembro.sitbloqueo ? 'Desbloquear' : 'Bloquear';
   }
@@ -1666,6 +1690,34 @@ export class RedFamiliarPadrePage implements OnInit {
 
   esInvitadoProvisional(miembro: MiembroFamiliar): boolean {
     return !!miembro.idinvitadoexterno && !miembro.idusrbt;
+  }
+
+  private buildGuardarMiembroRequest(): GuardarMiembroFamiliarRequest {
+    const miembro = this.editingMiembro;
+
+    if (this.miembroTieneEdicionLimitada(miembro)) {
+      return {
+        idorg: this.idorg,
+        idusrbtMiembro: miembro?.idusrbt ?? null,
+        nombre: this.toUpper(miembro?.nombre || this.firstName(miembro?.familiar ?? '')),
+        apellidos: this.toUpper(miembro?.apellidos || this.lastName(miembro?.familiar ?? '')),
+        cel: miembro?.cel ?? null,
+        emailContacto: miembro?.emailContacto ?? null,
+        idparentesco: miembro?.idparentesco ?? 10,
+        puedeRecoger: this.miembroForm.puedeRecoger ?? false,
+        puedeAdministrar: this.miembroForm.puedeAdministrar ?? false,
+        sitMiembroSilencioso: miembro?.sitMiembroSilencioso ?? false,
+      };
+    }
+
+    return {
+      ...this.miembroForm,
+      nombre: this.toUpper(this.miembroForm.nombre),
+      apellidos: this.toUpper(this.miembroForm.apellidos),
+      cel: this.miembroForm.cel?.trim() || null,
+      emailContacto: this.miembroForm.emailContacto?.trim() || null,
+      idorg: this.idorg,
+    };
   }
 
   private upsertMiembroLocal(miembro: MiembroFamiliar): void {

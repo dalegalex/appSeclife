@@ -15,6 +15,35 @@ export interface UnidadAdministrativaLectura {
 
 export type SentidoAcceso = 'ENTRADA' | 'SALIDA';
 export type TipoLecturaAsistida = 'ALUMNO' | 'FAMILIAR' | 'INVITADO_EXTERNO';
+export type TipoBusquedaIdentidad = 'ALUMNO' | 'FAMILIAR' | 'PERSONAL';
+
+export interface IdentidadLecturaAsistida {
+  idperfil: number;
+  tipoPortador: TipoBusquedaIdentidad;
+  idmatricula?: number | null;
+  idusrbt?: number | null;
+  idfamiliamiembro?: number | null;
+  idfamilia?: number | null;
+  nombreCompleto: string;
+  familia?: string | null;
+  referencia?: string | null;
+  foto?: string | null;
+  credencialDisponible: boolean;
+  motivoNoDisponible?: string | null;
+}
+
+export interface BuscarIdentidadesLecturaAsistidaResponse {
+  resultados?: IdentidadLecturaAsistida[];
+}
+
+export interface ResolverIdentidadLecturaAsistidaRequest {
+  idorg: number;
+  idmatricula?: number | null;
+  idusrbtMiembro?: number | null;
+  sentido: SentidoAcceso;
+  iduas?: number[] | null;
+  mostrarFoto?: boolean | null;
+}
 
 export interface ResolverLecturaAsistidaParams {
   idorg: number;
@@ -28,6 +57,9 @@ export interface ResolverLecturaAsistidaParams {
 
 export interface RegistrarLecturaAsistidaRequest {
   idorg: number;
+  identificacionManual?: boolean | null;
+  idmatricula?: number | null;
+  idusrbtMiembro?: number | null;
   codigo?: string | null;
   codigoLeido?: string | null;
   idtag?: number | null;
@@ -118,6 +150,18 @@ export interface LecturaAsistidaAlumno {
   idciclo?: number | null;
   gradoGrupo?: string | null;
   colorGrupo?: string | null;
+  salidaAutonomaAutorizada?: boolean | null;
+  salidaAutonoma?: {
+    idsalidaautonoma?: number | null;
+    idciclo?: number | null;
+    autorizado?: boolean | null;
+    fechaInicio?: string | null;
+    fechaFin?: string | null;
+    origen?: string | null;
+    motivo?: string | null;
+    codigoDecision?: string | null;
+    motivoDecision?: string | null;
+  } | null;
   idparentesco?: number | null;
   parentesco?: string | null;
   tipoRelacion?: string | null;

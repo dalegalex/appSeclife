@@ -115,6 +115,18 @@
 
           <ion-list lines="none">
             <ion-item *ngFor="let alumno of paquete.alumnos" class="student-row" [class.done]="alumno.estatus === 'ENTREGADO'">
+              <button
+                type="button"
+                slot="start"
+                class="student-photo-button"
+                [class.has-photo]="alumno.tieneFoto"
+                [disabled]="!alumno.tieneFoto"
+                [attr.aria-label]="alumno.tieneFoto ? 'Ver fotografía de ' + alumno.alumno : 'Alumno sin fotografía'"
+                [title]="alumno.tieneFoto ? 'Ver fotografía' : 'Sin fotografía registrada'"
+                (click)="mostrarFotoAlumno(alumno)"
+              >
+                <ion-icon [name]="alumno.tieneFoto ? 'person-circle' : 'person-circle-outline'"></ion-icon>
+              </button>
               <ion-label>
                 <h3>{{ alumno.alumno }}</h3>
                 <p>{{ alumno.gradoGrupo || 'Sin grupo activo' }}</p>
@@ -128,3 +140,31 @@
     </ng-container>
   </section>
 </ion-content>
+
+<ion-modal class="person-photo-modal" [isOpen]="fotoModalAbierto" (didDismiss)="cerrarFotoModal()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>{{ fotoModalNombre }}</ion-title>
+        <ion-buttons slot="end">
+          <ion-button fill="clear" aria-label="Cerrar fotografía" (click)="cerrarFotoModal()">
+            <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="person-photo-content">
+      <div class="person-photo-state">
+        @if (fotoModalLoading) {
+          <ion-spinner name="crescent"></ion-spinner>
+          <p>Consultando fotografía...</p>
+        } @else if (fotoModalUrl) {
+          <img [src]="fotoModalUrl" [alt]="'Fotografía de ' + fotoModalNombre">
+        } @else {
+          <ion-icon name="image-outline"></ion-icon>
+          <p>{{ fotoModalError || 'Fotografía no disponible.' }}</p>
+        }
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>

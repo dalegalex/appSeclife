@@ -198,7 +198,7 @@ export class CredencialDigitalPage implements OnInit {
 
     return QRCode.toDataURL(value, {
       errorCorrectionLevel: 'M',
-      margin: 1,
+      margin: 4,
       scale: 8,
     });
   }

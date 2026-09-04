@@ -150,6 +150,68 @@ p {
   opacity: 0.72;
 }
 
+.student-photo-button {
+  display: grid;
+  appearance: none;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid rgba(var(--ion-color-medium-rgb), 0.35);
+  border-radius: 50%;
+  background: rgba(var(--ion-color-medium-rgb), 0.1);
+  color: var(--ion-color-medium);
+}
+
+.student-photo-button:disabled {
+  opacity: 1;
+}
+
+.student-photo-button.has-photo {
+  cursor: pointer;
+  border-color: rgba(var(--ion-color-success-rgb), 0.55);
+  background: rgba(var(--ion-color-success-rgb), 0.12);
+  color: var(--ion-color-success);
+}
+
+.student-photo-button ion-icon {
+  font-size: 1.85rem;
+}
+
+ion-modal.person-photo-modal {
+  --width: min(92vw, 640px);
+  --height: min(82vh, 760px);
+  --border-radius: 8px;
+}
+
+.person-photo-content {
+  --background: #10161b;
+}
+
+.person-photo-state {
+  display: grid;
+  min-height: 100%;
+  padding: 18px;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  color: #dfe7ec;
+  text-align: center;
+}
+
+.person-photo-state img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: calc(82vh - 110px);
+  object-fit: contain;
+}
+
+.person-photo-state > ion-icon {
+  font-size: 3rem;
+}
+
 .loading-state,
 .empty-state {
   display: flex;

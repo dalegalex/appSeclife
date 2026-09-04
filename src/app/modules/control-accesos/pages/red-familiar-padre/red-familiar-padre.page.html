@@ -384,24 +384,27 @@
         </div>
 
         <form *ngIf="showMiembroForm" class="inline-form" (ngSubmit)="guardarMiembro()">
+          <ion-note *ngIf="miembroFormDatosBloqueados()" color="warning" class="form-hint">
+            TAG en tramite o activada: solo puedes modificar permisos de entrega y administracion.
+          </ion-note>
           <ion-item>
-            <ion-input label="Nombre" labelPlacement="stacked" [(ngModel)]="miembroForm.nombre" name="nombre" (ionInput)="toUpperForm(miembroForm, 'nombre')"></ion-input>
+            <ion-input label="Nombre" labelPlacement="stacked" [(ngModel)]="miembroForm.nombre" name="nombre" [disabled]="miembroFormDatosBloqueados()" (ionInput)="toUpperForm(miembroForm, 'nombre')"></ion-input>
           </ion-item>
           <ion-item>
-            <ion-input label="Apellidos" labelPlacement="stacked" [(ngModel)]="miembroForm.apellidos" name="apellidos" (ionInput)="toUpperForm(miembroForm, 'apellidos')"></ion-input>
+            <ion-input label="Apellidos" labelPlacement="stacked" [(ngModel)]="miembroForm.apellidos" name="apellidos" [disabled]="miembroFormDatosBloqueados()" (ionInput)="toUpperForm(miembroForm, 'apellidos')"></ion-input>
           </ion-item>
           <ion-item>
-            <ion-select label="Parentesco" labelPlacement="stacked" [(ngModel)]="miembroForm.idparentesco" name="idparentesco">
+            <ion-select label="Parentesco" labelPlacement="stacked" [(ngModel)]="miembroForm.idparentesco" name="idparentesco" [disabled]="miembroFormDatosBloqueados()">
               <ion-select-option *ngFor="let parentesco of parentescos" [value]="parentesco.idparentesco">
                 {{ parentesco.descripcion || parentesco.nombre }}
               </ion-select-option>
             </ion-select>
           </ion-item>
           <ion-item>
-            <ion-input label="Celular" labelPlacement="stacked" [(ngModel)]="miembroForm.cel" name="cel"></ion-input>
+            <ion-input label="Celular" labelPlacement="stacked" [(ngModel)]="miembroForm.cel" name="cel" [disabled]="miembroFormDatosBloqueados()"></ion-input>
           </ion-item>
           <ion-item>
-            <ion-input label="Correo de contacto" labelPlacement="stacked" [(ngModel)]="miembroForm.emailContacto" name="emailContacto"></ion-input>
+            <ion-input label="Correo de contacto" labelPlacement="stacked" [(ngModel)]="miembroForm.emailContacto" name="emailContacto" [disabled]="miembroFormDatosBloqueados()"></ion-input>
           </ion-item>
           <ion-item lines="none">
             <ion-checkbox [(ngModel)]="miembroForm.puedeRecoger" name="puedeRecoger">Puede recoger</ion-checkbox>
@@ -484,20 +487,20 @@
         <ion-list *ngIf="familiares.length > 0" lines="none" class="family-list">
           <ion-item-sliding *ngFor="let miembro of familiares" class="family-sliding" [class.external-family]="esMiembroExterno(miembro)">
             <ion-item class="data-item swipe-hint" [class.external-member]="esMiembroExterno(miembro)">
-              <button
-                slot="start"
-                class="photo-picker"
-                [class.locked-photo]="esMiembroExterno(miembro)"
-                type="button"
-                [disabled]="esMiembroExterno(miembro)"
-                (click)="seleccionarOrigenFoto(miembro, photoGalleryInput, photoCameraInput)"
-                [attr.aria-label]="esMiembroExterno(miembro) ? 'Fotografia administrada por familia origen' : 'Cambiar fotografia'">
-                <img *ngIf="fotoSrc(miembro.foto)" [src]="fotoSrc(miembro.foto)" alt="Familiar" />
-                <span *ngIf="!fotoSrc(miembro.foto)" class="avatar-fallback">
-                  <ion-icon name="person-outline"></ion-icon>
-                </span>
-                <ion-icon *ngIf="!esMiembroExterno(miembro)" class="photo-edit" name="camera-outline"></ion-icon>
-              </button>
+            <button
+              slot="start"
+              class="photo-picker"
+              [class.locked-photo]="!puedeEditarFotoMiembro(miembro)"
+              type="button"
+              [disabled]="!puedeEditarFotoMiembro(miembro)"
+              (click)="seleccionarOrigenFoto(miembro, photoGalleryInput, photoCameraInput)"
+              [attr.aria-label]="puedeEditarFotoMiembro(miembro) ? 'Cambiar fotografia' : 'Fotografia bloqueada por estado de TAG'">
+              <img *ngIf="fotoSrc(miembro.foto)" [src]="fotoSrc(miembro.foto)" alt="Familiar" />
+              <span *ngIf="!fotoSrc(miembro.foto)" class="avatar-fallback">
+                <ion-icon name="person-outline"></ion-icon>
+              </span>
+              <ion-icon *ngIf="puedeEditarFotoMiembro(miembro)" class="photo-edit" name="camera-outline"></ion-icon>
+            </button>
               <input #photoGalleryInput type="file" accept="image/*" hidden (change)="cargarFotoMiembro(miembro, $event)" />
               <input #photoCameraInput type="file" accept="image/*" capture="environment" hidden (change)="cargarFotoMiembro(miembro, $event)" />
               <ion-label>

@@ -46,9 +46,8 @@ export interface CarruselAlumnoEntrega {
   idmatricula: number;
   alumno: string;
   gradoGrupo?: string | null;
-  foto?: string | null;
-  fotoLoaded?: boolean | null;
-  fotoLoading?: boolean | null;
+  tieneFoto?: boolean | null;
+  fotoSubjectKey?: string | null;
   estatus: 'PENDIENTE' | 'LLAMADO' | 'ENTREGADO' | 'CANCELADO' | string;
   estatusPrevio?: string | null;
   familiarRecoge?: string | null;
@@ -65,6 +64,10 @@ export interface CarruselPaquete {
   isla?: string | null;
   nombreFamilia?: string | null;
   familiarRecoge?: string | null;
+  idfamiliamiembro?: number | null;
+  idusrbtFamiliar?: number | null;
+  familiarTieneFoto?: boolean | null;
+  familiarFotoSubjectKey?: string | null;
   fechaHoraLectura?: string | null;
   idautofamiliar?: number | null;
   placas?: string | null;

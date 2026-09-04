@@ -107,7 +107,10 @@ export class LecturaAutogestionadaPage implements OnDestroy {
   }
 
   get permiteParticipantes(): boolean {
-    return (this.lectura?.siguienteMovimiento ?? 'ENTRADA') === 'ENTRADA' && this.maxParticipantes !== 1;
+    const esContextoFamiliar = Number(this.lectura?.idperfil ?? 0) === 4 || !!this.lectura?.idinvitacion;
+    return esContextoFamiliar
+      && (this.lectura?.siguienteMovimiento ?? 'ENTRADA') === 'ENTRADA'
+      && this.maxParticipantes !== 1;
   }
 
   get puedeRegistrar(): boolean {
@@ -160,14 +163,23 @@ export class LecturaAutogestionadaPage implements OnDestroy {
   async cargarCatalogos(): Promise<void> {
     this.loadingCatalogos = true;
     try {
-      const catalogos = await firstValueFrom(this.service.consultarCatalogos(this.idorg));
+      const dispositivoUid = this.dispositivoUid();
+      const catalogos = await firstValueFrom(this.service.consultarCatalogos(this.idorg, dispositivoUid));
       this.areas = (catalogos.areas ?? []).filter((area) => area.sitactivo !== false);
       this.puntos = (catalogos.puntos ?? []).filter((punto) => punto.sitactivo !== false);
       this.eventos = (catalogos.eventos ?? [])
         .filter((evento) => ['PROGRAMADO', 'ACTIVO'].includes((evento.estatus ?? '').toUpperCase()))
         .sort((a, b) => `${a.fechaEvento ?? ''} ${a.horaProgramada ?? ''}`.localeCompare(`${b.fechaEvento ?? ''} ${b.horaProgramada ?? ''}`));
       this.ideventoacceso = this.ideventoacceso ?? this.eventos[0]?.ideventoacceso ?? null;
-      this.idpuntoautogestion = this.idpuntoautogestion ?? this.puntos[0]?.idpuntoautogestion ?? null;
+      const puntoPropio = this.puntos.find((punto) => {
+        const sesion = punto.sesionAbierta;
+        return sesion?.esDispositivoActual === true || sesion?.dispositivoUid === dispositivoUid;
+      });
+      if (puntoPropio) {
+        this.idpuntoautogestion = puntoPropio.idpuntoautogestion;
+      } else if (!this.puntos.some((punto) => punto.idpuntoautogestion === this.idpuntoautogestion)) {
+        this.idpuntoautogestion = this.puntos[0]?.idpuntoautogestion ?? null;
+      }
       this.aplicarSesionAbiertaDePunto();
     } catch (error: any) {
       await this.showToast(error?.error?.message || error?.message || 'No fue posible consultar eventos.', 'danger');
@@ -366,8 +378,8 @@ export class LecturaAutogestionadaPage implements OnDestroy {
     }
 
     const alert = await this.alertController.create({
-      header: 'Desbloquear configuracion',
-      message: 'Captura el PIN de operador para modificar este punto.',
+      header: 'Liberar punto',
+      message: 'Captura el PIN de operador para cerrar la sesion y liberar este punto.',
       inputs: [
         {
           name: 'pin',
@@ -382,7 +394,7 @@ export class LecturaAutogestionadaPage implements OnDestroy {
       buttons: [
         { text: 'Cancelar', role: 'cancel' },
         {
-          text: 'Desbloquear',
+          text: 'Liberar',
           handler: (data) => {
             void this.cerrarSesion(String(data?.pin ?? ''));
           },
@@ -408,7 +420,7 @@ export class LecturaAutogestionadaPage implements OnDestroy {
       await this.detenerLecturaNfc();
       this.sesion = null;
       this.limpiarLectura();
-      await this.showToast('Configuracion desbloqueada.', 'success');
+      await this.showToast('Punto liberado correctamente.', 'success');
       await this.cargarCatalogos();
     } catch (error: any) {
       await this.showToast(error?.error?.message || error?.message || 'No fue posible cerrar la sesion.', 'danger');
@@ -681,7 +693,10 @@ export class LecturaAutogestionadaPage implements OnDestroy {
   private aplicarSesionAbiertaDePunto(): void {
     const punto = this.puntoSeleccionado;
     const sesion = punto?.sesionAbierta ?? null;
-    if (!sesion?.idsesionautogestion) {
+    const esSesionPropia = sesion?.esDispositivoActual === true
+      || sesion?.dispositivoUid === this.dispositivoUid();
+    if (!sesion?.idsesionautogestion || !esSesionPropia) {
+      this.sesion = null;
       return;
     }
 
@@ -711,6 +726,8 @@ export class LecturaAutogestionadaPage implements OnDestroy {
         idareavisita: null,
         ingresoAutomatico: true,
         emitirAudio: true,
+        dispositivoUid: this.dispositivoUid(),
+        nombreDispositivo: this.nombreDispositivo(),
       }));
       this.sesion = sesion;
       this.idareavisita = null;
@@ -724,6 +741,25 @@ export class LecturaAutogestionadaPage implements OnDestroy {
     } catch (error: any) {
       await this.showToast(error?.error?.message || error?.message || 'No fue posible abrir la sesion.', 'danger');
     }
+  }
+
+  private dispositivoUid(): string {
+    const key = 'seclife.control-accesos.device.uid';
+    const legacyKeys = ['seclife.carrusel.device.uid', 'seclife.lectura-asistida.device.uid'];
+    let uid = localStorage.getItem(key);
+    if (!uid) {
+      uid = legacyKeys.map((legacyKey) => localStorage.getItem(legacyKey)).find((value) => !!value) ?? null;
+    }
+    if (!uid) {
+      uid = crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+    }
+    localStorage.setItem(key, uid);
+    legacyKeys.forEach((legacyKey) => localStorage.setItem(legacyKey, uid));
+    return uid;
+  }
+
+  private nombreDispositivo(): string {
+    return this.authService.getDisplayName() || 'Dispositivo de autogestion';
   }
 
   private async resolverAsistencia(): Promise<void> {
@@ -780,6 +816,11 @@ export class LecturaAutogestionadaPage implements OnDestroy {
         idareavisita: this.idareavisita,
         idmedioIdentificacion: this.idmedioIdentificacionActual,
       }));
+      if (registro.duplicado) {
+        await this.showToast(`Lectura ya registrada. Espera ${registro.segundosRestantes ?? registro.ventanaAntiduplicadoSeg ?? 60} segundo(s).`, 'warning');
+        this.limpiarLectura();
+        return;
+      }
       await this.emitirConfirmacionLectura();
       void this.hablar(registro.tipoMovimiento === 'SALIDA' ? 'Gracias por su asistencia.' : 'Bienvenido al colegio.');
       await this.showToast(

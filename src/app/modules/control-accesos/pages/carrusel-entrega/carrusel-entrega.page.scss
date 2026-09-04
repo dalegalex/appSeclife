@@ -124,6 +124,13 @@ p {
   gap: 8px;
 }
 
+.collector-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+}
+
 .photo-trigger {
   display: grid;
   place-items: center;
@@ -133,24 +140,22 @@ p {
   padding: 0;
   border: 0;
   border-radius: 50%;
-  overflow: hidden;
-  background: rgba(var(--ion-color-primary-rgb), 0.12);
-  color: var(--ion-color-primary);
+  background: rgba(var(--ion-color-medium-rgb), 0.12);
+  color: var(--ion-color-medium);
+}
+
+.photo-trigger.has-photo {
+  background: rgba(var(--ion-color-success-rgb), 0.12);
+  color: var(--ion-color-success);
+  cursor: pointer;
+}
+
+.photo-trigger:disabled {
+  opacity: 1;
 }
 
 .photo-trigger ion-icon {
   font-size: 25px;
-}
-
-.photo-trigger ion-spinner {
-  width: 19px;
-  height: 19px;
-}
-
-.photo-trigger img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 
 .loading-state,
@@ -164,4 +169,37 @@ p {
   background: rgba(var(--ion-color-primary-rgb), 0.1);
   color: var(--ion-color-primary-shade);
   text-align: center;
+}
+
+.person-photo-modal {
+  --border-radius: 8px;
+  --height: min(82vh, 680px);
+  --width: min(92vw, 520px);
+}
+
+.person-photo-content {
+  --background: var(--ion-color-light);
+}
+
+.person-photo-state {
+  display: flex;
+  min-height: 100%;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+}
+
+.person-photo-state img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: calc(82vh - 96px);
+  object-fit: contain;
+}
+
+.person-photo-state > ion-icon {
+  color: var(--ion-color-medium);
+  font-size: 48px;
 }

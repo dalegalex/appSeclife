@@ -240,7 +240,9 @@
               <ion-icon name="mail-unread-outline"></ion-icon>
               <h3>Confirmación OTP</h3>
               <p>{{ otp.destino }} · vence {{ formatDate(otp.fechaExpiracion) }}</p>
-              @if (otp.codigoPrueba) { <ion-note color="warning">Código de prueba: {{ otp.codigoPrueba }}</ion-note> }
+              @if (mostrarOtpPrueba && otp.codigoPrueba) {
+                <ion-note color="warning">Código de prueba: {{ otp.codigoPrueba }}</ion-note>
+              }
               <ion-input label="Código de seis dígitos" labelPlacement="stacked" inputmode="numeric" maxlength="6" [(ngModel)]="otpCode"></ion-input>
               <ion-button expand="block" [disabled]="confirmingOtp || otpCode.length !== 6" (click)="confirmOtp()">
                 @if (confirmingOtp) { <ion-spinner name="crescent"></ion-spinner> } @else { Confirmar firma }

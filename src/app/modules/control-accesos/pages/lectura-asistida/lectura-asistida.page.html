@@ -29,7 +29,7 @@
       <ion-button fill="clear" [disabled]="sentido === 'ENTRADA'" [class.active]="modoAviso" [class.aviso-active]="modoAviso" (click)="toggleModoAviso()">
         <ion-icon slot="icon-only" name="megaphone-outline"></ion-icon>
       </ion-button>
-      <ion-button fill="clear" [class.active]="nfcActivo" (click)="activarNfc()">
+      <ion-button fill="clear" [class.active]="nfcActivo" (click)="activarNfc()" [disabled]="loading || saving || qrActivo" aria-label="Activar o desactivar NFC">
         <ion-icon slot="icon-only" name="radio-outline"></ion-icon>
       </ion-button>
       <ion-button fill="clear" [class.active]="qrActivo" (click)="activarQr()">
@@ -39,6 +39,11 @@
         <ion-spinner *ngIf="cargandoUnidades" name="crescent"></ion-spinner>
         <ion-icon *ngIf="!cargandoUnidades" slot="icon-only" name="school-outline"></ion-icon>
       </ion-button>
+      @if (puedeIdentificarManualmente) {
+        <ion-button fill="clear" (click)="abrirBusquedaManual()" aria-label="Buscar persona">
+          <ion-icon slot="icon-only" name="search-outline"></ion-icon>
+        </ion-button>
+      }
     </div>
 
     <div class="ua-filter-summary" [class.active]="unidadesFiltroActivo">
@@ -66,6 +71,16 @@
         </div>
       </ion-card-content>
     </ion-card>
+
+    @if (identificacionManual && identidadManualSeleccionada) {
+      <div class="manual-identification-banner">
+        <ion-icon name="person-circle-outline"></ion-icon>
+        <div>
+          <strong>Identificacion manual</strong><br />
+          <span>{{ identidadManualSeleccionada.nombreCompleto }}</span>
+        </div>
+      </div>
+    }
 
 
     <ion-card class="reader-card">
@@ -188,6 +203,10 @@
               <ion-chip [color]="alumnoRelacionColor(alumno)">
                 <ion-label>{{ alumnoRelacionLabel(alumno) }}</ion-label>
               </ion-chip>
+              <ion-chip *ngIf="lectura.tipoLectura === 'ALUMNO' && sentido === 'SALIDA'"
+                [color]="alumno.salidaAutonomaAutorizada ? 'success' : 'danger'">
+                <ion-label>{{ alumno.salidaAutonomaAutorizada ? 'Salida autónoma' : 'Requiere entrega a familiar' }}</ion-label>
+              </ion-chip>
             </div>
             <p *ngIf="alumno.ultimaLectura">
               Ultima lectura: {{ alumno.ultimaLectura.sentido }} {{ alumno.ultimaLectura.fechaHoraEvento | date:'HH:mm' }}
@@ -218,6 +237,86 @@
     </section>
   </section>
 </ion-content>
+
+<ion-modal [isOpen]="modalBusquedaAbierto" [backdropDismiss]="!buscandoIdentidad && !loading" (didDismiss)="cerrarBusquedaManual()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Identificar persona</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="cerrarBusquedaManual()" [disabled]="buscandoIdentidad || loading" aria-label="Cerrar">
+            <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <section class="identity-search-shell">
+        <ion-segment [value]="tipoBusquedaIdentidad" (ionChange)="cambiarTipoBusquedaIdentidad($any($event.detail.value))">
+          <ion-segment-button value="ALUMNO">
+            <ion-icon name="school-outline"></ion-icon>
+            <ion-label>Alumno</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="FAMILIAR">
+            <ion-icon name="people-outline"></ion-icon>
+            <ion-label>Familiar</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="PERSONAL">
+            <ion-icon name="briefcase-outline"></ion-icon>
+            <ion-label>Personal</ion-label>
+          </ion-segment-button>
+        </ion-segment>
+
+        <ion-item lines="none" class="identity-search-input">
+          <ion-input
+            [label]="tipoBusquedaIdentidad === 'FAMILIAR' ? 'Nombre, apellidos o familia' : 'Nombre o referencia'"
+            labelPlacement="stacked"
+            [(ngModel)]="textoBusquedaIdentidad"
+            [placeholder]="tipoBusquedaIdentidad === 'FAMILIAR' ? 'Buscar familiar o familia nucleo' : 'Minimo 3 caracteres'"
+            (keyup.enter)="buscarIdentidades()"
+          ></ion-input>
+          <ion-button slot="end" fill="clear" (click)="buscarIdentidades()" [disabled]="buscandoIdentidad || textoBusquedaIdentidad.trim().length < 3">
+            @if (buscandoIdentidad) {
+              <ion-spinner name="crescent"></ion-spinner>
+            } @else {
+              <ion-icon slot="icon-only" name="search-outline"></ion-icon>
+            }
+          </ion-button>
+        </ion-item>
+
+        <div class="identity-results">
+          @for (identidad of resultadosIdentidad; track identidad.idmatricula || identidad.idusrbt) {
+            <ion-card class="identity-card identity-result" [class.unavailable]="!identidad.credencialDisponible">
+              <ion-card-content>
+                @if (fotoSrc(identidad.foto)) {
+                  <img [src]="fotoSrc(identidad.foto)" alt="Persona" />
+                } @else {
+                  <div class="avatar-fallback"><ion-icon name="person-outline"></ion-icon></div>
+                }
+                <div class="identity-result-data">
+                  <span class="eyebrow">{{ identidad.tipoPortador }}</span>
+                  <h2>{{ identidad.nombreCompleto }}</h2>
+                  @if (identidad.familia) { <p>Familia: {{ identidad.familia }}</p> }
+                  @if (identidad.referencia) { <p>{{ identidad.referencia }}</p> }
+                  @if (!identidad.credencialDisponible) {
+                    <ion-note color="danger">{{ identidad.motivoNoDisponible || 'Identidad no disponible' }}</ion-note>
+                  }
+                </div>
+                <ion-button fill="clear" (click)="seleccionarIdentidad(identidad)" [disabled]="loading || !identidad.credencialDisponible" aria-label="Seleccionar persona">
+                  <ion-icon slot="icon-only" name="checkmark-circle-outline"></ion-icon>
+                </ion-button>
+              </ion-card-content>
+            </ion-card>
+          } @empty {
+            @if (!buscandoIdentidad && textoBusquedaIdentidad.trim().length >= 3) {
+              <div class="empty-state">No hay coincidencias para mostrar.</div>
+            }
+          }
+        </div>
+      </section>
+    </ion-content>
+  </ng-template>
+</ion-modal>
 
 <ion-footer *ngIf="lectura">
   <ion-toolbar>

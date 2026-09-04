@@ -20,6 +20,11 @@ export class CarruselEntregaPage implements OnDestroy {
   saving = false;
   ultimoRefrescoCola: Date | null = null;
   ultimoErrorCola: string | null = null;
+  fotoModalAbierto = false;
+  fotoModalLoading = false;
+  fotoModalNombre = '';
+  fotoModalUrl: string | null = null;
+  fotoModalError: string | null = null;
   private subscriptions = new Subscription();
   private refrescoSesionTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -192,41 +197,41 @@ export class CarruselEntregaPage implements OnDestroy {
     return match?.[0] ?? '-';
   }
 
-  imageSrc(foto?: string | null): string | null {
-    if (!foto) {
-      return null;
-    }
-
-    return foto.startsWith('data:image') ? foto : `data:image/jpeg;base64,${foto}`;
-  }
-
-  async cargarFotoAlumno(alumno: CarruselAlumnoEntrega): Promise<void> {
-    if (alumno.fotoLoaded && !alumno.foto) {
-      await this.showToast('El alumno no cuenta con fotografia.', 'medium');
+  async mostrarFoto(subjectKey?: string | null, nombre?: string | null): Promise<void> {
+    if (!subjectKey) {
       return;
     }
 
-    if (alumno.fotoLoaded || alumno.fotoLoading) {
-      return;
-    }
-
-    alumno.fotoLoading = true;
+    this.fotoModalAbierto = true;
+    this.fotoModalLoading = true;
+    this.fotoModalNombre = nombre?.trim() || 'Persona';
+    this.fotoModalUrl = null;
+    this.fotoModalError = null;
     this.cdRef.detectChanges();
 
     try {
-      const result = await firstValueFrom(this.carruselService.consultarFotoAlumno(alumno.idmatricula, this.idorg));
-      alumno.foto = result.foto ?? null;
-      alumno.fotoLoaded = true;
-
-      if (!alumno.foto) {
-        await this.showToast('El alumno no cuenta con fotografia.', 'medium');
+      const foto = await firstValueFrom(this.carruselService.consultarFotoCredencial(subjectKey, this.idorg));
+      const source = foto?.fotoUrl?.trim();
+      if (!source) {
+        throw new Error('La fotografia ya no se encuentra disponible.');
       }
+      this.fotoModalUrl = /^data:image\//i.test(source)
+        ? source
+        : `data:${foto?.fotoContentType || 'image/jpeg'};base64,${source}`;
     } catch (error: any) {
-      await this.showToast(error?.error?.message || error?.message || 'No fue posible cargar la fotografia.', 'danger');
+      this.fotoModalError = error?.error?.message || error?.message || 'No fue posible cargar la fotografia.';
     } finally {
-      alumno.fotoLoading = false;
+      this.fotoModalLoading = false;
       this.cdRef.detectChanges();
     }
+  }
+
+  cerrarFotoModal(): void {
+    this.fotoModalAbierto = false;
+    this.fotoModalLoading = false;
+    this.fotoModalNombre = '';
+    this.fotoModalUrl = null;
+    this.fotoModalError = null;
   }
 
   ngOnDestroy(): void {
