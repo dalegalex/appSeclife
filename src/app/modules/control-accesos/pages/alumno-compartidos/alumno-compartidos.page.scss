@@ -1,0 +1,125 @@
+.shared-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px;
+}
+
+.student-context {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-left: 4px solid var(--ion-color-primary);
+  background: rgba(var(--ion-color-primary-rgb), 0.08);
+}
+
+.student-context > ion-icon {
+  color: var(--ion-color-primary);
+  font-size: 30px;
+}
+
+.student-context h1,
+.family-group h2,
+.section-heading h2,
+.student-context p,
+.family-group p {
+  margin: 0;
+}
+
+.student-context h1 {
+  font-size: 1.08rem;
+  font-weight: 800;
+}
+
+.student-context p,
+.family-group p {
+  color: var(--ion-color-medium);
+  font-size: 0.82rem;
+}
+
+.eyebrow {
+  display: block;
+  color: var(--ion-color-medium);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.section-heading,
+.family-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.section-heading h2,
+.family-group h2 {
+  font-size: 0.98rem;
+  font-weight: 800;
+}
+
+.family-group {
+  overflow: hidden;
+  border: 1px solid rgba(var(--ion-color-medium-rgb), 0.24);
+  border-radius: 8px;
+  background: var(--ion-background-color);
+}
+
+.family-group-header {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(var(--ion-color-medium-rgb), 0.18);
+}
+
+.family-group-header ion-button {
+  flex: 0 0 auto;
+  min-height: 36px;
+  margin: 0;
+}
+
+.family-group ion-list {
+  padding: 0;
+}
+
+.family-group ion-item {
+  --padding-start: 12px;
+  --inner-padding-end: 6px;
+}
+
+.family-group ion-item h3 {
+  font-size: 0.94rem;
+  font-weight: 700;
+}
+
+.family-group ion-item p {
+  font-size: 0.78rem;
+}
+
+.loading-state,
+.empty-state {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 140px;
+  padding: 18px;
+  text-align: center;
+  color: var(--ion-color-medium);
+}
+
+.empty-state ion-icon {
+  font-size: 34px;
+}
+
+@media (max-width: 420px) {
+  .family-group-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .family-group-header ion-button {
+    width: 100%;
+  }
+}

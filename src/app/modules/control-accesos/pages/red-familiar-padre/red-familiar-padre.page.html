@@ -326,28 +326,24 @@
                     <ion-label>{{ alumno.puedeRecoger ? 'Entrega activa' : 'Sin entrega' }}</ion-label>
                   </ion-chip>
                 </div>
-                <div *ngIf="compartidosAlumno(alumno).length > 0" class="shared-with-list">
-                  <span class="eyebrow">Compartido con</span>
-                  <article *ngFor="let compartido of compartidosAlumno(alumno)" class="shared-with-item">
-                    <div>
-                      <strong>{{ compartido.familiaDestino || 'Familia destino' }}</strong>
-                      <p>
-                        {{ compartido.familiarDestino || 'Familiar autorizado' }}
-                        <span>- {{ compartidoLabel(compartido) }}</span>
-                      </p>
-                    </div>
-                    <ion-button fill="clear" color="danger" size="small" (click)="revocarCompartido(alumno, compartido)">
-                      <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
-                    </ion-button>
-                  </article>
-                </div>
+                @if (esAlumnoNucleo(alumno) && compartidosAlumno(alumno).length > 0) {
+                  <ion-button
+                    class="shared-summary-button"
+                    fill="outline"
+                    size="small"
+                    [routerLink]="['/control-accesos/red-familiar/alumnos', alumno.idmatricula, 'compartidos']">
+                    <ion-icon slot="start" name="people-outline"></ion-icon>
+                    {{ resumenCompartido(alumno) }}
+                    <ion-icon slot="end" name="chevron-forward-outline"></ion-icon>
+                  </ion-button>
+                }
               </ion-label>
             </ion-item>
 
             <ion-item-options side="end">
               <ion-item-option color="danger" *ngIf="puedeCompartirAlumno(alumno)" (click)="eliminarAlumno(alumno)">
                 <ion-icon slot="top" name="trash-outline"></ion-icon>
-                Eliminar
+                Quitar de mi familia
               </ion-item-option>
               <ion-item-option color="danger" *ngIf="esAlumnoCompartidoExterno(alumno)" (click)="retirarAlumnoCompartido(alumno)">
                 <ion-icon slot="top" name="remove-circle-outline"></ion-icon>

@@ -13,6 +13,7 @@ import { VisitantesProveedoresGuardiaPage } from './pages/visitantes-proveedores
 import { EventosFamiliaresPage } from './pages/eventos-familiares/eventos-familiares.page';
 import { EventosSocialesFamiliaresPage } from './pages/eventos-sociales-familiares/eventos-sociales-familiares.page';
 import { EnrolamientoCredencialesPage } from './pages/enrolamiento-credenciales/enrolamiento-credenciales.page';
+import { AlumnoCompartidosPage } from './pages/alumno-compartidos/alumno-compartidos.page';
 
 const routes: Routes = [
   {
@@ -37,6 +38,12 @@ const routes: Routes = [
     canActivate: [AuthProfileGuard],
     data: { profiles: [1, 2, 3] },
     component: LecturaAutogestionadaPage,
+  },
+  {
+    path: 'red-familiar/alumnos/:idmatricula/compartidos',
+    canActivate: [AuthProfileGuard],
+    data: { profiles: [4] },
+    component: AlumnoCompartidosPage,
   },
   {
     path: 'red-familiar',

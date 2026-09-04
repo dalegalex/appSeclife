@@ -89,6 +89,12 @@ export class RedFamiliarPadrePage implements OnInit {
     this.cargar();
   }
 
+  ionViewWillEnter(): void {
+    if (this.rows.length > 0) {
+      this.cargar();
+    }
+  }
+
   get idorg(): number {
     return this.authService.getCurrentUser()?.idorg ?? 0;
   }
@@ -695,7 +701,10 @@ export class RedFamiliarPadrePage implements OnInit {
   }
 
   async eliminarAlumno(alumno: AlumnoFamiliar): Promise<void> {
-    const confirmed = await this.confirmar('Eliminar alumno', `Se quitara a ${alumno.alumno} de la red familiar.`);
+    const confirmed = await this.confirmar(
+      'Quitar de mi familia',
+      `Esta accion quitara a ${alumno.alumno} de tu familia nucleo. Para cancelar permisos de otras familias utiliza el boton Compartido.`
+    );
 
     if (!confirmed) {
       return;
@@ -827,28 +836,19 @@ export class RedFamiliarPadrePage implements OnInit {
     return alumno.compartidos ?? [];
   }
 
-  compartidoLabel(compartido: AlumnoCompartido): string {
-    return this.esTipoCompartido(compartido, 'PERMANENTE') ? 'Permanente' : 'Provisional';
+  resumenCompartido(alumno: AlumnoFamiliar): string {
+    const compartidos = this.compartidosAlumno(alumno);
+    const familias = new Set(
+      compartidos.map((item) => item.idfamiliaDestino ?? item.familiaDestino ?? item.idalumnoautorizacion)
+    ).size;
+    const familiaLabel = familias === 1 ? 'familia' : 'familias';
+    const personaLabel = compartidos.length === 1 ? 'persona' : 'personas';
+
+    return `Compartido con ${familias} ${familiaLabel} - ${compartidos.length} ${personaLabel}`;
   }
 
-  async revocarCompartido(alumno: AlumnoFamiliar, compartido: AlumnoCompartido): Promise<void> {
-    const destino = compartido.familiaDestino || compartido.familiarDestino || 'esta familia';
-    const confirmed = await this.confirmar(
-      'Revocar autorizacion',
-      `Se quitara a ${alumno.alumno} de ${destino}.`
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    this.redFamiliarService.cambiarEstadoAlumno(compartido.idalumnoautorizacion, this.idorg, false).subscribe({
-      next: async () => {
-        this.removeAlumnoCompartidoLocal(compartido.idalumnoautorizacion);
-        await this.showToast('Autorizacion revocada correctamente.', 'success');
-      },
-      error: async (error) => this.showToast(this.errorMessage(error, 'No fue posible revocar la autorizacion.'), 'danger'),
-    });
+  compartidoLabel(compartido: AlumnoCompartido): string {
+    return this.esTipoCompartido(compartido, 'PERMANENTE') ? 'Permanente' : 'Provisional';
   }
 
   generarCodigo(): void {

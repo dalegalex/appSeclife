@@ -1,0 +1,123 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/control-accesos/red-familiar" text=""></ion-back-button>
+    </ion-buttons>
+    <ion-title>Personas autorizadas</ion-title>
+    <ion-buttons slot="end">
+      <ion-button fill="clear" (click)="cargar()" [disabled]="loading">
+        <ion-icon slot="icon-only" name="refresh-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="cargar($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <main class="shared-shell">
+    @if (loading) {
+      <div class="loading-state">
+        <ion-spinner name="crescent"></ion-spinner>
+        <span>Cargando autorizaciones...</span>
+      </div>
+    } @else if (!alumno) {
+      <div class="empty-state">
+        <ion-icon name="alert-circle-outline"></ion-icon>
+        <p>No fue posible localizar al alumno en tu red familiar.</p>
+        <ion-button fill="outline" (click)="volver()">Regresar</ion-button>
+      </div>
+    } @else {
+      <section class="student-context">
+        <ion-icon name="school-outline"></ion-icon>
+        <div>
+          <span class="eyebrow">Alumno seleccionado</span>
+          <h1>{{ alumno.alumno }}</h1>
+          <p>
+            {{ alumno.matricula || 'Sin matricula' }}
+            @if (alumno.gradoGrupo) {
+              <span>- {{ alumno.gradoGrupo }}</span>
+            }
+          </p>
+        </div>
+      </section>
+
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">Compartido con</span>
+          <h2>{{ grupos.length }} {{ grupos.length === 1 ? 'familia' : 'familias' }}</h2>
+        </div>
+        <ion-badge color="primary">{{ alumno.compartidos?.length || 0 }} personas</ion-badge>
+      </div>
+
+      @if (grupos.length === 0) {
+        <div class="empty-state">
+          <ion-icon name="people-outline"></ion-icon>
+          <p>Este alumno no tiene permisos compartidos activos.</p>
+        </div>
+      } @else {
+        @for (grupo of grupos; track grupo.key) {
+          <section class="family-group">
+            <header class="family-group-header">
+              <div>
+                <span class="eyebrow">Familia receptora</span>
+                <h2>{{ grupo.familiaDestino }}</h2>
+                <p>
+                  {{ grupo.integrantes.length }}
+                  {{ grupo.integrantes.length === 1 ? 'persona autorizada' : 'personas autorizadas' }}
+                </p>
+              </div>
+              @if (puedeAdministrar && grupo.idfamiliaDestino) {
+                <ion-button
+                  fill="outline"
+                  color="danger"
+                  size="small"
+                  [disabled]="revocandoFamilias.has(grupo.idfamiliaDestino)"
+                  (click)="revocarFamilia(grupo)">
+                  @if (revocandoFamilias.has(grupo.idfamiliaDestino)) {
+                    <ion-spinner name="crescent"></ion-spinner>
+                  } @else {
+                    <ion-icon slot="start" name="people-outline"></ion-icon>
+                  }
+                  Revocar familia
+                </ion-button>
+              }
+            </header>
+
+            <ion-list lines="full">
+              @for (integrante of grupo.integrantes; track integrante.idalumnoautorizacion) {
+                <ion-item>
+                  <ion-icon slot="start" name="person-outline"></ion-icon>
+                  <ion-label>
+                    <h3>{{ integrante.familiarDestino || 'Familiar autorizado' }}</h3>
+                    <p>{{ permisoLabel(integrante) }}</p>
+                    @if (integrante.fechaFin) {
+                      <p>Vigente hasta {{ integrante.fechaFin | date:'dd-MMM-yyyy' }}</p>
+                    }
+                  </ion-label>
+                  @if (puedeAdministrar) {
+                    <ion-button
+                      slot="end"
+                      fill="clear"
+                      color="danger"
+                      [disabled]="revocando.has(integrante.idalumnoautorizacion)"
+                      (click)="revocarPersona(integrante)"
+                      aria-label="Revocar autorizacion individual">
+                      @if (revocando.has(integrante.idalumnoautorizacion)) {
+                        <ion-spinner name="crescent"></ion-spinner>
+                      } @else {
+                        <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+                      }
+                    </ion-button>
+                  }
+                </ion-item>
+              }
+            </ion-list>
+          </section>
+        }
+      }
+    }
+  </main>
+</ion-content>

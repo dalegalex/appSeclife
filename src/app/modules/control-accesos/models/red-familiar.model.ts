@@ -267,4 +267,12 @@ export interface RetirarAlumnoCompartidoResponse {
   autorizacionesRevocadas: number;
 }
 
+export interface RevocarAlumnoCompartidoFamiliaResponse {
+  idorg: number;
+  idfamiliaOrigen: number;
+  idfamiliaDestino: number;
+  idmatricula: number;
+  autorizacionesRevocadas: number;
+}
+
 export type ModoCompartirAlumno = 'PROVISIONAL' | 'PERMANENTE';

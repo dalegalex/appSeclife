@@ -203,12 +203,12 @@ ion-chip {
 .student-sliding-delete {
   border-radius: 8px;
   overflow: hidden;
-  border-left: 4px solid var(--ion-color-danger);
+  border-left: 0;
 }
 
 .family-sliding ion-item-option,
 .student-sliding-delete ion-item-option {
-  min-width: 78px;
+  min-width: 112px;
   font-size: 12px;
 }
 .inline-form {
@@ -408,29 +408,18 @@ ion-chip {
   color: var(--ion-color-medium);
 }
 
-.shared-with-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 8px;
+.shared-summary-button {
+  width: 100%;
+  min-height: 38px;
+  margin: 8px 0 0;
+  white-space: normal;
 }
 
-.shared-with-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 8px;
-  border-radius: 8px;
-  background: rgba(var(--ion-color-primary-rgb), 0.08);
+.shared-summary-button::part(native) {
+  justify-content: flex-start;
+  padding-inline: 10px;
 }
 
-.shared-with-item strong {
-  display: block;
-  font-size: 0.86rem;
-}
-
-.shared-with-item p {
-  color: var(--ion-color-medium);
-  font-size: 0.78rem;
+.shared-summary-button ion-icon[slot='end'] {
+  margin-left: auto;
 }

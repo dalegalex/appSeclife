@@ -15,6 +15,7 @@ import { VisitantesProveedoresGuardiaPage } from './pages/visitantes-proveedores
 import { EventosFamiliaresPage } from './pages/eventos-familiares/eventos-familiares.page';
 import { EventosSocialesFamiliaresPage } from './pages/eventos-sociales-familiares/eventos-sociales-familiares.page';
 import { EnrolamientoCredencialesPage } from './pages/enrolamiento-credenciales/enrolamiento-credenciales.page';
+import { AlumnoCompartidosPage } from './pages/alumno-compartidos/alumno-compartidos.page';
 
 @NgModule({
   imports: [
@@ -36,6 +37,7 @@ import { EnrolamientoCredencialesPage } from './pages/enrolamiento-credenciales/
     EventosFamiliaresPage,
     EventosSocialesFamiliaresPage,
     EnrolamientoCredencialesPage,
+    AlumnoCompartidosPage,
   ],
 })
 export class ControlAccesosModule {}
