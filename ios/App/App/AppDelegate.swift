@@ -1,14 +1,86 @@
 import UIKit
 import Capacitor
+import FirebaseCore
+import FirebaseMessaging
 
 @UIApplicationMain
-class AppDelegate: UIResponder, UIApplicationDelegate {
+class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
 
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        if Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil {
+            FirebaseApp.configure()
+            Messaging.messaging().delegate = self
+        } else {
+            print("[Push] Falta GoogleService-Info.plist; FCM permanecera deshabilitado.")
+        }
+
         return true
+    }
+
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        guard FirebaseApp.app() != nil else {
+            publishPushRegistrationError("Firebase no esta configurado. Agrega GoogleService-Info.plist al target App.")
+            return
+        }
+
+        Messaging.messaging().apnsToken = deviceToken
+        Messaging.messaging().token { [weak self] token, error in
+            if let error {
+                self?.publishPushRegistrationError("No fue posible obtener el token FCM: \(error.localizedDescription)")
+                return
+            }
+
+            guard let token, !token.isEmpty else {
+                self?.publishPushRegistrationError("Firebase devolvio un token FCM vacio.")
+                return
+            }
+
+            self?.publishFcmToken(token)
+        }
+    }
+
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(
+                name: .capacitorDidFailToRegisterForRemoteNotifications,
+                object: error
+            )
+        }
+    }
+
+    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+        guard let fcmToken, !fcmToken.isEmpty else {
+            return
+        }
+
+        publishFcmToken(fcmToken)
+    }
+
+    private func publishFcmToken(_ token: String) {
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(
+                name: .capacitorDidRegisterForRemoteNotifications,
+                object: token
+            )
+            print("[Push] Token FCM disponible (\(token.prefix(12)))...")
+        }
+    }
+
+    private func publishPushRegistrationError(_ message: String) {
+        let error = NSError(
+            domain: "mx.com.seclife.schoolmaster.push",
+            code: 1,
+            userInfo: [NSLocalizedDescriptionKey: message]
+        )
+
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(
+                name: .capacitorDidFailToRegisterForRemoteNotifications,
+                object: error
+            )
+        }
     }
 
     func applicationWillResignActive(_ application: UIApplication) {
