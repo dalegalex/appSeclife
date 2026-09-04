@@ -260,11 +260,12 @@ export class RedFamiliarService {
   retirarAlumnoCompartido(
     idmatricula: number,
     idorg: number,
-    idfamilia: number
+    idfamilia: number,
+    idfamiliamiembroDestino: number
   ): Observable<RetirarAlumnoCompartidoResponse> {
     return this.http.put<SpResponse<RetirarAlumnoCompartidoResponse>>(
       `${this.baseUrl}/red-familiar/alumnos-compartidos/${idmatricula}/retirar`,
-      { idorg, idfamilia }
+      { idorg, idfamilia, idfamiliamiembroDestino }
     ).pipe(
       map((response) => {
         this.assertSuccess(response);

@@ -712,9 +712,15 @@ export class RedFamiliarPadrePage implements OnInit {
 
   async retirarAlumnoCompartido(alumno: AlumnoFamiliar): Promise<void> {
     const idfamilia = this.idfamilia;
+    const idfamiliamiembroDestino = this.authService.getCurrentUser()?.idfamiliamiembro ?? null;
 
     if (!idfamilia) {
       await this.showToast('No fue posible resolver la familia destino.', 'danger');
+      return;
+    }
+
+    if (!idfamiliamiembroDestino || idfamiliamiembroDestino <= 0) {
+      await this.showToast('No fue posible identificar tu membresia en la familia destino.', 'danger');
       return;
     }
 
@@ -727,7 +733,12 @@ export class RedFamiliarPadrePage implements OnInit {
       return;
     }
 
-    this.redFamiliarService.retirarAlumnoCompartido(alumno.idmatricula, this.idorg, idfamilia).subscribe({
+    this.redFamiliarService.retirarAlumnoCompartido(
+      alumno.idmatricula,
+      this.idorg,
+      idfamilia,
+      idfamiliamiembroDestino
+    ).subscribe({
       next: async (resultado) => {
         this.loading = true;
         this.recargarRed({
