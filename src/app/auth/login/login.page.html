@@ -9,6 +9,19 @@
     </section>
 
     <section class="login-panel">
+      @if (biometricCapability().configured) {
+        <ion-button
+          expand="block"
+          class="biometric-login-button"
+          (click)="signInWithBiometric()"
+          [disabled]="loading"
+        >
+          <ion-icon slot="start" name="finger-print-outline"></ion-icon>
+          Ingresar con {{ biometricCapability().label }}
+        </ion-button>
+        <div class="access-divider"><span>o utiliza otro metodo</span></div>
+      }
+
       <ion-segment [value]="mode" (ionChange)="setMode($event.detail.value === 'register' ? 'register' : ($event.detail.value === 'local' ? 'local' : 'login'))">
         <ion-segment-button value="login">
           <ion-label>Google</ion-label>
@@ -41,7 +54,7 @@
         <ion-item lines="none" class="form-field">
           <ion-label position="stacked">Correo</ion-label>
           <ion-input
-            [(ngModel)]="localLoginEmail"
+            [formControl]="controls.localLoginEmail"
             inputmode="email"
             type="email"
             autocomplete="email"
@@ -62,7 +75,7 @@
           <ion-item lines="none" class="form-field">
             <ion-label position="stacked">Codigo de verificacion</ion-label>
             <ion-input
-              [(ngModel)]="localLoginCode"
+              [formControl]="controls.localLoginCode"
               inputmode="numeric"
               maxlength="6"
               [disabled]="loading"
@@ -80,7 +93,7 @@
         <ion-item lines="none" class="form-field">
           <ion-label position="stacked">Codigo de registro</ion-label>
           <ion-input
-            [(ngModel)]="codereg"
+            [formControl]="controls.codereg"
             inputmode="text"
             maxlength="30"
             autocapitalize="characters"
@@ -104,7 +117,7 @@
               <ion-item lines="none" class="form-field">
                 <ion-label position="stacked">Nombre</ion-label>
                 <ion-input
-                  [(ngModel)]="registrationName"
+                  [formControl]="controls.registrationName"
                   autocapitalize="characters"
                   [disabled]="loading"
                   (ionInput)="normalizeUpperField('registrationName'); scheduleGoogleButtonRender()"
@@ -114,7 +127,7 @@
               <ion-item lines="none" class="form-field">
                 <ion-label position="stacked">Apellidos</ion-label>
                 <ion-input
-                  [(ngModel)]="registrationLastName"
+                  [formControl]="controls.registrationLastName"
                   autocapitalize="characters"
                   [disabled]="loading"
                   (ionInput)="normalizeUpperField('registrationLastName'); scheduleGoogleButtonRender()"
@@ -126,7 +139,7 @@
               <ion-item lines="none" class="form-field">
                 <ion-label position="stacked">Nombre de familia</ion-label>
                 <ion-input
-                  [(ngModel)]="registrationFamilyName"
+                  [formControl]="controls.registrationFamilyName"
                   autocapitalize="characters"
                   [disabled]="loading"
                   (ionInput)="normalizeUpperField('registrationFamilyName'); scheduleGoogleButtonRender()"
@@ -138,7 +151,7 @@
               <ion-item lines="none" class="form-field">
                 <ion-label position="stacked">Celular</ion-label>
                 <ion-input
-                  [(ngModel)]="registrationPhone"
+                  [formControl]="controls.registrationPhone"
                   inputmode="tel"
                   [disabled]="loading"
                   (ionInput)="scheduleGoogleButtonRender()"
@@ -165,7 +178,7 @@
               <ion-item lines="none" class="form-field">
                 <ion-label position="stacked">Correo personal</ion-label>
                 <ion-input
-                  [(ngModel)]="localRegisterEmail"
+                  [formControl]="controls.localRegisterEmail"
                   inputmode="email"
                   type="email"
                   autocomplete="email"
@@ -186,7 +199,7 @@
                 <ion-item lines="none" class="form-field">
                   <ion-label position="stacked">Codigo de verificacion</ion-label>
                   <ion-input
-                    [(ngModel)]="localRegisterCode"
+                    [formControl]="controls.localRegisterCode"
                     inputmode="numeric"
                     maxlength="6"
                     [disabled]="loading"

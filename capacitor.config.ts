@@ -4,6 +4,7 @@ const config: CapacitorConfig = {
   appId: 'mx.com.seclife.schoolmaster',
   appName: 'Seclife School',
   webDir: 'www',
+  loggingBehavior: 'none',
   plugins: {
     SocialLogin: {
       providers: {

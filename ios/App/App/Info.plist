@@ -37,7 +37,11 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Seclife School utiliza la camara para leer codigos QR de identificacion y acceso.</string>
-	<key>NFCReaderUsageDescription</key>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Seclife School utiliza Face ID para proteger el acceso a tu cuenta en este dispositivo.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+<string>Seclife School permite seleccionar una fotografia institucional desde la galeria.</string>
+<key>NFCReaderUsageDescription</key>
 	<string>Seclife School utiliza NFC para leer identificadores autorizados de acceso.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
