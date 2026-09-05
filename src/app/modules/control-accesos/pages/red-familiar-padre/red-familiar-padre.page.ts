@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
 import { Directory, Filesystem } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
@@ -57,7 +57,7 @@ export class RedFamiliarPadrePage implements OnInit {
   codigoGenerado: CodigoCompartir | null = null;
   codigoConsultado: CodigoCompartir | null = null;
   codigoAplicado: AplicarCodigoCompartirResponse | null = null;
-  codigoCapturado = '';
+  codigoCapturado = signal('');
   selectedAlumnos = new Set<number>();
   editingMiembro: MiembroFamiliar | null = null;
 
@@ -70,12 +70,12 @@ export class RedFamiliarPadrePage implements OnInit {
     maxUsos: 1,
     comentarios: '',
   };
-  codigoForm = {
+  codigoForm = signal({
     modo: 'PERMANENTE' as ModoCompartirAlumno,
-    vigenciaFin: this.defaultShareDate(),
+    vigenciaFin: this.defaultStudentShareDate(),
     maxUsos: 1,
     comentarios: '',
-  };
+  });
 
   constructor(
     private readonly redFamiliarService: RedFamiliarService,
@@ -168,7 +168,20 @@ export class RedFamiliarPadrePage implements OnInit {
       map.set(miembro.idfamiliamiembro, miembro);
     }
 
-    return Array.from(map.values()).sort((a, b) => a.familiar.localeCompare(b.familiar));
+    return Array.from(map.values()).sort((a, b) => {
+      const rank = (miembro: MiembroFamiliar): number => {
+        if (!this.esMiembroExterno(miembro)) {
+          return 0;
+        }
+
+        return this.esInvitadoProvisional(miembro) ? 1 : 2;
+      };
+      const rankDifference = rank(a) - rank(b);
+
+      return rankDifference !== 0
+        ? rankDifference
+        : a.familiar.localeCompare(b.familiar, 'es', { sensitivity: 'base' });
+    });
   }
 
   get autos(): AutoFamiliar[] {
@@ -344,12 +357,12 @@ export class RedFamiliarPadrePage implements OnInit {
     this.showAutoForm = false;
     this.showAlumnoForm = false;
     this.codigoGenerado = null;
-    this.codigoForm = {
+    this.codigoForm.set({
       modo: 'PERMANENTE',
-      vigenciaFin: this.defaultShareDate(),
+      vigenciaFin: this.defaultStudentShareDate(),
       maxUsos: 1,
       comentarios: '',
-    };
+    });
     this.selectedAlumnos = new Set(
       this.alumnos
         .filter((alumno) => this.puedeCompartirAlumno(alumno))
@@ -778,8 +791,70 @@ export class RedFamiliarPadrePage implements OnInit {
     this.selectedAlumnos.delete(idmatricula);
   }
 
-  cambiarModoCompartir(): void {
+  cambiarModoCompartir(value: string | number | null | undefined): void {
+    if (value !== 'PERMANENTE' && value !== 'PROVISIONAL') {
+      return;
+    }
+
+    this.codigoForm.update((form) => ({ ...form, modo: value }));
     this.codigoGenerado = null;
+  }
+
+  actualizarCodigoFecha(value: string | number | null | undefined): void {
+    this.codigoForm.update((form) => ({ ...form, vigenciaFin: String(value || '') }));
+  }
+
+  actualizarCodigoUsos(value: string | number | null | undefined): void {
+    this.codigoForm.update((form) => ({ ...form, maxUsos: Math.max(1, Number(value) || 1) }));
+  }
+
+  actualizarCodigoComentarios(value: string | null | undefined): void {
+    this.codigoForm.update((form) => ({ ...form, comentarios: value || '' }));
+  }
+
+  fechaCompartirTitulo(): string {
+    return this.codigoForm().modo === 'PERMANENTE' ? 'Codigo valido hasta' : 'Dia autorizado';
+  }
+
+  fechaCompartirFormateada(): string {
+    const date = this.parseLocalDate(this.codigoForm().vigenciaFin);
+    if (!date) {
+      return 'Selecciona una fecha';
+    }
+
+    const weekdays = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+    const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${weekdays[date.getDay()]}, ${day}/${months[date.getMonth()]}/${date.getFullYear()}`;
+  }
+
+  fechaCompartirRelativa(): string {
+    const days = this.shareDateDifference();
+    const permanent = this.codigoForm().modo === 'PERMANENTE';
+    if (days === null) {
+      return 'Fecha requerida';
+    }
+    if (days < 0) {
+      return 'La fecha ya vencio';
+    }
+    if (days === 0) {
+      return permanent ? 'El codigo vence hoy' : 'Valido hoy';
+    }
+    if (days === 1) {
+      return permanent ? 'El codigo vence manana' : 'Valido manana';
+    }
+
+    return permanent ? `El codigo vence dentro de ${days} dias` : `Valido dentro de ${days} dias`;
+  }
+
+  fechaCompartirEstado(): 'today' | 'future' | 'past' {
+    const days = this.shareDateDifference();
+    if (days === null || days < 0) {
+      return 'past';
+    }
+
+    return days === 0 ? 'today' : 'future';
   }
 
   puedeCompartirAlumno(alumno: AlumnoFamiliar): boolean {
@@ -854,6 +929,7 @@ export class RedFamiliarPadrePage implements OnInit {
   generarCodigo(): void {
     const idfamilia = this.idfamilia;
     const alumnos = Array.from(this.selectedAlumnos).map((idmatricula) => ({ idmatricula }));
+    const form = this.codigoForm();
 
     if (!idfamilia) {
       void this.showToast('No fue posible resolver la familia para generar el codigo.', 'warning');
@@ -865,21 +941,38 @@ export class RedFamiliarPadrePage implements OnInit {
       return;
     }
 
+    if (this.fechaCompartirEstado() === 'past') {
+      void this.showToast('Selecciona una fecha valida a partir de hoy.', 'warning');
+      return;
+    }
+
     this.sharing = true;
     this.redFamiliarService.generarCodigoCompartir({
       idorg: this.idorg,
       idfamilia,
-      tipoCompartir: this.codigoForm.modo === 'PERMANENTE' ? 'FAMILIAR_EXISTENTE' : 'BRIGADA',
-      fecha: this.codigoForm.modo === 'PROVISIONAL' ? this.codigoForm.vigenciaFin : null,
-      vigenciaFin: this.endOfDayIso(this.codigoForm.vigenciaFin),
-      maxUsos: Math.max(1, Number(this.codigoForm.maxUsos) || 1),
-      comentarios: this.codigoForm.comentarios?.trim() || null,
+      tipoCompartir: form.modo === 'PERMANENTE' ? 'FAMILIAR_EXISTENTE' : 'BRIGADA',
+      fecha: form.modo === 'PROVISIONAL' ? form.vigenciaFin : null,
+      vigenciaFin: this.endOfDayIso(form.vigenciaFin),
+      maxUsos: Math.max(1, Number(form.maxUsos) || 1),
+      comentarios: form.comentarios?.trim() || null,
       alumnos,
     }).subscribe({
       next: async (codigo) => {
         this.sharing = false;
-        this.codigoGenerado = codigo;
-        this.cargarCodigosEmitidos();
+        this.showCodigoForm = false;
+        this.codigoGenerado = null;
+        this.selectedAlumnos.clear();
+        this.codigoForm.set({
+          modo: 'PERMANENTE',
+          vigenciaFin: this.defaultStudentShareDate(),
+          maxUsos: 1,
+          comentarios: '',
+        });
+        this.codigosEmitidos = [
+          codigo,
+          ...this.codigosEmitidos.filter((item) => item.codigo !== codigo.codigo),
+        ];
+        this.cargarCodigosEmitidos(codigo);
         await this.showToast('Codigo generado correctamente.', 'success');
       },
       error: async (error) => {
@@ -970,9 +1063,14 @@ export class RedFamiliarPadrePage implements OnInit {
       next: async (codigo) => {
         this.sharing = false;
         this.codigoGenerado = codigo;
-        this.cargarCodigosEmitidos();
+        this.codigosEmitidos = [
+          codigo,
+          ...this.codigosEmitidos.filter((item) => item.codigo !== codigo.codigo),
+        ];
+        this.cargarCodigosEmitidos(codigo);
         await this.showToast('Codigo de familiar generado correctamente.', 'success');
         await this.compartirCodigo(codigo);
+        this.scrollToIssuedCode(codigo);
       },
       error: async (error) => {
         this.sharing = false;
@@ -981,8 +1079,12 @@ export class RedFamiliarPadrePage implements OnInit {
     });
   }
 
+  actualizarCodigoCapturado(value: string | number | null | undefined): void {
+    this.codigoCapturado.set(String(value || '').replace(/\D/g, '').slice(0, 6));
+  }
+
   consultarCodigo(): void {
-    const codigo = this.codigoCapturado.trim();
+    const codigo = this.codigoCapturado().trim();
 
     if (!codigo) {
       void this.showToast('Captura el codigo de autorizacion.', 'warning');
@@ -997,6 +1099,7 @@ export class RedFamiliarPadrePage implements OnInit {
       next: (codigoInfo) => {
         this.applyingCode = false;
         this.codigoConsultado = codigoInfo;
+        this.codigoCapturado.set('');
       },
       error: async (error) => {
         this.applyingCode = false;
@@ -1006,7 +1109,7 @@ export class RedFamiliarPadrePage implements OnInit {
   }
 
   aplicarCodigo(): void {
-    const codigo = this.codigoCapturado.trim();
+    const codigo = this.codigoConsultado?.codigo?.trim() || this.codigoCapturado().trim();
 
     if (!codigo) {
       void this.showToast('Captura el codigo de autorizacion.', 'warning');
@@ -1061,7 +1164,7 @@ export class RedFamiliarPadrePage implements OnInit {
     await this.compartirTextoCodigo(title, textoAdjunto);
   }
 
-  cargarCodigosEmitidos(): void {
+  cargarCodigosEmitidos(codigoParaEnfocar?: CodigoCompartir): void {
     const idfamilia = this.idfamilia;
 
     if (!idfamilia) {
@@ -1074,12 +1177,28 @@ export class RedFamiliarPadrePage implements OnInit {
       next: (codigos) => {
         this.codigosEmitidos = codigos;
         this.loadingCodigos = false;
+        if (codigoParaEnfocar) {
+          this.scrollToIssuedCode(codigoParaEnfocar);
+        }
       },
       error: async (error) => {
         this.loadingCodigos = false;
         await this.showToast(this.errorMessage(error, 'No fue posible consultar los codigos emitidos.'), 'danger');
       },
     });
+  }
+
+  codigoElementId(codigo: CodigoCompartir): string {
+    return `issued-code-${codigo.codigo}`;
+  }
+
+  private scrollToIssuedCode(codigo: CodigoCompartir): void {
+    setTimeout(() => {
+      document.getElementById(this.codigoElementId(codigo))?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }, 100);
   }
 
   codigoModoLabel(codigo: CodigoCompartir): string {
@@ -1699,6 +1818,16 @@ export class RedFamiliarPadrePage implements OnInit {
     return miembro.esExterno === true;
   }
 
+  esFamiliarExterno(miembro: MiembroFamiliar): boolean {
+    return this.esMiembroExterno(miembro) && !this.esInvitadoProvisional(miembro);
+  }
+
+  esInicioFamiliaresExternos(index: number): boolean {
+    const miembros = this.familiares;
+    return this.esFamiliarExterno(miembros[index])
+      && (index === 0 || !this.esFamiliarExterno(miembros[index - 1]));
+  }
+
   esInvitadoProvisional(miembro: MiembroFamiliar): boolean {
     return !!miembro.idinvitadoexterno && !miembro.idusrbt;
   }
@@ -1876,7 +2005,39 @@ export class RedFamiliarPadrePage implements OnInit {
   private defaultShareDate(): string {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().slice(0, 10);
+    return this.localDateValue(tomorrow);
+  }
+
+  defaultStudentShareDate(): string {
+    return this.localDateValue(new Date());
+  }
+
+  private shareDateDifference(): number | null {
+    const selected = this.parseLocalDate(this.codigoForm().vigenciaFin);
+    if (!selected) {
+      return null;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return Math.round((selected.getTime() - today.getTime()) / 86400000);
+  }
+
+  private parseLocalDate(value?: string | null): Date | null {
+    const [year, month, day] = (value || '').split('-').map(Number);
+    if (!year || !month || !day) {
+      return null;
+    }
+
+    const date = new Date(year, month - 1, day);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  private localDateValue(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   private endOfDayIso(dateValue: string): string {
