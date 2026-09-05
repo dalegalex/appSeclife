@@ -239,6 +239,11 @@ export class SessionSecurityService {
   }
 
   private describeUnlockError(error: unknown): string {
+    const code = Number((error as { code?: number | string })?.code);
+    if (code === BiometricAuthError.NO_PROTECTED_CREDENTIALS_FOUND) {
+      return 'La credencial biometrica dejo de ser valida, posiblemente por un cambio en Touch ID o Face ID. Ingresa con otro metodo y activala nuevamente.';
+    }
+
     if (error instanceof HttpErrorResponse) {
       if (error.status === 0) {
         return 'Se requiere conexion a internet para renovar la sesion.';

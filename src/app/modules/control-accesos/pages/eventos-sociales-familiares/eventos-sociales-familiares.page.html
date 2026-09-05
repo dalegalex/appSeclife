@@ -47,7 +47,7 @@
           [checked]="!!alumno.autorizaSalida"
           (ionChange)="alumno.autorizaSalida = $event.detail.checked"
           labelPlacement="start"
-        >Autorizar salida</ion-toggle>
+        >Autorizo salida con el anfitrion</ion-toggle>
       </div>
       <p class="consent-note" *ngIf="eventoInvitado.requiereAutorizacionSalida">
         La asistencia y la autorizacion de salida son decisiones independientes.

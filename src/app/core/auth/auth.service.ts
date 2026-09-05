@@ -213,13 +213,24 @@ export class AuthService {
 
     try {
       const availability = await NativeBiometric.isAvailable({ useFallback: true });
-      const stored = await NativeBiometric.isCredentialsSaved({ server: BIOMETRIC_SERVER });
+      const metadata = this.readBiometricMetadata();
+      // En iOS, consultar la existencia de un elemento protegido del Keychain
+      // puede presentar Touch ID/Face ID aunque todavía no se haya solicitado
+      // el desbloqueo. El metadato solo contiene el identificador no secreto del
+      // dispositivo; la credencial real se valida al llamar getSecureCredentials.
+      const stored = Capacitor.getPlatform() === 'ios'
+        ? { isSaved: !!metadata }
+        : await NativeBiometric.isCredentialsSaved({ server: BIOMETRIC_SERVER });
       const available = availability.isAvailable && availability.strongBiometryIsAvailable;
 
       return {
         available,
-        configured: available && stored.isSaved && !!this.readBiometricMetadata(),
-        deviceCredentialAvailable: availability.deviceIsSecure === true,
+        configured: available && stored.isSaved && !!metadata,
+        // El plugin expone deviceIsSecure en iOS, pero no permite confirmar que
+        // el codigo del dispositivo pueda seleccionarse en el dialogo. No lo
+        // anunciamos como metodo alternativo hasta contar con esa capacidad real.
+        deviceCredentialAvailable: Capacitor.getPlatform() !== 'ios'
+          && availability.deviceIsSecure === true,
         label: this.biometryLabel(availability.biometryType),
         reason: available
           ? null

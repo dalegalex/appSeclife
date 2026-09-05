@@ -114,6 +114,14 @@ export class LoginPage implements AfterViewInit {
       if (code === BiometricAuthError.USER_CANCEL || code === BiometricAuthError.USER_FALLBACK) {
         return;
       }
+      if (code === BiometricAuthError.NO_PROTECTED_CREDENTIALS_FOUND) {
+        this.setError(
+          'Acceso biometrico no disponible',
+          'La credencial biometrica dejo de ser valida, posiblemente por un cambio en Touch ID o Face ID. Ingresa normalmente y activala nuevamente desde Cuenta > Seguridad.'
+        );
+        await this.refreshBiometricCapability();
+        return;
+      }
       this.applyAuthError(error);
       await this.refreshBiometricCapability();
     } finally {

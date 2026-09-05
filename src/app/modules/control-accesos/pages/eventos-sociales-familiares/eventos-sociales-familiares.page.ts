@@ -1,6 +1,5 @@
 import { Component, OnInit } from '@angular/core';
 import {
-  CapacitorBarcodeScanner,
   CapacitorBarcodeScannerCameraDirection,
   CapacitorBarcodeScannerScanOrientation,
   CapacitorBarcodeScannerTypeHint,
@@ -11,6 +10,7 @@ import { Share } from '@capacitor/share';
 import QRCode from 'qrcode';
 import { ToastController } from '@ionic/angular';
 import { AuthService } from '../../../../core/auth/auth.service';
+import { scanQrCode } from '../../../../core/qr-scanner';
 import { EventoFamiliarAlumno, EventoFamiliarPase, EventoFamiliarRespuesta, EventoFamiliarSocial, GuardarEventoFamiliarSocialRequest } from '../../models/evento-familiar-social.model';
 import { MiembroFamiliar, RedFamiliarRow } from '../../models/red-familiar.model';
 import { EventoFamiliarSocialService } from '../../services/evento-familiar-social.service';
@@ -217,8 +217,9 @@ export class EventosSocialesFamiliaresPage implements OnInit {
 
   async escanear(): Promise<void> {
     try {
-      const result = await CapacitorBarcodeScanner.scanBarcode({
+      const result = await scanQrCode({
         hint: CapacitorBarcodeScannerTypeHint.QR_CODE,
+        scanInstructions: 'Alinea el codigo QR dentro del recuadro.',
         cameraDirection: CapacitorBarcodeScannerCameraDirection.BACK,
         scanOrientation: CapacitorBarcodeScannerScanOrientation.ADAPTIVE,
       });
@@ -239,7 +240,7 @@ export class EventosSocialesFamiliaresPage implements OnInit {
 
   actualizarSeleccionAlumno(alumno: EventoFamiliarAlumno, seleccionado: boolean): void {
     alumno.seleccionado = seleccionado;
-    if (!seleccionado) alumno.autorizaSalida = false;
+    alumno.autorizaSalida = seleccionado && !!this.eventoInvitado?.requiereAutorizacionSalida;
   }
 
   consultarRespuestas(evento: EventoFamiliarSocial): void {
