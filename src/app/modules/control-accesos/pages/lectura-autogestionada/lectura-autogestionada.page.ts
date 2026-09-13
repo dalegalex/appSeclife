@@ -18,6 +18,7 @@ import {
   AutogestionSesion,
   AutogestionArea,
   AutogestionAsistenciaLectura,
+  AutogestionTerminal,
 } from '../../models/lectura-autogestionada.model';
 import { LecturaAutogestionadaService } from '../../services/lectura-autogestionada.service';
 
@@ -40,10 +41,12 @@ export class LecturaAutogestionadaPage implements OnDestroy {
   eventos: AutogestionEvento[] = [];
   puntos: AutogestionPunto[] = [];
   areas: AutogestionArea[] = [];
+  terminales: AutogestionTerminal[] = [];
   sesion: AutogestionSesion | null = null;
   ideventoacceso: number | null = null;
   idpuntoautogestion: number | null = null;
   idareavisita: number | null = null;
+  destinoOperacion = 'MOVIL';
   codigo = '';
   lectura: AutogestionEventoLectura | null = null;
   lecturaAsistencia: AutogestionAsistenciaLectura | null = null;
@@ -100,6 +103,22 @@ export class LecturaAutogestionadaPage implements OnDestroy {
 
   get puntoSeleccionado(): AutogestionPunto | null {
     return this.puntos.find((punto) => punto.idpuntoautogestion === this.idpuntoautogestion) ?? null;
+  }
+
+  get terminalesCompatibles(): AutogestionTerminal[] {
+    const punto = this.puntoSeleccionado;
+    if (!punto || (!punto.iddispositivo && !punto.idpuerta)) {
+      return [];
+    }
+    return this.terminales.filter((terminal) => {
+      const mismoDispositivo = !punto.iddispositivo || terminal.iddispositivo === punto.iddispositivo;
+      const mismaPuerta = !punto.idpuerta || terminal.idpuerta === punto.idpuerta;
+      return terminal.sitactivo !== false
+        && terminal.estado === 'ACTIVA'
+        && terminal.modoOperativo === this.modo
+        && mismoDispositivo
+        && mismaPuerta;
+    });
   }
 
   get maxParticipantes(): number {
@@ -164,7 +183,11 @@ export class LecturaAutogestionadaPage implements OnDestroy {
     this.loadingCatalogos = true;
     try {
       const dispositivoUid = this.dispositivoUid();
-      const catalogos = await firstValueFrom(this.service.consultarCatalogos(this.idorg, dispositivoUid));
+      const [catalogos, terminales] = await Promise.all([
+        firstValueFrom(this.service.consultarCatalogos(this.idorg, dispositivoUid)),
+        firstValueFrom(this.service.consultarTerminales(this.idorg)),
+      ]);
+      this.terminales = terminales;
       this.areas = (catalogos.areas ?? []).filter((area) => area.sitactivo !== false);
       this.puntos = (catalogos.puntos ?? []).filter((punto) => punto.sitactivo !== false);
       this.eventos = (catalogos.eventos ?? [])
@@ -345,6 +368,12 @@ export class LecturaAutogestionadaPage implements OnDestroy {
       return;
     }
 
+    const idterminal = this.idTerminalDestino();
+    if (this.destinoOperacion !== 'MOVIL' && !idterminal) {
+      await this.showToast('Selecciona una terminal activa compatible.', 'warning');
+      return;
+    }
+
     const alert = await this.alertController.create({
       header: 'PIN de operador',
       message: 'Solo personal autorizado puede configurar este punto.',
@@ -362,10 +391,65 @@ export class LecturaAutogestionadaPage implements OnDestroy {
       buttons: [
         { text: 'Cancelar', role: 'cancel' },
         {
-          text: 'Abrir sesion',
+          text: idterminal ? 'Asignar a terminal' : 'Abrir sesion',
           handler: (data) => {
-            void this.abrirSesion(String(data?.pin ?? ''));
+            if (idterminal) {
+              void this.asignarSesionTerminal(idterminal, String(data?.pin ?? ''));
+            } else {
+              void this.abrirSesion(String(data?.pin ?? ''));
+            }
           },
+        },
+      ],
+    });
+    await alert.present();
+  }
+
+  async solicitarTransferenciaTerminal(): Promise<void> {
+    const terminales = this.terminalesCompatibles;
+    if (!this.sesionAbierta || terminales.length === 0) {
+      await this.showToast('No hay una terminal activa compatible con este punto y modo.', 'warning');
+      return;
+    }
+    const selector = await this.alertController.create({
+      header: 'Asignar a terminal',
+      message: 'La terminal continuara operando y este movil quedara libre.',
+      inputs: terminales.map((terminal, index) => ({
+        type: 'radio' as const,
+        label: `${terminal.codigo ?? 'TERMINAL'} - ${terminal.nombre ?? terminal.idterminal}`,
+        value: terminal.idterminal,
+        checked: index === 0,
+      })),
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Continuar',
+          handler: (idterminal) => void this.solicitarPinTransferencia(Number(idterminal)),
+        },
+      ],
+    });
+    await selector.present();
+  }
+
+  private async solicitarPinTransferencia(idterminal: number): Promise<void> {
+    if (!Number.isFinite(idterminal) || idterminal <= 0) {
+      await this.showToast('Selecciona una terminal.', 'warning');
+      return;
+    }
+    const alert = await this.alertController.create({
+      header: 'PIN de operador',
+      message: 'Confirma la transferencia de la sesion a la terminal.',
+      inputs: [{
+        name: 'pin',
+        type: 'password',
+        placeholder: '6 digitos',
+        attributes: { inputmode: 'numeric', maxlength: 6 },
+      }],
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Asignar',
+          handler: (data) => void this.asignarSesionTerminal(idterminal, String(data?.pin ?? '')),
         },
       ],
     });
@@ -741,6 +825,46 @@ export class LecturaAutogestionadaPage implements OnDestroy {
     } catch (error: any) {
       await this.showToast(error?.error?.message || error?.message || 'No fue posible abrir la sesion.', 'danger');
     }
+  }
+
+  private async asignarSesionTerminal(idterminal: number, pin: string): Promise<void> {
+    const pinOperador = pin.trim();
+    if (!/^\d{6}$/.test(pinOperador)) {
+      await this.showToast('Captura un PIN de 6 digitos.', 'warning');
+      return;
+    }
+    try {
+      const sesion = await firstValueFrom(this.service.asignarSesionTerminal({
+        idorg: this.idorg,
+        idpuntoautogestion: this.idpuntoautogestion as number,
+        idterminal,
+        pinOperador,
+        modo: this.modo,
+        ideventoacceso: this.modo === 'EVENTO' ? this.ideventoacceso : null,
+        idareavisita: null,
+        ingresoAutomatico: true,
+        emitirAudio: true,
+        dispositivoUid: this.dispositivoUid(),
+        nombreDispositivo: this.nombreDispositivo(),
+        comentarios: 'ASIGNACION DESDE APPSECLIFE',
+      }));
+      await this.detenerLecturaNfc();
+      this.sesion = null;
+      this.destinoOperacion = 'MOVIL';
+      this.limpiarLectura();
+      await this.showToast(`Sesion asignada a ${sesion.terminal ?? 'la terminal'}. Este movil quedo libre.`, 'success');
+      await this.cargarCatalogos();
+    } catch (error: any) {
+      await this.showToast(error?.error?.message || error?.message || 'No fue posible asignar la terminal.', 'danger');
+    }
+  }
+
+  private idTerminalDestino(): number | null {
+    if (!this.destinoOperacion.startsWith('TERMINAL:')) {
+      return null;
+    }
+    const idterminal = Number(this.destinoOperacion.slice('TERMINAL:'.length));
+    return this.terminalesCompatibles.some((terminal) => terminal.idterminal === idterminal) ? idterminal : null;
   }
 
   private dispositivoUid(): string {

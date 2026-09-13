@@ -42,6 +42,8 @@ export interface AutogestionArea {
 export interface AutogestionPunto {
   idpuntoautogestion: number;
   idorg?: number | null;
+  idpuerta?: number | null;
+  iddispositivo?: number | null;
   descripcion?: string | null;
   codigo?: string | null;
   modo?: string | null;
@@ -76,6 +78,25 @@ export interface AutogestionSesion {
   dispositivoUid?: string | null;
   nombreDispositivo?: string | null;
   esDispositivoActual?: boolean | null;
+  tipoPropietario?: 'MOVIL' | 'TERMINAL' | string | null;
+  idterminal?: number | null;
+  terminal?: string | null;
+}
+
+export interface AutogestionTerminal {
+  idterminal: number;
+  idorg?: number | null;
+  idpuerta?: number | null;
+  iddispositivo?: number | null;
+  codigo?: string | null;
+  nombre?: string | null;
+  modoOperativo?: 'EVENTO' | 'ASISTENCIA' | string | null;
+  estado?: string | null;
+  sitactivo?: boolean | null;
+}
+
+export interface AutogestionTerminalesCatalogo {
+  terminales?: AutogestionTerminal[] | null;
 }
 
 export interface AbrirSesionAutogestionRequest {
@@ -91,6 +112,10 @@ export interface AbrirSesionAutogestionRequest {
   dispositivoUid: string;
   nombreDispositivo?: string | null;
   comentarios?: string | null;
+}
+
+export interface AsignarSesionAutogestionTerminalRequest extends AbrirSesionAutogestionRequest {
+  idterminal: number;
 }
 
 export interface ResolverAutogestionEventoParams {

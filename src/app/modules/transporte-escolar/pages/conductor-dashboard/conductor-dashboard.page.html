@@ -8,6 +8,13 @@
 </ion-header>
 
 <ion-content [fullscreen]="true" class="conductor-shell">
+ @if (cargandoModalidad()) {
+   <ion-spinner aria-label="Consultando modalidad"></ion-spinner>
+ } @else if (errorModalidad()) {
+   <p role="alert">{{ errorModalidad() }}</p><ion-button (click)="cargarModalidad()">Reintentar</ion-button>
+ } @else if (soloAbordaje()) {
+   @if (vistaAbordajeVisible()) { <app-pase-abordaje /> }
+ } @else {
   @if (cargando) {
     <section class="loading-state">
       <ion-spinner name="crescent"></ion-spinner>
@@ -287,4 +294,5 @@
       }
     </ion-list>
   }
+ }
 </ion-content>

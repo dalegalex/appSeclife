@@ -43,6 +43,22 @@
           </ion-button>
         </div>
 
+        <ion-item lines="none" class="soft-item destination-item">
+          <ion-select
+            label="Operar desde"
+            labelPlacement="stacked"
+            [(ngModel)]="destinoOperacion"
+            interface="popover"
+          >
+            <ion-select-option value="MOVIL">Este dispositivo movil</ion-select-option>
+            @for (terminal of terminalesCompatibles; track terminal.idterminal) {
+              <ion-select-option [value]="'TERMINAL:' + terminal.idterminal">
+                {{ terminal.codigo || 'TERMINAL' }} - {{ terminal.nombre || terminal.idterminal }}
+              </ion-select-option>
+            }
+          </ion-select>
+        </ion-item>
+
         <ion-segment [value]="modo" [disabled]="controlesOperadorBloqueados" (ionChange)="cambiarModo($any($event.detail.value))">
           <ion-segment-button value="EVENTO">
             <ion-icon name="calendar-outline"></ion-icon>
@@ -67,6 +83,12 @@
           {{ sesion?.modo === 'EVENTO' ? 'Evento' : 'Asistencia' }}
         </small>
       </div>
+      @if (terminalesCompatibles.length) {
+        <ion-button fill="outline" size="small" (click)="solicitarTransferenciaTerminal()">
+          <ion-icon slot="start" name="desktop-outline"></ion-icon>
+          Asignar a terminal
+        </ion-button>
+      }
     </div>
 
     <ion-card *ngIf="!sesionAbierta || modo === 'EVENTO'" class="event-card">

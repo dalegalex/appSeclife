@@ -1,0 +1,12 @@
+.boarding { max-width: 760px; margin: 0 auto; padding: 16px 16px 32px; }
+.boarding h1 { font-size: 22px; margin: 8px 0 16px; }
+.boarding header p, .state { color: var(--ion-color-medium); font-size: 14px; }
+.totals { display: grid; grid-template-columns: 1fr 1fr; border-block: 1px solid var(--ion-color-light-shade); padding: 16px 0; gap: 16px; }
+.totals span { display: block; font-size: 13px; }
+.totals strong { font-size: 28px; }
+.actions { display: grid; grid-template-columns: 1fr; gap: 6px; margin-block: 12px; }
+.error { color: var(--ion-color-danger); }
+.notice { color: var(--ion-color-success-shade); }
+.pending { border-left: 3px solid var(--ion-color-warning); padding: 8px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+ion-item { --padding-start: 0; --inner-padding-end: 0; }
+ion-checkbox { --size: 24px; margin-inline-end: 14px; }

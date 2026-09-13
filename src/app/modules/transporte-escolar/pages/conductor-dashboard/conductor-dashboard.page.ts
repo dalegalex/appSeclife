@@ -1,4 +1,6 @@
 import { Component, NgZone, OnDestroy, OnInit } from '@angular/core';
+import { inject, signal } from '@angular/core';
+import { AbordajeService } from '../../services/abordaje.service';
 import { App } from '@capacitor/app';
 import { Capacitor, PluginListenerHandle, registerPlugin } from '@capacitor/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -37,6 +39,13 @@ const GPS_SYNC_INTERVAL_MS = 5000;
   standalone: false,
 })
 export class ConductorDashboardPage implements OnInit, OnDestroy {
+  private readonly abordajeService = inject(AbordajeService);
+  readonly cargandoModalidad = signal(true);
+  readonly soloAbordaje = signal(false);
+  readonly errorModalidad = signal('');
+  readonly vistaAbordajeVisible = signal(true);
+  private modalidadConsultada = false;
+  private tradicionalInicializado = false;
   rutas: ConductorRuta[] = [];
   rutaActiva?: ConductorRuta;
   recorridoIniciado = false;
@@ -79,6 +88,49 @@ export class ConductorDashboardPage implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.cargarModalidad();
+  }
+
+  cargarModalidad(): void {
+    this.cargandoModalidad.set(true);
+    this.errorModalidad.set('');
+    this.abordajeService.configuracion().subscribe({
+      next: response => {
+        this.soloAbordaje.set(response.result.soloAbordajeSalida);
+        this.cargandoModalidad.set(false);
+        this.modalidadConsultada = true;
+        if (this.soloAbordaje()) {
+          this.recorridoIniciado = false;
+          this.detenerGps();
+          this.cancelarReintentoGpsAlReanudar();
+          void this.appStateListener?.remove();
+          void this.appResumeListener?.remove();
+          this.appStateListener = undefined;
+          this.appResumeListener = undefined;
+          this.pendingSubscription?.unsubscribe();
+          this.tradicionalInicializado = false;
+        } else if (!this.tradicionalInicializado) {
+          this.tradicionalInicializado = true;
+          this.iniciarModoTradicional();
+        }
+      },
+      error: () => {
+        this.cargandoModalidad.set(false);
+        this.errorModalidad.set('No fue posible consultar la modalidad de transporte.');
+      }
+    });
+  }
+
+  ionViewWillEnter(): void {
+    this.vistaAbordajeVisible.set(true);
+    if (this.modalidadConsultada) this.cargarModalidad();
+  }
+
+  ionViewDidLeave(): void {
+    this.vistaAbordajeVisible.set(false);
+  }
+
+  private iniciarModoTradicional(): void {
     void this.registrarReintentoGpsAlReanudar();
     this.cargando = true;
     this.mensajeEstado = '';
@@ -428,6 +480,7 @@ export class ConductorDashboardPage implements OnInit, OnDestroy {
   }
 
   private iniciarGps(): void {
+    if (this.soloAbordaje()) return;
     if (this.gpsIntervalId || this.backgroundGpsActivo || this.backgroundGpsIniciando) {
       return;
     }
@@ -468,6 +521,7 @@ export class ConductorDashboardPage implements OnInit, OnDestroy {
   }
 
   private async iniciarGpsSegundoPlano(): Promise<void> {
+    if (this.soloAbordaje()) return;
     const rutaActiva = this.rutaActiva;
     const token = this.authService.getToken();
 

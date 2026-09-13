@@ -48,6 +48,7 @@ export interface AlumnoCompartido {
 }
 
 export interface MiembroFamiliar {
+  tieneFoto?: boolean | null;
   idfamiliamiembro: number;
   idfamilia?: number | null;
   idusrbt?: number | null;
@@ -265,6 +266,21 @@ export interface RetirarAlumnoCompartidoResponse {
   idfamiliamiembro: number;
   aplicaRedCompleta: boolean;
   autorizacionesRevocadas: number;
+}
+
+export interface CredencialFamiliar {
+  idfamiliamiembro: number;
+  idusrbt: number;
+  idtag: number;
+  nombreCompleto: string;
+  organizacion: string;
+  nombreFamilia: string;
+  idciclo: number;
+  cicloEscolar: string;
+  activa: boolean;
+  virtual: boolean;
+  puedeRegenerar: boolean;
+  codigo?: string;
 }
 
 export interface RevocarAlumnoCompartidoFamiliaResponse {

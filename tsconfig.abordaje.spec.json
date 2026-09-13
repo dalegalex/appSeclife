@@ -1,0 +1,4 @@
+{
+ "extends": "./tsconfig.spec.json",
+ "include": ["src/app/modules/transporte-escolar/components/pase-abordaje/pase-abordaje.component.spec.ts", "src/test.ts", "src/**/*.d.ts"]
+}

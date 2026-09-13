@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { PaseAbordajeComponent } from './components/pase-abordaje/pase-abordaje.component';
 import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
@@ -9,6 +10,7 @@ import { PadreDashboardPage } from './pages/padre-dashboard/padre-dashboard.page
 @NgModule({
   imports: [
     CommonModule,
+    PaseAbordajeComponent,
     FormsModule,
     IonicModule,
     TransporteEscolarRoutingModule,

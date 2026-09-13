@@ -1,0 +1,62 @@
+<section class="boarding">
+ <header>
+  <h1>Abordaje de salida</h1>
+  <ion-select aria-label="Ruta de salida" interface="action-sheet" [value]="idruta()" [disabled]="abierto() || busy() || loading()" (ionChange)="elegirRuta($event.detail.value)">
+   @for(r of rutas(); track r.idruta) { <ion-select-option [value]="r.idruta">{{ r.descripcion }}</ion-select-option> }
+  </ion-select>
+  <p>{{ ruta()?.unidad }} &middot; {{ ruta()?.conductor }}</p>
+ </header>
+ @if(error()) { <p class="error" role="alert">{{ error() }}</p> }
+ @if(mensaje()) { <p class="notice" role="status">{{ mensaje() }}</p> }
+ @if(loading()) { <ion-spinner aria-label="Consultando pase"></ion-spinner> }
+ @else {
+  @if(!rutas().length) { <p>No hay rutas de salida asignadas.</p> }
+  @if(estado(); as current) {
+   @for(p of current.pendientes; track p.idrecorrido) {
+    <div class="pending"><span>Cierre pendiente: {{ p.fecha | date:'dd/MM/yyyy' }}</span>
+     <ion-button size="small" fill="outline" [disabled]="busy()" (click)="cerrarPendiente(p)">Cerrar pendiente</ion-button>
+    </div>
+   }
+   @if(current.pase; as pase) {
+    <div class="totals">
+     <div><span>Seleccionados</span><strong>{{ seleccionados() }}/{{ alumnos().length }}</strong></div>
+     <div><span>Avisos solicitados</span><strong>{{ solicitados() }}</strong></div>
+    </div>
+    <p class="state">{{ pase.estado === 'ABIERTO' ? 'Abordaje abierto' : pase.estado === 'CERRADO' ? 'Abordaje cerrado' : 'Cierre pendiente o incompleto' }} &middot; {{ pase.fecha | date:'dd/MM/yyyy' }}</p>
+    @if(abierto()) {
+     <div class="actions">
+      <ion-button expand="block" [disabled]="busy() || !porEnviar()" (click)="enviar()"><ion-icon slot="start" name="exit-outline"></ion-icon>Registrar SALIDA ({{ porEnviar() }})</ion-button>
+      <ion-button expand="block" fill="outline" [disabled]="busy() || porEnviar() > 0" (click)="cerrar()">Cerrar abordaje</ion-button>
+     </div>
+    }
+    @if(fallidos()) { <ion-button expand="block" color="warning" [disabled]="busy()" (click)="reintentar()">Reintentar avisos fallidos</ion-button> }
+    <ion-list>
+     @for(a of alumnos(); track a.idrecorridoalumno) {
+      <ion-item lines="full">
+       <ion-checkbox slot="start" [aria-label]="'Abordaje de ' + a.nombre" [checked]="a.seleccionado" [disabled]="busy() || !abierto() || !!a.idevento || !!a.salidaRegistrada" (ionChange)="cambiarSeleccion(a,$event)"></ion-checkbox>
+       <ion-label class="ion-text-wrap"><h2>{{ a.nombre }}</h2><p>{{ estadoAviso(a) }}</p>
+        @if(a.correccion) { <p class="error">Correccion: {{ a.correccion }}</p> }
+       </ion-label>
+       @if(a.idevento) { <ion-button slot="end" fill="clear" aria-label="Registrar correccion" [disabled]="busy()" (click)="corregir(a)"><ion-icon name="create-outline"></ion-icon></ion-button> }
+      </ion-item>
+     }
+    </ion-list>
+   } @else {
+    <ion-button expand="block" [disabled]="busy()" (click)="iniciar()"><ion-icon slot="start" name="play-outline"></ion-icon>Iniciar abordaje</ion-button>
+    @if(current.programados; as programados) {
+     <p class="state">Alumnos programados: {{ programados.length }} &middot; {{ current.fechaServidor | date:'dd/MM/yyyy' }}</p>
+     <ion-list>
+      @for(a of programados; track a.idmatricula) {
+       <ion-item lines="full"><ion-label class="ion-text-wrap"><h2>{{ a.nombre }}</h2>@if(a.salidaRegistrada) { <p>Salida registrada</p> }</ion-label></ion-item>
+      } @empty {
+       <ion-item lines="none"><ion-label class="ion-text-wrap">No hay alumnos programados para esta fecha.</ion-label></ion-item>
+      }
+     </ion-list>
+    } @else {
+     <p class="notice">Vista previa no disponible. Actualiza el servicio de transporte.</p>
+    }
+   }
+  }
+ }
+ <ion-button fill="clear" [disabled]="busy() || loading()" (click)="recargar()"><ion-icon slot="start" name="refresh-outline"></ion-icon>Actualizar</ion-button>
+</section>

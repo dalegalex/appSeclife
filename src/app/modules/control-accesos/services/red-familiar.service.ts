@@ -5,6 +5,7 @@ import { Observable, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import {
   AplicarCodigoCompartirRequest,
+  CredencialFamiliar,
   AplicarCodigoCompartirResponse,
   AutoFamiliar,
   CodigoCompartir,
@@ -33,8 +34,33 @@ export class RedFamiliarService {
 
   constructor(private readonly http: HttpClient) {}
 
+  consultarCredenciales(idorg: number, idfamilia: number): Observable<CredencialFamiliar[]> {
+    return this.http.get<SpResponse<CredencialFamiliar[]>>(`${this.baseUrl}/familias/${idfamilia}/credenciales`, { params: { idorg } })
+      .pipe(map(response => { this.assertSuccess(response); return response.result ?? []; }));
+  }
+
+  consultarCredencialCompartir(idorg: number, idfamilia: number, idmiembro: number): Observable<CredencialFamiliar> {
+    return this.http.get<SpResponse<CredencialFamiliar[]>>(`${this.baseUrl}/familias/${idfamilia}/miembros/${idmiembro}/credencial-virtual`, { params: { idorg } })
+      .pipe(map(response => {
+        this.assertSuccess(response);
+        const result = response.result?.[0];
+        if (!result?.activa || !result.codigo) throw new Error('Credencial digital no disponible.');
+        return result;
+      }));
+  }
+
+  regenerarCredencial(idorg: number, idfamilia: number, idmiembro: number, codigoActual: string): Observable<CredencialFamiliar> {
+    return this.http.post<SpResponse<CredencialFamiliar[]>>(`${this.baseUrl}/familias/${idfamilia}/miembros/${idmiembro}/credencial-virtual/regenerar`, { idorg, codigoActual })
+      .pipe(map(response => {
+        this.assertSuccess(response);
+        const result = response.result?.[0];
+        if (!result?.codigo) throw new Error('El servidor no devolvio el nuevo codigo.');
+        return result;
+      }));
+  }
+
   consultarMiRed(idorg: number): Observable<RedFamiliarRow[]> {
-    const params = new HttpParams().set('idorg', String(idorg));
+    const params = new HttpParams().set('idorg', String(idorg)).set('mostrarFoto', 'false');
 
     return this.http.get<SpResponse<RedFamiliarRow[]>>(`${this.baseUrl}/familiares/alumnos-autorizados`, { params }).pipe(
       map((response) => {
@@ -128,8 +154,12 @@ export class RedFamiliarService {
     procesamientoEstado?: string | null;
     procesamientoMetodo?: string | null;
     sitvalidada?: boolean | null;
-  }): Observable<{ fotoUrl?: string | null } | null> {
-    return this.http.post<SpResponse<{ fotoUrl?: string | null }>>(`${this.baseUrl}/credencial-fotos`, {
+  }): Observable<{ fotoUrl?: string | null; idsittag?: number | null; tagActivada?: boolean | null } | null> {
+    return this.http.post<SpResponse<{
+      fotoUrl?: string | null;
+      idsittag?: number | null;
+      tagActivada?: boolean | null;
+    }>>(`${this.baseUrl}/credencial-fotos`, {
       ...request,
       origen: request.origen ?? 'APPSECLIFE',
       fotoContentType: request.fotoContentType ?? 'image/jpeg',
@@ -275,6 +305,15 @@ export class RedFamiliarService {
     );
   }
 
+  consultarFotoFamiliar(idorg: number, idfamilia: number, idmiembro: number): Observable<string> {
+    return this.http.get<SpResponse<{ fotoUrl: string }>>(`${this.baseUrl}/familias/${idfamilia}/miembros/${idmiembro}/foto`, { params: { idorg } })
+      .pipe(map(response => {
+        this.assertSuccess(response);
+        const foto = response.result?.fotoUrl;
+        if (!foto?.startsWith('data:image/')) throw new Error('Fotografia no disponible.');
+        return foto;
+      }));
+  }
   revocarAlumnoCompartidoFamilia(
     idmatricula: number,
     idfamiliaDestino: number,

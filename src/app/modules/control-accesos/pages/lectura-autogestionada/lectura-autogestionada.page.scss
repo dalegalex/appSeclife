@@ -86,6 +86,10 @@ p {
   padding: 6px 8px 6px 10px;
 }
 
+.destination-item {
+  margin-bottom: 10px;
+}
+
 .connected-point {
   align-items: center;
   background: rgba(var(--ion-color-primary-rgb), 0.1);
@@ -106,6 +110,23 @@ p {
   display: grid;
   gap: 2px;
   min-width: 0;
+}
+
+.connected-point ion-button {
+  flex: 0 0 auto;
+  margin-left: auto;
+  --border-radius: 8px;
+}
+
+@media (max-width: 520px) {
+  .connected-point {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .connected-point ion-button {
+    margin-left: 34px;
+  }
 }
 
 .connected-point strong,

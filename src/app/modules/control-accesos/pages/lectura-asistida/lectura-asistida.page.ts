@@ -62,6 +62,7 @@ export class LecturaAsistidaPage implements OnDestroy {
   private nfcProcesando = false;
   private paginaActiva = false;
   private nfcHabilitadoPorUsuario = true;
+  private ultimaTipoEntregaSeleccionada: TipoEntregaSalida | null = null;
   private nfcRecoveryTimer: ReturnType<typeof setTimeout> | null = null;
   private ultimoCodigoNfc: string | null = null;
   private ultimaLecturaNfcAt = 0;
@@ -313,6 +314,7 @@ export class LecturaAsistidaPage implements OnDestroy {
 
   cambiarTipoEntrega(tipo: TipoEntregaSalida): void {
     this.tipoEntrega = tipo;
+    this.ultimaTipoEntregaSeleccionada = tipo;
     if (tipo !== 'AUTO') {
       this.idautofamiliarSeleccionado = null;
     } else if (!this.idautofamiliarSeleccionado && this.autos.length > 0) {
@@ -1106,6 +1108,13 @@ export class LecturaAsistidaPage implements OnDestroy {
 
   private preseleccionarEntrega(): void {
     if (!this.requiereEntregaSalida) {
+      return;
+    }
+
+    if (this.ultimaTipoEntregaSeleccionada === 'PEATONAL'
+      || this.ultimaTipoEntregaSeleccionada === 'OTRO_AUTO') {
+      this.tipoEntrega = this.ultimaTipoEntregaSeleccionada;
+      this.idautofamiliarSeleccionado = null;
       return;
     }
 

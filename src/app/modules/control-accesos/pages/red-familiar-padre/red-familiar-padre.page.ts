@@ -3,10 +3,13 @@ import { Capacitor } from '@capacitor/core';
 import { Directory, Filesystem } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import QRCode from 'qrcode';
-import { ActionSheetController, AlertController, ToastController } from '@ionic/angular';
+import { firstValueFrom } from 'rxjs';
+import { ActionSheetController, AlertController, ModalController, ToastController } from '@ionic/angular';
+import { FotoFamiliarModalComponent } from './foto-familiar-modal.component';
 import { AuthService } from '../../../../core/auth/auth.service';
 import {
   AlumnoCompartido,
+  CredencialFamiliar,
   AlumnoFamiliar,
   AplicarCodigoCompartirResponse,
   AutoFamiliar,
@@ -60,6 +63,143 @@ export class RedFamiliarPadrePage implements OnInit {
   codigoCapturado = signal('');
   selectedAlumnos = new Set<number>();
   editingMiembro: MiembroFamiliar | null = null;
+  readonly fotosEnProceso = signal<Set<number>>(new Set());
+  readonly credenciales = signal<CredencialFamiliar[]>([]);
+  readonly credencialEnProceso = signal<number | null>(null);
+
+  get puedeAdministrarRed(): boolean {
+    const usuario = this.authService.getCurrentUser()?.idusrbt;
+    return this.rows.some(row => (row.miembros ?? []).some(m => m.idusrbt === usuario
+      && m.sitactivo !== false && !m.esExterno && !m.sitMiembroSilencioso
+      && (m.esMaster === true || m.puedeAdministrar === true)));
+  }
+
+  credencialMiembro(miembro: MiembroFamiliar): CredencialFamiliar | undefined {
+    return this.puedeAdministrarRed && !this.esMiembroExterno(miembro)
+      ? this.credenciales().find(c => c.idfamiliamiembro === miembro.idfamiliamiembro) : undefined;
+  }
+
+  async cargarCredenciales(): Promise<void> {
+    this.credenciales.set([]);
+    if (!this.idfamilia || !this.puedeAdministrarRed) return;
+    try {
+      this.credenciales.set(await firstValueFrom(this.redFamiliarService.consultarCredenciales(this.idorg, this.idfamilia)));
+    } catch {
+      // Fail closed when the credential endpoint is not available during rollout.
+      this.credenciales.set([]);
+    }
+  }
+
+  async opcionesCredencial(miembro: MiembroFamiliar): Promise<void> {
+    if (this.credencialEnProceso() !== null || this.fotosEnProceso().has(miembro.idfamiliamiembro)) return;
+    const credencial = this.credencialMiembro(miembro);
+    if (!credencial) return;
+    const buttons = [];
+    if (credencial.activa) buttons.push({ text: 'Compartir credencial digital', icon: 'share-social-outline', handler: () => { void this.compartirCredencial(miembro); } });
+    if (credencial.puedeRegenerar) buttons.push({ text: 'Regenerar codigo virtual', icon: 'refresh-outline', handler: () => { void this.regenerarCredencial(miembro); } });
+    const sheet = await this.actionSheetController.create({ header: miembro.familiar, buttons: [...buttons, { text: 'Cancelar', role: 'cancel' }] });
+    await sheet.present();
+  }
+
+  async compartirCredencial(miembro: MiembroFamiliar): Promise<void> {
+    if (!this.idfamilia || !this.credencialMiembro(miembro)?.activa || this.credencialEnProceso() !== null) return;
+    this.credencialEnProceso.set(miembro.idfamiliamiembro);
+    try {
+      const credencial = await firstValueFrom(this.redFamiliarService.consultarCredencialCompartir(this.idorg, this.idfamilia, miembro.idfamiliamiembro));
+      const image = await this.crearImagenCredencial(credencial);
+      if (Capacitor.isNativePlatform()) {
+        const cachePath = `credencial-virtual-${Date.now()}.png`;
+        // Receivers can read the URI after the share dialog closes; retain recent files.
+        const cached = await Filesystem.readdir({ path: '', directory: Directory.Cache }).catch(() => ({ files: [] }));
+        await Promise.all(cached.files.filter(file => /^credencial-virtual-\d+\.png$/.test(file.name)
+          && Number(file.name.slice(19, -4)) < Date.now() - 86400000)
+          .map(file => Filesystem.deleteFile({ path: file.name, directory: Directory.Cache }).catch(() => undefined)));
+        const file = await Filesystem.writeFile({ path: cachePath, data: image.split(',')[1], directory: Directory.Cache });
+        await Share.share({ title: 'Credencial digital', files: [file.uri], dialogTitle: 'Compartir credencial digital' });
+      } else {
+        const blob = await (await fetch(image)).blob();
+        const file = new File([blob], 'credencial-virtual.png', { type: 'image/png' });
+        if (navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ title: 'Credencial digital', files: [file] });
+        } else {
+          const link = document.createElement('a');
+          link.href = image; link.download = 'credencial-virtual.png'; link.click();
+          await this.showToast('Credencial descargada para compartir.', 'success');
+        }
+      }
+    } catch (error) {
+      if (!this.shareWasCanceled(error)) await this.showToast(this.errorMessage(error, 'No fue posible compartir la credencial.'), 'danger');
+    } finally {
+      this.credencialEnProceso.set(null);
+    }
+  }
+
+  async crearImagenCredencial(credencial: CredencialFamiliar): Promise<string> {
+    if (!credencial.codigo || !credencial.activa) throw new Error('Credencial no disponible.');
+    if (![credencial.organizacion, credencial.nombreFamilia, credencial.cicloEscolar].every(value => value?.trim())) {
+      throw new Error('Faltan datos de organizacion, familia o ciclo escolar para compartir la credencial.');
+    }
+    const qr = await this.loadImage(await QRCode.toDataURL(credencial.codigo, { width: 560, margin: 4, errorCorrectionLevel: 'M' }));
+    const canvas = document.createElement('canvas');
+    canvas.width = 720;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('No fue posible generar la imagen.');
+    // Measure every text block before sizing the canvas; long names must not crop the QR or footer.
+    const blocks = [
+      { text: credencial.organizacion, size: 28 },
+      { text: credencial.nombreCompleto, size: 30 },
+      { text: `Familia: ${credencial.nombreFamilia}`, size: 24 },
+      { text: `Ciclo escolar: ${credencial.cicloEscolar}`, size: 24 },
+    ].map(block => {
+      ctx.font = `${block.size}px Arial`;
+      const words = block.text.split(/\s+/).flatMap(word => {
+        const parts: string[] = [];
+        let part = '';
+        for (const char of word) {
+          if (part && ctx.measureText(part + char).width > 640) { parts.push(part); part = ''; }
+          part += char;
+        }
+        if (part) parts.push(part);
+        return parts;
+      });
+      const lines = this.wrapCanvasText(ctx, words.join(' '), 640);
+      return { ...block, lines, height: lines.length * (block.size + 10) };
+    });
+    const qrTop = 110 + blocks[0].height;
+    canvas.height = qrTop + 600 + blocks.slice(1).reduce((height, block) => height + block.height + 16, 0) + 30;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#111111'; ctx.textAlign = 'center'; ctx.font = 'bold 32px Arial';
+    ctx.fillText('CREDENCIAL DIGITAL', 360, 65);
+    const drawBlock = (block: typeof blocks[number], top: number): void => {
+      ctx.font = `${block.size}px Arial`;
+      block.lines.forEach((line, index) => ctx.fillText(line, 360, top + index * (block.size + 10)));
+    };
+    drawBlock(blocks[0], 110);
+    ctx.drawImage(qr, 80, qrTop, 560, 560);
+    let top = qrTop + 600;
+    for (const block of blocks.slice(1)) { drawBlock(block, top); top += block.height + 16; }
+    return canvas.toDataURL('image/png');
+  }
+
+  async regenerarCredencial(miembro: MiembroFamiliar): Promise<void> {
+    if (!this.idfamilia || !this.credencialMiembro(miembro)?.puedeRegenerar || this.credencialEnProceso() !== null) return;
+    const alert = await this.alertController.create({
+      header: 'Regenerar codigo virtual',
+      message: 'El QR anterior dejara de funcionar, incluidas las imagenes que hayas compartido. Deberas compartir la nueva credencial.',
+      buttons: [{ text: 'Cancelar', role: 'cancel' }, { text: 'Regenerar', role: 'confirm' }]
+    });
+    await alert.present();
+    if ((await alert.onDidDismiss()).role !== 'confirm' || this.credencialEnProceso() !== null) return;
+    this.credencialEnProceso.set(miembro.idfamiliamiembro);
+    try {
+      const result = await firstValueFrom(this.redFamiliarService.regenerarCredencial(this.idorg, this.idfamilia!, miembro.idfamiliamiembro, miembro.codigo ?? ''));
+      this.upsertMiembroLocal({ ...miembro, codigo: result.codigo });
+      await this.cargarCredenciales();
+      await this.showToast('Codigo regenerado. El QR anterior ya no es valido.', 'success');
+    } catch (error) {
+      await this.showToast(this.errorMessage(error, 'No fue posible regenerar el codigo.'), 'danger');
+    } finally { this.credencialEnProceso.set(null); }
+  }
 
   miembroForm: GuardarMiembroFamiliarRequest = this.createMiembroForm();
   autoForm: GuardarAutoFamiliarRequest = this.createAutoForm();
@@ -82,7 +222,8 @@ export class RedFamiliarPadrePage implements OnInit {
     private readonly toastController: ToastController,
     private readonly actionSheetController: ActionSheetController,
     private readonly alertController: AlertController,
-    private readonly authService: AuthService
+    private readonly authService: AuthService,
+    private readonly modalController: ModalController
   ) {}
 
   ngOnInit(): void {
@@ -270,6 +411,7 @@ export class RedFamiliarPadrePage implements OnInit {
     this.redFamiliarService.consultarMiRed(this.idorg).subscribe({
       next: (rows) => {
         this.rows = rows;
+        void this.cargarCredenciales();
         this.loading = false;
         this.cargarCodigosEmitidos();
         options?.complete?.();
@@ -1575,7 +1717,7 @@ export class RedFamiliarPadrePage implements OnInit {
       return;
     }
 
-    if (!this.puedeEditarFotoMiembro(miembro)) {
+    if (!this.puedeAbrirMenuFoto(miembro)) {
       await this.showToast('La fotografia solo puede modificarse mientras la TAG esta asignada.', 'warning');
       return;
     }
@@ -1583,7 +1725,11 @@ export class RedFamiliarPadrePage implements OnInit {
     const actionSheet = await this.actionSheetController.create({
       header: 'Fotografia del familiar',
       buttons: [
-        {
+        ...(this.puedeVerFotoMiembro(miembro) ? [{
+          text: 'Mostrar fotografia', icon: 'image-outline',
+          handler: () => { void this.mostrarFotoMiembro(miembro); },
+        }] : []),
+        ...(this.puedeEditarFotoMiembro(miembro) ? [{
           text: 'Tomar foto',
           icon: 'camera-outline',
           handler: () => {
@@ -1596,7 +1742,7 @@ export class RedFamiliarPadrePage implements OnInit {
           handler: () => {
             galeriaInput.click();
           },
-        },
+        }] : []),
         {
           text: 'Cancelar',
           icon: 'close-outline',
@@ -1609,81 +1755,51 @@ export class RedFamiliarPadrePage implements OnInit {
   }
 
   async cargarFotoMiembro(miembro: MiembroFamiliar, event: Event): Promise<void> {
-    if (this.esMiembroExterno(miembro)) {
-      await this.showToast('La fotografia de un familiar externo solo la administra su familia de origen.', 'warning');
-      return;
-    }
-
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     input.value = '';
-
+    if (!file || this.fotosEnProceso().has(miembro.idfamiliamiembro)) return;
     if (!this.puedeEditarFotoMiembro(miembro)) {
       await this.showToast('La fotografia solo puede modificarse mientras la TAG esta asignada.', 'warning');
       return;
     }
-
-    if (!file) {
-      return;
-    }
-
     if (!file.type.startsWith('image/')) {
       await this.showToast('Selecciona un archivo de imagen.', 'warning');
       return;
     }
-
     const idfamilia = miembro.idfamilia ?? this.idfamilia;
-
-    if (!idfamilia) {
-      await this.showToast('No fue posible resolver la familia.', 'danger');
-      return;
+    if (!idfamilia) return;
+    this.fotosEnProceso.update(ids => new Set(ids).add(miembro.idfamiliamiembro));
+    let guardada = false;
+    try {
+      const foto = await this.fileToBase64(file);
+      const actualizado = await firstValueFrom(this.redFamiliarService.actualizarMiembro(idfamilia, miembro.idfamiliamiembro, {
+        idorg: this.idorg, idusrbtMiembro: miembro.idusrbt,
+        nombre: this.toUpper(miembro.nombre || this.firstName(miembro.familiar)),
+        apellidos: this.toUpper(miembro.apellidos || this.lastName(miembro.familiar)),
+        foto: null, cel: miembro.cel, emailContacto: miembro.emailContacto,
+        idparentesco: miembro.idparentesco ?? 10, puedeRecoger: miembro.puedeRecoger ?? true,
+        puedeAdministrar: miembro.puedeAdministrar ?? false,
+        sitMiembroSilencioso: miembro.sitMiembroSilencioso ?? false
+      })) ?? miembro;
+      const idusrbtMiembro = actualizado.idusrbt ?? miembro.idusrbt;
+      if (!idusrbtMiembro) throw new Error('No fue posible identificar al familiar.');
+      const resultado = await firstValueFrom(this.redFamiliarService.guardarFotoCredencial({
+        idorg: this.idorg, idperfil: 4, idusrbtMiembro, fotoBase64: foto,
+        fotoContentType: 'image/jpeg', origen: 'APPSECLIFE', procesamientoEstado: 'SIN_PROCESAR',
+        procesamientoMetodo: 'RED_FAMILIAR_APP', sitvalidada: true
+      }));
+      guardada = true;
+      this.upsertMiembroLocal({ ...actualizado, foto: null, tieneFoto: true, idsittag: resultado?.idsittag ?? actualizado.idsittag });
+      this.rows = await firstValueFrom(this.redFamiliarService.consultarMiRed(this.idorg));
+      await this.cargarCredenciales();
+      await this.showToast(resultado?.tagActivada ? 'Fotografia actualizada y credencial virtual activada.' : 'Fotografia actualizada.', 'success');
+    } catch (error) {
+      await this.showToast(guardada ? 'La foto se guardo, pero no fue posible actualizar la vista. Actualiza la red familiar.'
+        : this.errorMessage(error, 'No fue posible guardar la fotografia.'), 'danger');
+    } finally {
+      this.fotosEnProceso.update(ids => { const next = new Set(ids); next.delete(miembro.idfamiliamiembro); return next; });
     }
-
-    const foto = await this.fileToBase64(file);
-
-    this.redFamiliarService.actualizarMiembro(idfamilia, miembro.idfamiliamiembro, {
-      idorg: this.idorg,
-      idusrbtMiembro: miembro.idusrbt ?? null,
-      nombre: this.toUpper(miembro.nombre || this.firstName(miembro.familiar)),
-      apellidos: this.toUpper(miembro.apellidos || this.lastName(miembro.familiar)),
-      foto: null,
-      cel: miembro.cel ?? null,
-      emailContacto: miembro.emailContacto ?? null,
-      idparentesco: miembro.idparentesco ?? 10,
-      puedeRecoger: miembro.puedeRecoger ?? true,
-      puedeAdministrar: miembro.puedeAdministrar ?? false,
-      sitMiembroSilencioso: miembro.sitMiembroSilencioso ?? false,
-    }).subscribe({
-      next: async (miembroActualizado) => {
-        const actualizado = miembroActualizado ?? { ...miembro };
-        const idusrbtMiembro = actualizado.idusrbt ?? miembro.idusrbt ?? null;
-
-        if (!idusrbtMiembro) {
-          this.upsertMiembroLocal(actualizado);
-          await this.showToast('No fue posible resolver el usuario del familiar para guardar la fotografia oficial.', 'warning');
-          return;
-        }
-
-        this.redFamiliarService.guardarFotoCredencial({
-          idorg: this.idorg,
-          idperfil: 4,
-          idusrbtMiembro,
-          fotoBase64: foto,
-          fotoContentType: 'image/jpeg',
-          origen: 'APPSECLIFE',
-          procesamientoEstado: 'SIN_PROCESAR',
-          procesamientoMetodo: 'RED_FAMILIAR_APP',
-          sitvalidada: true,
-        }).subscribe({
-          next: async (fotoCredencial) => {
-            this.upsertMiembroLocal({ ...actualizado, foto: fotoCredencial?.fotoUrl ?? foto });
-            await this.showToast('Fotografia actualizada.', 'success');
-          },
-          error: async (error) => this.showToast(this.errorMessage(error, 'No fue posible guardar la fotografia oficial.'), 'danger'),
-        });
-      },
-      error: async (error) => this.showToast(this.errorMessage(error, 'No fue posible actualizar la fotografia.'), 'danger'),
-    });
   }
 
   fotoSrc(foto?: string | null): string | null {
@@ -1691,7 +1807,30 @@ export class RedFamiliarPadrePage implements OnInit {
       return null;
     }
 
-    return foto.startsWith('data:') ? foto : `data:image/jpeg;base64,${foto}`;
+    return /^(data:|https?:\/\/)/i.test(foto) ? foto : `data:image/jpeg;base64,${foto}`;
+  }
+
+  miembroTieneFoto(miembro: MiembroFamiliar): boolean {
+    return miembro.tieneFoto ?? !!miembro.foto;
+  }
+
+  puedeVerFotoMiembro(miembro: MiembroFamiliar): boolean {
+    return this.puedeAdministrarRed && !this.esMiembroExterno(miembro)
+      && !this.esInvitadoProvisional(miembro) && this.miembroTieneFoto(miembro);
+  }
+
+  puedeAbrirMenuFoto(miembro: MiembroFamiliar): boolean {
+    return this.puedeEditarFotoMiembro(miembro) || this.puedeVerFotoMiembro(miembro);
+  }
+
+  async mostrarFotoMiembro(miembro: MiembroFamiliar): Promise<void> {
+    const idfamilia = miembro.idfamilia ?? this.idfamilia;
+    if (!idfamilia || !this.puedeVerFotoMiembro(miembro)) return;
+    const modal = await this.modalController.create({
+      component: FotoFamiliarModalComponent,
+      componentProps: { idorg: this.idorg, idfamilia, idmiembro: miembro.idfamiliamiembro, nombre: miembro.familiar },
+    });
+    await modal.present();
   }
 
   tagEstadoLabel(miembro: MiembroFamiliar): string | null {
@@ -1745,7 +1884,7 @@ export class RedFamiliarPadrePage implements OnInit {
   }
 
   puedeEditarFotoMiembro(miembro: MiembroFamiliar): boolean {
-    return !this.esMiembroExterno(miembro)
+    return this.puedeAdministrarRed && !this.esMiembroExterno(miembro)
       && !this.esInvitadoProvisional(miembro)
       && !this.miembroTieneEdicionLimitada(miembro);
   }

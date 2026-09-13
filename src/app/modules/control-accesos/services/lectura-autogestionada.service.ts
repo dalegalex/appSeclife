@@ -11,6 +11,9 @@ import {
   AutogestionEventoRegistro,
   AutogestionSesion,
   AbrirSesionAutogestionRequest,
+  AsignarSesionAutogestionTerminalRequest,
+  AutogestionTerminal,
+  AutogestionTerminalesCatalogo,
   RegistrarAutogestionAsistenciaRequest,
   RegistrarAutogestionEventoRequest,
   ResolverAutogestionAsistenciaParams,
@@ -84,6 +87,27 @@ export class LecturaAutogestionadaService {
 
   abrirSesion(request: AbrirSesionAutogestionRequest): Observable<AutogestionSesion> {
     return this.http.post<SpResponse<AutogestionSesion>>(`${this.baseUrl}/sesiones`, request).pipe(
+      map((response) => {
+        this.assertSuccess(response);
+        return response.result as AutogestionSesion;
+      })
+    );
+  }
+
+  consultarTerminales(idorg: number): Observable<AutogestionTerminal[]> {
+    const params = new HttpParams()
+      .set('idorg', String(idorg))
+      .set('sitactivo', 'true');
+    return this.http.get<SpResponse<AutogestionTerminalesCatalogo>>(`${this.apiUrl}/control-accesos/terminales`, { params }).pipe(
+      map((response) => {
+        this.assertSuccess(response);
+        return response.result?.terminales ?? [];
+      })
+    );
+  }
+
+  asignarSesionTerminal(request: AsignarSesionAutogestionTerminalRequest): Observable<AutogestionSesion> {
+    return this.http.post<SpResponse<AutogestionSesion>>(`${this.baseUrl}/sesiones/terminal`, request).pipe(
       map((response) => {
         this.assertSuccess(response);
         return response.result as AutogestionSesion;

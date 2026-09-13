@@ -27,6 +27,8 @@ export interface CarruselSesion {
   lectores?: number | null;
   lectoresConectados?: number | null;
   pendientes?: number | null;
+  cierreAdministrativo?: boolean | null;
+  idusrbtCierre?: number | null;
   islas?: CarruselIsla[];
 }
 

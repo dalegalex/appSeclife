@@ -493,31 +493,37 @@
                 </ion-item-divider>
               }
 
-              <ion-item-sliding class="family-sliding" [class.external-family]="esFamiliarExterno(miembro)">
+              <ion-item-sliding class="family-sliding" [class.external-family]="esFamiliarExterno(miembro)"
+                [disabled]="fotosEnProceso().has(miembro.idfamiliamiembro) || credencialEnProceso() !== null">
                 <ion-item class="data-item swipe-hint" [class.external-member]="esFamiliarExterno(miembro)">
                   <button
                     slot="start"
                     class="photo-picker"
-                    [class.locked-photo]="!puedeEditarFotoMiembro(miembro)"
+                    [class.locked-photo]="!puedeAbrirMenuFoto(miembro)"
                     type="button"
-                    [disabled]="!puedeEditarFotoMiembro(miembro)"
+                    [disabled]="!puedeAbrirMenuFoto(miembro) || fotosEnProceso().has(miembro.idfamiliamiembro)"
                     (click)="seleccionarOrigenFoto(miembro, photoGalleryInput, photoCameraInput)"
-                    [attr.aria-label]="puedeEditarFotoMiembro(miembro) ? 'Cambiar fotografia' : 'Fotografia bloqueada por estado de TAG'">
-                    @if (fotoSrc(miembro.foto)) {
-                      <img [src]="fotoSrc(miembro.foto)" alt="Familiar" />
-                    } @else {
-                      <span class="avatar-fallback">
+                    [attr.aria-label]="puedeEditarFotoMiembro(miembro) ? 'Opciones de fotografia' : (puedeVerFotoMiembro(miembro) ? 'Mostrar fotografia' : 'Fotografia no disponible')">
+                      <span class="avatar-fallback" [class.has-photo]="miembroTieneFoto(miembro)"
+                        [attr.aria-label]="miembroTieneFoto(miembro) ? 'Con fotografia' : 'Sin fotografia'">
                         <ion-icon name="person-outline"></ion-icon>
                       </span>
-                    }
                     @if (puedeEditarFotoMiembro(miembro)) {
                       <ion-icon class="photo-edit" name="camera-outline"></ion-icon>
+                    }
+                    @if (fotosEnProceso().has(miembro.idfamiliamiembro)) {
+                      <span class="photo-busy" role="status" aria-label="Guardando y cargando fotografia">
+                        <ion-spinner name="crescent"></ion-spinner>
+                      </span>
                     }
                   </button>
                   <input #photoGalleryInput type="file" accept="image/*" hidden (change)="cargarFotoMiembro(miembro, $event)" />
                   <input #photoCameraInput type="file" accept="image/*" capture="environment" hidden (change)="cargarFotoMiembro(miembro, $event)" />
                   <ion-label>
                     <h3>{{ miembro.familiar }}</h3>
+                    @if (fotosEnProceso().has(miembro.idfamiliamiembro)) {
+                      <p class="photo-progress" role="status"><ion-icon name="hourglass-outline"></ion-icon> Guardando y cargando...</p>
+                    }
                     <p>{{ miembro.parentesco || 'Sin parentesco' }}</p>
                     <div class="chip-row">
                       <ion-chip [color]="esInvitadoProvisional(miembro) ? 'warning' : (esFamiliarExterno(miembro) ? 'tertiary' : 'primary')">
@@ -541,11 +547,39 @@
                       <p class="pass-date-note">{{ miembroPaseFechaLabel(miembro) }}</p>
                     }
                   </ion-label>
+                  @if (credencialMiembro(miembro); as credencial) {
+                    @if (credencial.activa || credencial.puedeRegenerar) {
+                      <ion-button slot="end" fill="clear" class="credential-action" title="Credencial digital"
+                        aria-label="Opciones de credencial digital" (click)="opcionesCredencial(miembro)"
+                        [disabled]="credencialEnProceso() !== null || fotosEnProceso().has(miembro.idfamiliamiembro)">
+                        @if (credencialEnProceso() === miembro.idfamiliamiembro) {
+                          <ion-spinner name="crescent"></ion-spinner>
+                        } @else { <ion-icon slot="icon-only" name="qr-code-outline"></ion-icon> }
+                      </ion-button>
+                    }
+                  }
                 </ion-item>
 
+                @if (puedeAdministrarRed) {
+                <ion-item-options side="start">
+                  @if (puedeBloquearTag(miembro)) {
+                    <ion-item-option [color]="miembro.sitbloqueo ? 'success' : 'warning'" [disabled]="savingTag" (click)="cambiarBloqueoMiembro(miembro)">
+                      <ion-icon slot="top" [name]="bloqueoTagIcon(miembro)"></ion-icon>
+                      {{ bloqueoTagLabel(miembro) }}
+                    </ion-item-option>
+                  }
+                  @if (esInvitadoProvisional(miembro) && miembroTienePaseActivo(miembro)) {
+                    <ion-item-option color="warning" (click)="cancelarPaseExterno(miembro)">
+                      <ion-icon slot="top" name="close-circle-outline"></ion-icon> Cancelar QR
+                    </ion-item-option>
+                  }
+                  <ion-item-option color="danger" (click)="eliminarMiembro(miembro)">
+                    <ion-icon slot="top" name="trash-outline"></ion-icon> Eliminar
+                  </ion-item-option>
+                </ion-item-options>
                 <ion-item-options side="end">
                   @if (!esMiembroExterno(miembro)) {
-                    <ion-item-option color="medium" (click)="editarMiembro(miembro)">
+                    <ion-item-option class="edit-member-action" (click)="editarMiembro(miembro)">
                       <ion-icon slot="top" name="create-outline"></ion-icon>
                       Editar
                     </ion-item-option>
@@ -562,23 +596,8 @@
                       {{ miembroPaseAccionLabel(miembro) }}
                     </ion-item-option>
                   }
-                  @if (puedeBloquearTag(miembro)) {
-                    <ion-item-option [color]="miembro.sitbloqueo ? 'success' : 'warning'" [disabled]="savingTag" (click)="cambiarBloqueoMiembro(miembro)">
-                      <ion-icon slot="top" [name]="bloqueoTagIcon(miembro)"></ion-icon>
-                      {{ bloqueoTagLabel(miembro) }}
-                    </ion-item-option>
-                  }
-                  @if (esInvitadoProvisional(miembro) && miembroTienePaseActivo(miembro)) {
-                    <ion-item-option color="warning" (click)="cancelarPaseExterno(miembro)">
-                      <ion-icon slot="top" name="close-circle-outline"></ion-icon>
-                      Cancelar QR
-                    </ion-item-option>
-                  }
-                  <ion-item-option color="danger" (click)="eliminarMiembro(miembro)">
-                    <ion-icon slot="top" name="trash-outline"></ion-icon>
-                    Eliminar
-                  </ion-item-option>
                 </ion-item-options>
+                }
               </ion-item-sliding>
             }
           </ion-list>

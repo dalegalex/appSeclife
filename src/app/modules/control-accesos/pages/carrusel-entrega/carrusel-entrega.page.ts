@@ -27,6 +27,8 @@ export class CarruselEntregaPage implements OnDestroy {
   fotoModalError: string | null = null;
   private subscriptions = new Subscription();
   private refrescoSesionTimer: ReturnType<typeof setInterval> | null = null;
+  private cierreRemotoEnProceso = false;
+  private cierreLocalEnProceso = false;
 
   constructor(
     private readonly carruselService: CarruselService,
@@ -39,6 +41,7 @@ export class CarruselEntregaPage implements OnDestroy {
     this.subscriptions.add(this.carruselService.entrega$.subscribe(() => void this.refrescarColaSilencioso()));
     this.subscriptions.add(this.carruselService.punto$.subscribe(() => void this.refrescarSesionSilencioso()));
     this.subscriptions.add(this.carruselService.puntoDesconectado$.subscribe(() => void this.refrescarSesionSilencioso()));
+    this.subscriptions.add(this.carruselService.cierre$.subscribe((payload) => void this.procesarCierreRemoto(payload)));
     this.nombrePuntoEntrega = this.getNombrePuntoGuardado();
   }
 
@@ -266,6 +269,17 @@ export class CarruselEntregaPage implements OnDestroy {
       const actualizada = sesiones.find((sesion) => sesion.idcarruselsesion === this.sesion?.idcarruselsesion);
       if (actualizada) {
         this.sesion = { ...this.sesion, ...actualizada };
+      } else {
+        await this.procesarCierreRemoto(
+          {
+            idcarruselsesion: this.sesion.idcarruselsesion,
+            idorg: this.idorg,
+            numeroIslas: this.sesion.numeroIslas,
+            estatus: 'CERRADA',
+            cierreAdministrativo: true,
+          },
+          true
+        );
       }
       this.cdRef.detectChanges();
     } catch {
@@ -341,6 +355,49 @@ export class CarruselEntregaPage implements OnDestroy {
     }
   }
 
+  private async procesarCierreRemoto(payload: CarruselSesion | unknown, cierreDetectadoPorConsulta = false): Promise<void> {
+    const cierre = payload as Partial<CarruselSesion> | null;
+    const sesionActual = this.sesion;
+    if (
+      !sesionActual
+      || this.cierreRemotoEnProceso
+      || this.cierreLocalEnProceso
+      || Number(cierre?.idcarruselsesion ?? 0) !== Number(sesionActual.idcarruselsesion)
+      || (!cierreDetectadoPorConsulta && cierre?.cierreAdministrativo !== true)
+    ) {
+      return;
+    }
+
+    this.cierreRemotoEnProceso = true;
+    this.detenerRefrescoSesion();
+    this.sesion = null;
+    this.cola = [];
+    this.loading = false;
+    this.saving = false;
+    this.ultimoErrorCola = null;
+    this.nombrePuntoEntrega = this.getNombrePuntoGuardado();
+    this.cdRef.detectChanges();
+
+    try {
+      try {
+        await this.carruselService.desconectar();
+      } catch {
+        // La sesión local debe cerrarse aunque SignalR ya se haya desconectado.
+      }
+      const alert = await this.alertController.create({
+        header: 'Punto de Entrega apagado',
+        message: 'El servicio fue cancelado desde el Portal Seclife. Este dispositivo dejó de recibir avisos del carrusel.',
+        backdropDismiss: false,
+        buttons: [{ text: 'Entendido', role: 'confirm' }],
+      });
+      await alert.present();
+      await alert.onDidDismiss();
+    } finally {
+      this.cierreRemotoEnProceso = false;
+      this.cdRef.detectChanges();
+    }
+  }
+
   private async ejecutarCancelacionAlumno(alumno: CarruselAlumnoEntrega): Promise<void> {
     this.saving = true;
     try {
@@ -397,6 +454,7 @@ export class CarruselEntregaPage implements OnDestroy {
     }
 
     this.loading = true;
+    this.cierreLocalEnProceso = true;
     try {
       await firstValueFrom(this.carruselService.cerrarSesion(this.sesion.idcarruselsesion, {
         idorg: this.idorg,
@@ -411,6 +469,7 @@ export class CarruselEntregaPage implements OnDestroy {
     } catch (error: any) {
       await this.showToast(error?.error?.message || error?.message || 'No fue posible cerrar el carrusel.', 'danger');
     } finally {
+      this.cierreLocalEnProceso = false;
       this.loading = false;
       this.cdRef.detectChanges();
     }
