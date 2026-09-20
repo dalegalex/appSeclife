@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
+import { BrigadaSemanalConsulta } from '../models/brigada-semanal.model';
 import {
   AplicarCodigoCompartirRequest,
   CredencialFamiliar,
@@ -33,6 +34,11 @@ export class RedFamiliarService {
   private readonly baseUrl = `${this.apiUrl}/control-accesos`;
 
   constructor(private readonly http: HttpClient) {}
+
+  consultarBrigadasSemanales(idfamilia: number, idmatricula?: number): Observable<BrigadaSemanalConsulta> {
+    const alumno = idmatricula === undefined ? '' : `/alumnos/${idmatricula}`;
+    return this.http.get<BrigadaSemanalConsulta>(`${this.baseUrl}/familias/${idfamilia}/brigadas-semanales${alumno}`);
+  }
 
   consultarCredenciales(idorg: number, idfamilia: number): Observable<CredencialFamiliar[]> {
     return this.http.get<SpResponse<CredencialFamiliar[]>>(`${this.baseUrl}/familias/${idfamilia}/credenciales`, { params: { idorg } })

@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.spec.json",
+  "include": [
+    "src/app/core/http/**/*.spec.ts",
+    "src/app/modules/tutoriales/**/*.spec.ts",
+    "src/app/modules/control-accesos/pages/red-familiar-padre/red-familiar-credencial.spec.ts",
+    "src/app/modules/control-accesos/pages/red-familiar-padre/brigada-semanal-modal.spec.ts",
+    "src/app/modules/transporte-escolar/components/pase-abordaje/pase-abordaje.component.spec.ts",
+    "src/test.ts",
+    "src/**/*.d.ts"
+  ]
+}

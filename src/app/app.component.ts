@@ -48,6 +48,13 @@ export class AppComponent {
       enabled: true,
     },
     {
+      title: 'Ayuda y videotutoriales',
+      subtitle: 'Material de consulta',
+      url: '/ayuda/tutoriales',
+      icon: 'play-circle-outline',
+      enabled: true,
+    },
+    {
       title: 'Credencial Digital',
       subtitle: 'Identificacion escolar',
       url: '/control-accesos/credencial-digital',
@@ -201,7 +208,7 @@ export class AppComponent {
       }
 
       if (item.url === '/transporte-escolar/conductor') {
-        return DRIVER_TRANSPORT_ENABLED && this.isProfileAllowed(profileId, [10, 11]);
+        return DRIVER_TRANSPORT_ENABLED && !!profileId && [1, 10, 11].includes(profileId);
       }
 
       if (item.url === '/ficha-personal/mi-ficha') {

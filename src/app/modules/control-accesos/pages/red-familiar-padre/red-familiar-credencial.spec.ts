@@ -1,6 +1,7 @@
 import { of, Subject, throwError } from 'rxjs';
 import { RedFamiliarPadrePage } from './red-familiar-padre.page';
 import { FotoFamiliarModalComponent } from './foto-familiar-modal.component';
+import { BrigadaSemanalModalComponent } from './brigada-semanal-modal.component';
 import { CredencialFamiliar, MiembroFamiliar } from '../../models/red-familiar.model';
 
 describe('Red Familiar credential actions', () => {
@@ -15,6 +16,7 @@ describe('Red Familiar credential actions', () => {
     api = { consultarCredenciales: jasmine.createSpy().and.returnValue(of([credencial])),
       actualizarMiembro: jasmine.createSpy().and.returnValue(of(miembro)),
       guardarFotoCredencial: jasmine.createSpy().and.returnValue(of({ idsittag: 3, tagActivada: true })),
+      consultarBrigadasSemanales: jasmine.createSpy().and.returnValue(of({visible:false,brigadas:[]})),
       consultarMiRed: jasmine.createSpy().and.callFake(() => of(page.rows)) };
     sheet = { create: jasmine.createSpy().and.resolveTo({ present: async () => {} }) };
     modal = { create: jasmine.createSpy().and.resolveTo({ present: async () => {} }) };
@@ -23,12 +25,130 @@ describe('Red Familiar credential actions', () => {
     page.rows = [{ idfamilia: 1, miembros: [{ idfamiliamiembro: 1, idusrbt: 11, familiar: 'Master', esMaster: true, sitactivo: true }, miembro] }];
     toast = spyOn<any>(page, 'showToast').and.resolveTo();
   });
+  it('hides brigades when disabled, unavailable, ordinary or silent', () => {
+    page.cargarDisponibilidadBrigadas(); expect(page.brigadasVisibles()).toBeFalse();
+    api.consultarBrigadasSemanales.and.returnValue(of({visible:true,brigadas:[]}));
+    page.cargarDisponibilidadBrigadas(); expect(page.brigadasVisibles()).toBeTrue();
+    api.consultarBrigadasSemanales.and.returnValue(throwError(()=>new Error('offline')));
+    page.cargarDisponibilidadBrigadas(); expect(page.brigadasVisibles()).toBeFalse();
+    api.consultarBrigadasSemanales.calls.reset(); page.rows[0].miembros![0].sitMiembroSilencioso=true;
+    page.cargarDisponibilidadBrigadas(); expect(api.consultarBrigadasSemanales).not.toHaveBeenCalled();
+    page.rows[0].miembros![0].sitMiembroSilencioso=false;page.rows[0].miembros![0].esMaster=false;
+    page.cargarDisponibilidadBrigadas(); expect(api.consultarBrigadasSemanales).not.toHaveBeenCalled();
+  });
+  it('cancels stale availability queries when the family reloads', () => {
+    const previous=new Subject<any>(); api.consultarBrigadasSemanales.and.returnValue(previous);
+    page.cargarDisponibilidadBrigadas();
+    api.consultarBrigadasSemanales.and.returnValue(of({visible:false,brigadas:[]}));
+    page.cargarDisponibilidadBrigadas(); previous.next({visible:true,brigadas:[]});
+    expect(page.brigadasVisibles()).toBeFalse(); page.ngOnDestroy();
+  });
+  it('does not open the brigade of an external pupil', async () => {
+    page.brigadasVisibles.set(true);
+    await page.verBrigada({tipoRelacion:'FAMILIAR_COMPARTIDO_PERMANENTE'} as any);
+    expect(modal.create).not.toHaveBeenCalled();
+  });
+  it('shows brigades only on registered nucleus pupils, failing closed for old responses', () => {
+    const registered = {idmatricula:10,tipoRelacion:'FAMILIA_NUCLEO'} as any;
+    const unregistered = {idmatricula:20,tipoRelacion:'FAMILIA_NUCLEO'} as any;
+    api.consultarBrigadasSemanales.and.returnValue(of({visible:true,alumnos:[{idmatricula:10}],brigadas:[]}));
+    page.cargarDisponibilidadBrigadas();
+    expect(page.puedeConsultarBrigada(registered)).toBeTrue();
+    expect(page.puedeConsultarBrigada(unregistered)).toBeFalse();
+    expect(page.puedeConsultarBrigada({...registered,tipoRelacion:'FAMILIAR_COMPARTIDO_PERMANENTE'})).toBeFalse();
+    api.consultarBrigadasSemanales.and.returnValue(of({visible:true,brigadas:[]}));page.cargarDisponibilidadBrigadas();
+    expect(page.puedeConsultarBrigada(registered)).toBeFalse();
+    expect(page.alumnosConBrigada().size).toBe(0);
+  });
   it('offers on-demand viewing only for a member with a photo', async () => {
     await page.seleccionarOrigenFoto({ ...miembro, tieneFoto: true }, {} as any, {} as any);
     expect(sheet.create.calls.mostRecent().args[0].buttons.map((b: any) => b.text)).toContain('Mostrar fotografia');
     expect(modal.create).not.toHaveBeenCalled();
     await page.seleccionarOrigenFoto({ ...miembro, tieneFoto: false }, {} as any, {} as any);
     expect(sheet.create.calls.mostRecent().args[0].buttons.map((b: any) => b.text)).not.toContain('Mostrar fotografia');
+  });
+  it('denies student changes until the organization explicitly enables them', async () => {
+    const alumno: any = { idalumnoautorizacion: 7, tipoRelacion: 'FAMILIA_NUCLEO' };
+    api.crearAlumnoAutorizacion = jasmine.createSpy();
+    api.cambiarEstadoAlumno = jasmine.createSpy();
+    page.toggleAlumnoForm();
+    page.guardarAlumno();
+    await page.eliminarAlumno(alumno);
+    expect(page.showAlumnoForm).toBeFalse();
+    expect(page.puedeAgregarAlumno).toBeFalse();
+    expect(page.puedeQuitarAlumno(alumno)).toBeFalse();
+    expect(api.crearAlumnoAutorizacion).not.toHaveBeenCalled();
+    expect(api.cambiarEstadoAlumno).not.toHaveBeenCalled();
+  });
+  it('honors all four independent student policy combinations without changing sharing', () => {
+    const alumno: any = { tipoRelacion: 'FAMILIA_NUCLEO' };
+    const externo: any = { tipoRelacion: 'FAMILIAR_COMPARTIDO_PERMANENTE' };
+    for (const agregar of [false, true]) for (const quitar of [false, true]) {
+      Object.assign(page.rows[0], { permitirAgregarAlumnosNucleoApp: agregar, permitirQuitarAlumnosNucleoApp: quitar });
+      expect(page.puedeAgregarAlumno).toBe(agregar);
+      expect(page.puedeQuitarAlumno(alumno)).toBe(quitar);
+      expect(page.puedeQuitarAlumno(externo)).toBeFalse();
+      expect(page.puedeCompartirAlumno(alumno)).toBeTrue();
+      expect(page.esAlumnoCompartidoExterno(externo)).toBeTrue();
+    }
+  });
+  it('requires family administration even when the organization enables student changes', () => {
+    Object.assign(page.rows[0], { permitirAgregarAlumnosNucleoApp: true, permitirQuitarAlumnosNucleoApp: true });
+    const actor = page.rows[0].miembros![0];
+    const alumno: any = { tipoRelacion: 'FAMILIA_NUCLEO' };
+    actor.esMaster = false;
+    expect(page.puedeAgregarAlumno).toBeFalse();
+    expect(page.puedeQuitarAlumno(alumno)).toBeFalse();
+    actor.puedeAdministrar = true;
+    expect(page.puedeAgregarAlumno).toBeTrue();
+    expect(page.puedeQuitarAlumno(alumno)).toBeTrue();
+    page.loading = true;
+    expect(page.puedeAgregarAlumno).toBeFalse();
+    expect(page.puedeQuitarAlumno(alumno)).toBeFalse();
+  });
+  it('rechecks student removal policy after confirmation', async () => {
+    Object.assign(page.rows[0], { permitirQuitarAlumnosNucleoApp: true });
+    api.cambiarEstadoAlumno = jasmine.createSpy();
+    spyOn<any>(page, 'confirmar').and.callFake(async () => {
+      page.rows[0].permitirQuitarAlumnosNucleoApp = false;
+      return true;
+    });
+    await page.eliminarAlumno({ idalumnoautorizacion: 7, tipoRelacion: 'FAMILIA_NUCLEO' } as any);
+    expect(api.cambiarEstadoAlumno).not.toHaveBeenCalled();
+  });
+  it('reloads the complete network after nucleus removal instead of exposing a remaining temporary row', async () => {
+    const base = { ...page.rows[0], permitirQuitarAlumnosNucleoApp: true };
+    const nucleus: any = { ...base, idalumnoautorizacion: 7, idmatricula: 22, alumno: 'Alumno prueba', tipoRelacion: 'FAMILIA_NUCLEO' };
+    const other: any = { ...base, idalumnoautorizacion: 10, idmatricula: 23, alumno: 'Otro alumno', tipoRelacion: 'FAMILIA_NUCLEO' };
+    page.rows = [nucleus, { ...nucleus, idalumnoautorizacion: 8, tipoRelacion: 'INVITADO_EXTERNO' }, other];
+    spyOn<any>(page, 'confirmar').and.resolveTo(true);
+    spyOn<any>(page, 'cargarCodigosEmitidos').and.stub();
+    api.cambiarEstadoAlumno = jasmine.createSpy().and.returnValue(of({}));
+    api.consultarMiRed.and.returnValue(of([other]));
+    await page.eliminarAlumno(nucleus);
+    expect(api.cambiarEstadoAlumno).toHaveBeenCalledWith(7, 1099, false);
+    expect(api.consultarMiRed).toHaveBeenCalledWith(1099);
+    expect(page.alumnos.map(a => a.idmatricula)).toEqual([23]);
+    expect(page.rows.some(r => r.tipoRelacion === 'INVITADO_EXTERNO')).toBeFalse();
+  });
+  it('does not remove a student locally when the server rejects removal', async () => {
+    const nucleus: any = { ...page.rows[0], permitirQuitarAlumnosNucleoApp: true,
+      idalumnoautorizacion: 7, idmatricula: 22, alumno: 'Alumno prueba', tipoRelacion: 'FAMILIA_NUCLEO' };
+    page.rows = [nucleus];
+    spyOn<any>(page, 'confirmar').and.resolveTo(true);
+    api.cambiarEstadoAlumno = jasmine.createSpy().and.returnValue(throwError(() => new Error('No permitido')));
+    await page.eliminarAlumno(nucleus);
+    expect(page.alumnos.length).toBe(1);
+    expect(api.consultarMiRed).not.toHaveBeenCalled();
+  });
+  it('closes student editing and clears policy permissions on a failed refresh', () => {
+    Object.assign(page.rows[0], { permitirAgregarAlumnosNucleoApp: true, permitirQuitarAlumnosNucleoApp: true });
+    page.showAlumnoForm = true;
+    api.consultarMiRed.and.returnValue(throwError(() => new Error('offline')));
+    (page as any).recargarRed();
+    expect(page.showAlumnoForm).toBeFalse();
+    expect(page.puedeAgregarAlumno).toBeFalse();
+    expect(page.puedeQuitarAlumno({ tipoRelacion: 'FAMILIA_NUCLEO' } as any)).toBeFalse();
   });
   it('honors photo metadata and supports older server responses', () => {
     expect(page.miembroTieneFoto({ ...miembro, tieneFoto: false, foto: 'old' })).toBeFalse();

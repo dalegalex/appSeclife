@@ -5,6 +5,8 @@ export interface SpResponse<T> {
 }
 
 export interface RedFamiliarRow {
+  permitirAgregarAlumnosNucleoApp?: boolean | null;
+  permitirQuitarAlumnosNucleoApp?: boolean | null;
   idalumnoautorizacion?: number | null;
   idorg?: number | null;
   idmatricula?: number | null;

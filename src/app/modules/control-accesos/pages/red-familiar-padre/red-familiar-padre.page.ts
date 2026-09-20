@@ -1,9 +1,10 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, OnDestroy, Optional, signal } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
 import { Directory, Filesystem } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import QRCode from 'qrcode';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Subscription } from 'rxjs';
+import { BrigadaSemanalModalComponent } from './brigada-semanal-modal.component';
 import { ActionSheetController, AlertController, ModalController, ToastController } from '@ionic/angular';
 import { FotoFamiliarModalComponent } from './foto-familiar-modal.component';
 import { AuthService } from '../../../../core/auth/auth.service';
@@ -36,7 +37,39 @@ type RedFamiliarTab = 'alumnos' | 'familiares' | 'autos';
   styleUrls: ['./red-familiar-padre.page.scss'],
   standalone: false,
 })
-export class RedFamiliarPadrePage implements OnInit {
+export class RedFamiliarPadrePage implements OnInit, OnDestroy {
+  readonly brigadasVisibles = signal(false);
+  readonly alumnosConBrigada = signal<ReadonlySet<number>>(new Set());
+  private consultaBrigadas?: Subscription;
+  private abriendoBrigada = false;
+
+  cargarDisponibilidadBrigadas(): void {
+    this.alumnosConBrigada.set(new Set());
+    this.consultaBrigadas?.unsubscribe(); this.brigadasVisibles.set(false);
+    if (!this.idfamilia || !this.puedeAdministrarRed) return;
+    this.consultaBrigadas = this.redFamiliarService.consultarBrigadasSemanales(this.idfamilia).subscribe({
+      next: result => {
+        this.alumnosConBrigada.set(new Set(result.visible === true
+          ? (result.alumnos ?? []).map(a => a.idmatricula).filter(id => Number.isInteger(id) && id > 0) : []));
+        this.brigadasVisibles.set(result.visible === true); this.changeDetector?.detectChanges();
+      },
+      error: () => { this.alumnosConBrigada.set(new Set()); this.brigadasVisibles.set(false); this.changeDetector?.detectChanges(); },
+    });
+  }
+  puedeConsultarBrigada(alumno: AlumnoFamiliar): boolean {
+    return this.brigadasVisibles() && this.puedeAdministrarRed && this.esAlumnoNucleo(alumno)
+      && this.alumnosConBrigada().has(alumno.idmatricula);
+  }
+  async verBrigada(alumno: AlumnoFamiliar): Promise<void> {
+    if (this.abriendoBrigada || !this.puedeConsultarBrigada(alumno)) return;
+    this.abriendoBrigada = true;
+    try {
+      const modal = await this.modalController.create({ component: BrigadaSemanalModalComponent,
+        componentProps: { idfamilia: this.idfamilia, idmatricula: alumno.idmatricula, alumno: alumno.alumno } });
+      await modal.present(); await modal.onDidDismiss();
+    } finally { this.abriendoBrigada = false; }
+  }
+  ngOnDestroy(): void { this.consultaBrigadas?.unsubscribe(); this.brigadasVisibles.set(false); this.alumnosConBrigada.set(new Set()); }
   activeTab: RedFamiliarTab = 'alumnos';
   loading = false;
   savingMiembro = false;
@@ -77,6 +110,16 @@ export class RedFamiliarPadrePage implements OnInit {
   credencialMiembro(miembro: MiembroFamiliar): CredencialFamiliar | undefined {
     return this.puedeAdministrarRed && !this.esMiembroExterno(miembro)
       ? this.credenciales().find(c => c.idfamiliamiembro === miembro.idfamiliamiembro) : undefined;
+  }
+
+  get puedeAgregarAlumno(): boolean {
+    return !this.loading && this.puedeAdministrarRed
+      && this.rows.some(row => row.idfamilia === this.idfamilia && row.permitirAgregarAlumnosNucleoApp === true);
+  }
+
+  puedeQuitarAlumno(alumno: AlumnoFamiliar): boolean {
+    return !this.loading && this.puedeAdministrarRed && this.esAlumnoNucleo(alumno)
+      && this.rows.some(row => row.idfamilia === this.idfamilia && row.permitirQuitarAlumnosNucleoApp === true);
   }
 
   async cargarCredenciales(): Promise<void> {
@@ -223,7 +266,8 @@ export class RedFamiliarPadrePage implements OnInit {
     private readonly actionSheetController: ActionSheetController,
     private readonly alertController: AlertController,
     private readonly authService: AuthService,
-    private readonly modalController: ModalController
+    private readonly modalController: ModalController,
+    @Optional() private readonly changeDetector?: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -384,7 +428,7 @@ export class RedFamiliarPadrePage implements OnInit {
   }
 
   get puedeGuardarAlumno(): boolean {
-    return !!this.alumnoForm.alumnoReferencia?.trim() && !!this.idfamilia && !!this.masterMiembro?.idfamiliamiembro;
+    return this.puedeAgregarAlumno && !!this.alumnoForm.alumnoReferencia?.trim() && !!this.idfamilia && !!this.masterMiembro?.idfamiliamiembro;
   }
 
   cargar(event?: { target?: { complete?: () => void } }): void {
@@ -408,16 +452,25 @@ export class RedFamiliarPadrePage implements OnInit {
   }
 
   private recargarRed(options?: { complete?: () => void; onError?: (error: unknown) => void | Promise<void> }): void {
+    this.alumnosConBrigada.set(new Set());
+    this.consultaBrigadas?.unsubscribe(); this.brigadasVisibles.set(false);
+    this.loading = true;
     this.redFamiliarService.consultarMiRed(this.idorg).subscribe({
       next: (rows) => {
         this.rows = rows;
         void this.cargarCredenciales();
+        this.cargarDisponibilidadBrigadas();
         this.loading = false;
+        if (!this.puedeAgregarAlumno) this.showAlumnoForm = false;
+        this.changeDetector?.detectChanges();
         this.cargarCodigosEmitidos();
         options?.complete?.();
       },
       error: async (error) => {
+        this.rows = this.rows.map(row => ({ ...row, permitirAgregarAlumnosNucleoApp: false, permitirQuitarAlumnosNucleoApp: false }));
+        this.showAlumnoForm = false;
         this.loading = false;
+        this.changeDetector?.detectChanges();
         options?.complete?.();
         await options?.onError?.(error);
       },
@@ -435,6 +488,7 @@ export class RedFamiliarPadrePage implements OnInit {
   }
 
   toggleAlumnoForm(): void {
+    if (!this.puedeAgregarAlumno) return;
     this.showAlumnoForm = !this.showAlumnoForm;
     this.showMiembroForm = false;
     this.showAutoForm = false;
@@ -442,6 +496,7 @@ export class RedFamiliarPadrePage implements OnInit {
     if (this.showAlumnoForm) {
       this.alumnoForm = this.createAlumnoForm();
     }
+    this.changeDetector?.detectChanges();
   }
 
   toggleMiembroForm(): void {
@@ -524,6 +579,7 @@ export class RedFamiliarPadrePage implements OnInit {
   }
 
   guardarAlumno(): void {
+    if (!this.puedeAgregarAlumno) return;
     const idfamilia = this.idfamilia;
     const master = this.masterMiembro;
     const alumnoLookup = this.resolveAlumnoLookup(this.alumnoForm.alumnoReferencia);
@@ -856,18 +912,21 @@ export class RedFamiliarPadrePage implements OnInit {
   }
 
   async eliminarAlumno(alumno: AlumnoFamiliar): Promise<void> {
+    if (!this.puedeQuitarAlumno(alumno)) return;
     const confirmed = await this.confirmar(
       'Quitar de mi familia',
-      `Esta accion quitara a ${alumno.alumno} de tu familia nucleo. Para cancelar permisos de otras familias utiliza el boton Compartido.`
+      `Esta accion quitara a ${alumno.alumno} de tu familia nucleo y revocara sus permisos asociados, incluidos los temporales y los compartidos con otras familias.`
     );
 
-    if (!confirmed) {
+    if (!confirmed || !this.puedeQuitarAlumno(alumno)) {
       return;
     }
 
     this.redFamiliarService.cambiarEstadoAlumno(alumno.idalumnoautorizacion, this.idorg, false).subscribe({
       next: async () => {
-        this.removeAlumnoLocal(alumno.idalumnoautorizacion);
+        this.recargarRed({
+          onError: async () => this.showToast('La baja se realizo, pero no fue posible actualizar la red. Vuelve a consultar.', 'warning'),
+        });
         await this.showToast('Alumno eliminado de la red familiar.', 'success');
       },
       error: async (error) => this.showToast(this.errorMessage(error, 'No fue posible eliminar el alumno.'), 'danger'),
@@ -2048,13 +2107,6 @@ export class RedFamiliarPadrePage implements OnInit {
     this.rows = this.rows.map((row) => ({
       ...row,
       autos: (row.autos ?? []).filter((auto) => auto.idautofamiliar !== idautofamiliar),
-    }));
-  }
-
-  private removeAlumnoLocal(idalumnoautorizacion: number): void {
-    this.rows = this.rows.filter((row) => row.idalumnoautorizacion !== idalumnoautorizacion).map((row) => ({
-      ...row,
-      compartidos: (row.compartidos ?? []).filter((compartido) => compartido.idalumnoautorizacion !== idalumnoautorizacion),
     }));
   }
 

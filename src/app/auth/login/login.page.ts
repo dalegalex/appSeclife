@@ -649,10 +649,10 @@ export class LoginPage implements AfterViewInit {
     const message = this.extractErrorMessage(error);
     const normalized = message.toLowerCase();
 
-    if (error instanceof HttpErrorResponse && error.status === 0) {
+    if (error instanceof HttpErrorResponse && [0, 502, 503, 504].includes(error.status)) {
       this.setError(
-        'Sin conexion al API',
-        `No fue posible conectar con Seclife en ${this.resolveApiUrl()}. Verifica que el API este activo y que adb reverse este configurado.`
+        'Sin conexion',
+        'Problema de conectividad, intente mas tarde'
       );
       return;
     }

@@ -3,7 +3,6 @@ import { AlertController } from '@ionic/angular';
 import { of, Subject, throwError } from 'rxjs';
 import { PaseAbordajeComponent } from './pase-abordaje.component';
 import { AbordajeService, AbordajeEstado } from '../../services/abordaje.service';
-import { ConductorRutasService } from '../../services/conductor-rutas.service';
 
 describe('PaseAbordajeComponent', () => {
  let component: PaseAbordajeComponent;
@@ -13,13 +12,13 @@ describe('PaseAbordajeComponent', () => {
  beforeEach(() => {
   response={idruta:2,fechaServidor:'2026-09-10',pase:{idrecorrido:20,fecha:'2026-09-10',estado:'ABIERTO',revision:3},
    alumnos:[{idrecorridoalumno:10,nombre:'ALUMNO',seleccionado:true,procesado:false,avisos:{total:0,enviados:0,fallidos:0}}],pendientes:[]};
-  api=jasmine.createSpyObj('AbordajeService',['consultar','iniciar','accion']);
+  api=jasmine.createSpyObj('AbordajeService',['consultar','iniciar','accion','rutas']);
+  api.rutas.and.returnValue(of({codeNumber:200,message:'',result:[{idruta:1,sentido:'SALIDA',descripcion:'R1',unidad:'U',conductor:'C'},{idruta:2,sentido:'SALIDA',descripcion:'R2',unidad:'U',conductor:'C'}]}));
   api.consultar.and.returnValue(of({result:response,codeNumber:200,message:''}));
   api.accion.and.returnValue(of({result:response,codeNumber:200,message:''}));
   confirmation='confirm';
   TestBed.configureTestingModule({providers:[
    {provide:AbordajeService,useValue:api},
-   {provide:ConductorRutasService,useValue:{listarMisRutas:()=>of([{idruta:1,sentido:'SALIDA'},{idruta:2,sentido:'SALIDA'}])}},
    {provide:AlertController,useValue:{create:async()=>({present:async()=>{},onDidDismiss:async()=>({role:confirmation})})}}
   ]});
   component=TestBed.runInInjectionContext(()=>new PaseAbordajeComponent());

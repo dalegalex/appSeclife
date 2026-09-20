@@ -4,6 +4,7 @@ import { Capacitor } from '@capacitor/core';
 import { environment } from '../../../../environments/environment';
 
 export interface AbordajePase { idrecorrido: number; fecha: string; estado: string; revision: number; }
+export interface AbordajeRuta { idruta: number; descripcion: string; sentido: 'SALIDA'; unidad: string; conductor: string; }
 export interface AbordajeAlumno {
   idrecorridoalumno: number; nombre: string; seleccionado: boolean; idevento?: number;
   correccion?: string; salidaRegistrada?: boolean; procesado: boolean; avisos: { total: number; enviados: number; fallidos: number };
@@ -15,6 +16,7 @@ export class AbordajeService {
   private readonly http = inject(HttpClient);
   private readonly url = (Capacitor.isNativePlatform() ? environment.androidApiUrl : environment.apiUrl) + '/transporte-escolar/abordaje';
   configuracion() { return this.http.get<AbordajeResponse<{ soloAbordajeSalida: boolean }>>(this.url + '/configuracion'); }
+  rutas() { return this.http.get<AbordajeResponse<AbordajeRuta[]>>(this.url + '/rutas'); }
   consultar(idruta: number) { return this.http.get<AbordajeResponse<AbordajeEstado>>(this.url + '/rutas/' + idruta); }
   iniciar(idruta: number) { return this.http.post<AbordajeResponse<AbordajeEstado>>(this.url + '/rutas/' + idruta + '/iniciar', {}); }
   accion(id: number, accion: string, body: object = {}) {

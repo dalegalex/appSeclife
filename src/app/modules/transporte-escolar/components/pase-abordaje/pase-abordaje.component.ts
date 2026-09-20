@@ -2,9 +2,7 @@ import { Component, OnInit, OnDestroy, computed, inject, signal } from '@angular
 import { CommonModule } from '@angular/common';
 import { IonicModule, AlertController } from '@ionic/angular';
 import { firstValueFrom } from 'rxjs';
-import { AbordajeService, AbordajeEstado, AbordajeAlumno, AbordajePase } from '../../services/abordaje.service';
-import { ConductorRutasService } from '../../services/conductor-rutas.service';
-import { ConductorRuta } from '../../models/conductor-ruta.model';
+import { AbordajeService, AbordajeEstado, AbordajeAlumno, AbordajePase, AbordajeRuta } from '../../services/abordaje.service';
 
 @Component({
  selector: 'app-pase-abordaje', standalone: true, imports: [CommonModule, IonicModule],
@@ -12,9 +10,8 @@ import { ConductorRuta } from '../../models/conductor-ruta.model';
 })
 export class PaseAbordajeComponent implements OnInit, OnDestroy {
  private readonly api = inject(AbordajeService);
- private readonly rutasApi = inject(ConductorRutasService);
  private readonly alert = inject(AlertController);
- readonly rutas = signal<ConductorRuta[]>([]);
+ readonly rutas = signal<AbordajeRuta[]>([]);
  readonly idruta = signal<number | null>(null);
  readonly estado = signal<AbordajeEstado | null>(null);
  readonly busy = signal(false);
@@ -35,7 +32,7 @@ export class PaseAbordajeComponent implements OnInit, OnDestroy {
    clearInterval(this.timer);
    this.loading.set(true);
    try {
-     this.rutas.set((await firstValueFrom(this.rutasApi.listarMisRutas())).filter(r => r.sentido === 'SALIDA'));
+     this.rutas.set((await firstValueFrom(this.api.rutas())).result);
      const estados = await Promise.all(this.rutas().map(r => firstValueFrom(this.api.consultar(r.idruta))));
      const actual = estados.find(r => r.result.pase?.estado === 'ABIERTO') ?? estados[0];
      this.idruta.set(actual?.result.idruta ?? null);

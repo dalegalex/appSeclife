@@ -70,6 +70,18 @@
       </ion-card-content>
     </ion-card>
     }
+    @if (authService.canAccessAppRoute('/ayuda/tutoriales')) {
+    <ion-card button routerLink="/ayuda/tutoriales" class="tutorials-card">
+      <ion-card-header>
+        <div class="module-icon"><ion-icon name="play-circle-outline"></ion-icon></div>
+        <ion-card-title>Ayuda y videotutoriales</ion-card-title>
+        <ion-card-subtitle>Guias de Seclife</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        Consultar videos de orientacion para utilizar Seclife.
+      </ion-card-content>
+    </ion-card>
+    }
     @if (canUseConductor()) {
     <ion-card button routerLink="/transporte-escolar/conductor">
       <ion-card-header>

@@ -54,8 +54,26 @@
 
     <ion-item>
       <ion-label position="stacked">Justificante</ion-label>
-      <input class="file-input" type="file" accept="image/*,.pdf" (change)="onFileChange($event)">
-      <ion-note *ngIf="selectedFile">{{ selectedFile.name }}</ion-note>
+      <div class="justificante-actions">
+        <ion-button fill="outline" size="small" (click)="triggerFileSelector(justificanteInput)">
+          <ion-icon slot="start" name="images-outline"></ion-icon>
+          Galería / archivo
+        </ion-button>
+        <ion-button fill="outline" size="small" (click)="tomarFotoJustificante()">
+          <ion-icon slot="start" name="camera-outline"></ion-icon>
+          Tomar foto
+        </ion-button>
+      </div>
+      <input
+        #justificanteInput
+        class="file-input"
+        type="file"
+        accept="image/*,.pdf"
+        (change)="onFileChange($event)">
+      <ion-note *ngIf="selectedAttachment">{{ selectedAttachmentName }}</ion-note>
+      <ion-button *ngIf="selectedAttachment" fill="clear" size="small" color="medium" (click)="clearAttachment()">
+        Quitar justificante
+      </ion-button>
     </ion-item>
   </ion-list>
 

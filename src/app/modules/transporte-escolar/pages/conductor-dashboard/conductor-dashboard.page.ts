@@ -99,6 +99,12 @@ export class ConductorDashboardPage implements OnInit, OnDestroy {
         this.soloAbordaje.set(response.result.soloAbordajeSalida);
         this.cargandoModalidad.set(false);
         this.modalidadConsultada = true;
+        if (!this.soloAbordaje() && ![10, 11].includes(this.authService.getCurrentProfileId() ?? 0)) {
+          this.recorridoIniciado = false;
+          this.detenerGps();
+          this.errorModalidad.set('El administrador solo puede operar la modalidad de abordaje de salida. El recorrido completo requiere conductor o asistente.');
+          return;
+        }
         if (this.soloAbordaje()) {
           this.recorridoIniciado = false;
           this.detenerGps();

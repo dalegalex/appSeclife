@@ -13,9 +13,14 @@ ion-list {
 }
 
 .file-input {
-  width: 100%;
-  margin-top: 8px;
-  color: var(--ion-color-dark);
+  display: none;
+}
+
+.justificante-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
 }
 
 .history {

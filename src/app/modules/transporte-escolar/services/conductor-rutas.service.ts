@@ -175,8 +175,8 @@ export class ConductorRutasService {
     const status = typeof httpError.status === 'number' ? httpError.status : null;
     const detail = this.resolveErrorDetail(httpError.error) || httpError.message || 'Sin detalle del error';
 
-    if (status === 0) {
-      return `Sin conexion al API (${this.apiUrl}). ${detail}`;
+    if (status !== null && [0, 502, 503, 504].includes(status)) {
+      return 'Problema de conectividad, intente mas tarde';
     }
 
     if (status) {

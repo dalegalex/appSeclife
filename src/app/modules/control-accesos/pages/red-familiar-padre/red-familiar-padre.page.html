@@ -112,7 +112,7 @@
             <h2>{{ alumnos.length }} registros</h2>
           </div>
           <div class="heading-actions">
-            <ion-button size="small" fill="solid" (click)="toggleAlumnoForm()" [disabled]="!idfamilia">
+            <ion-button *ngIf="puedeAgregarAlumno" size="small" fill="solid" (click)="toggleAlumnoForm()" [disabled]="!idfamilia">
               <ion-icon slot="start" [name]="showAlumnoForm ? 'close-outline' : 'add-outline'"></ion-icon>
               Alumno
             </ion-button>
@@ -123,7 +123,7 @@
           </div>
         </div>
 
-        <form *ngIf="showAlumnoForm" class="inline-form" (ngSubmit)="guardarAlumno()">
+        <form *ngIf="showAlumnoForm && puedeAgregarAlumno" class="inline-form" (ngSubmit)="guardarAlumno()">
           <div class="form-title">
             <span class="eyebrow">Agregar hijo-alumno</span>
             <h3>Buscar por matricula o CURP</h3>
@@ -236,12 +236,12 @@
         </form>
         }
 
-        <div *ngIf="alumnos.length === 0" class="empty-state">
+        @if (alumnos.length === 0) { <div class="empty-state">
           No hay alumnos asociados a esta red familiar.
-        </div>
+        </div> }
 
-        <ion-list *ngIf="alumnos.length > 0" lines="none" class="student-list">
-          <ion-item-sliding *ngFor="let alumno of alumnos" class="student-sliding-delete">
+        @if (alumnos.length > 0) { <ion-list lines="none" class="student-list">
+          @for (alumno of alumnos; track alumno.idmatricula) { <ion-item-sliding class="student-sliding-delete">
             <ion-item
               class="data-item swipe-hint"
               [class.nucleo-student]="esAlumnoNucleo(alumno)"
@@ -252,14 +252,14 @@
                 <h3>{{ alumno.alumno }}</h3>
                 <p>{{ alumnoReferencia(alumno) }}</p>
                 <div class="chip-row">
-                  <ion-chip *ngIf="tieneCompartido(alumno, 'PROVISIONAL')" color="warning">
+                  @if (tieneCompartido(alumno, 'PROVISIONAL')) { <ion-chip color="warning">
                     <ion-icon name="time-outline"></ion-icon>
                     <ion-label>Provisional</ion-label>
-                  </ion-chip>
-                  <ion-chip *ngIf="tieneCompartido(alumno, 'PERMANENTE')" color="primary">
+                  </ion-chip> }
+                  @if (tieneCompartido(alumno, 'PERMANENTE')) { <ion-chip color="primary">
                     <ion-icon name="people-outline"></ion-icon>
                     <ion-label>Permanente</ion-label>
-                  </ion-chip>
+                  </ion-chip> }
                   <ion-chip [color]="alumnoRelacionColor(alumno)">
                     <ion-label>{{ alumnoRelacionLabel(alumno) }}</ion-label>
                   </ion-chip>
@@ -267,6 +267,11 @@
                     <ion-label>{{ alumno.puedeRecoger ? 'Entrega activa' : 'Sin entrega' }}</ion-label>
                   </ion-chip>
                 </div>
+                @if (puedeConsultarBrigada(alumno)) {
+                  <ion-button class="shared-summary-button" fill="outline" size="small" (click)="verBrigada(alumno)">
+                    <ion-icon slot="start" name="calendar-outline"></ion-icon> Brigada semanal
+                  </ion-button>
+                }
                 @if (esAlumnoNucleo(alumno) && compartidosAlumno(alumno).length > 0) {
                   <ion-button
                     class="shared-summary-button"
@@ -282,17 +287,17 @@
             </ion-item>
 
             <ion-item-options side="end">
-              <ion-item-option color="danger" *ngIf="puedeCompartirAlumno(alumno)" (click)="eliminarAlumno(alumno)">
+              @if (puedeQuitarAlumno(alumno)) { <ion-item-option color="danger" (click)="eliminarAlumno(alumno)">
                 <ion-icon slot="top" name="trash-outline"></ion-icon>
                 Quitar de mi familia
-              </ion-item-option>
-              <ion-item-option color="danger" *ngIf="esAlumnoCompartidoExterno(alumno)" (click)="retirarAlumnoCompartido(alumno)">
+              </ion-item-option> }
+              @if (esAlumnoCompartidoExterno(alumno)) { <ion-item-option color="danger" (click)="retirarAlumnoCompartido(alumno)">
                 <ion-icon slot="top" name="remove-circle-outline"></ion-icon>
                 Quitar de mi red
-              </ion-item-option>
+              </ion-item-option> }
             </ion-item-options>
-          </ion-item-sliding>
-        </ion-list>
+          </ion-item-sliding> }
+        </ion-list> }
 
         <section id="issued-codes-alumnos" class="issued-codes-panel">
           <div class="section-heading">
@@ -371,7 +376,7 @@
           <div class="heading-actions">
             <ion-button size="small" fill="outline" (click)="toggleExternoForm()" [disabled]="!idfamilia">
               <ion-icon slot="start" [name]="showExternoForm ? 'close-outline' : 'person-add-outline'"></ion-icon>
-              Externo
+              Temporal
             </ion-button>
             <ion-button size="small" fill="solid" (click)="toggleMiembroForm()" [disabled]="!idfamilia">
               <ion-icon slot="start" [name]="showMiembroForm ? 'close-outline' : 'add-outline'"></ion-icon>
@@ -527,7 +532,7 @@
                     <p>{{ miembro.parentesco || 'Sin parentesco' }}</p>
                     <div class="chip-row">
                       <ion-chip [color]="esInvitadoProvisional(miembro) ? 'warning' : (esFamiliarExterno(miembro) ? 'tertiary' : 'primary')">
-                        <ion-label>{{ esInvitadoProvisional(miembro) ? 'Externo provisional' : (esFamiliarExterno(miembro) ? 'Familiar externo' : 'Familia nucleo') }}</ion-label>
+                        <ion-label>{{ esInvitadoProvisional(miembro) ? 'Familia Temporal' : (esFamiliarExterno(miembro) ? 'Familiar externo' : 'Familia nucleo') }}</ion-label>
                       </ion-chip>
 
                       @if (esInvitadoProvisional(miembro)) {

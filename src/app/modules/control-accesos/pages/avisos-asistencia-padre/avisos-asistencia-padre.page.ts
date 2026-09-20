@@ -1,4 +1,5 @@
 ﻿import { Component, OnInit } from '@angular/core';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { AlertController, ToastController } from '@ionic/angular';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { RedFamiliarRow } from '../../models/red-familiar.model';
@@ -16,6 +17,13 @@ type AvisoForm = {
   comentariosSolicitud: string;
 };
 
+type JustificanteAdjunto = {
+  name: string;
+  contentType: string;
+  size: number | null;
+  dataUrl: string;
+};
+
 @Component({
   selector: 'app-avisos-asistencia-padre',
   templateUrl: './avisos-asistencia-padre.page.html',
@@ -28,7 +36,7 @@ export class AvisosAsistenciaPadrePage implements OnInit {
   cancellingAvisoId: number | null = null;
   alumnos: RedFamiliarRow[] = [];
   avisos: AvisoAsistencia[] = [];
-  selectedFile: File | null = null;
+  selectedAttachment: JustificanteAdjunto | null = null;
 
   form: AvisoForm = this.createForm();
 
@@ -102,7 +110,7 @@ export class AvisosAsistenciaPadrePage implements OnInit {
       return;
     }
 
-    const documentoBase64 = await this.readSelectedFile();
+    const documentoBase64 = this.selectedAttachment?.dataUrl ?? null;
 
     this.saving = true;
     this.avisoAsistenciaService.crear({
@@ -114,9 +122,9 @@ export class AvisosAsistenciaPadrePage implements OnInit {
       fechaFin: this.esAusencia ? this.form.fechaFin : null,
       motivo: this.form.motivo.trim() || null,
       comentariosSolicitud: this.form.comentariosSolicitud.trim() || null,
-      documentoNombre: this.selectedFile?.name ?? null,
-      documentoContentType: this.selectedFile?.type || null,
-      documentoTamanoBytes: this.selectedFile?.size ?? null,
+      documentoNombre: this.selectedAttachment?.name ?? null,
+      documentoContentType: this.selectedAttachment?.contentType || null,
+      documentoTamanoBytes: this.selectedAttachment?.size ?? null,
       documentoBase64,
     }).subscribe({
       next: () => {
@@ -125,7 +133,7 @@ export class AvisosAsistenciaPadrePage implements OnInit {
         const idmatricula = this.form.idmatricula;
         this.form = this.createForm();
         this.form.idmatricula = idmatricula;
-        this.selectedFile = null;
+        this.selectedAttachment = null;
         this.cargarAvisos();
       },
       error: (error) => {
@@ -213,9 +221,69 @@ export class AvisosAsistenciaPadrePage implements OnInit {
     return tipo === 'FAMILIA_NUCLEO' || descripcion.includes('NUCLEO') || descripcion.includes('NÚCLEO');
   }
 
-  onFileChange(event: Event): void {
+  get selectedAttachmentName(): string {
+    return this.selectedAttachment?.name ?? '';
+  }
+
+  triggerFileSelector(input: HTMLInputElement): void {
+    input.click();
+  }
+
+  async onFileChange(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
-    this.selectedFile = input.files?.[0] ?? null;
+    const file = input.files?.[0] ?? null;
+    input.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      this.selectedAttachment = {
+        name: file.name,
+        contentType: file.type || 'application/octet-stream',
+        size: file.size,
+        dataUrl: await this.readFileAsDataUrl(file),
+      };
+    } catch (error) {
+      this.selectedAttachment = null;
+      void this.showToast(error instanceof Error ? error.message : 'No fue posible leer el justificante.');
+    }
+  }
+
+  async tomarFotoJustificante(): Promise<void> {
+    try {
+      const photo = await Camera.getPhoto({
+        quality: 82,
+        resultType: CameraResultType.Base64,
+        source: CameraSource.Camera,
+        correctOrientation: true,
+        saveToGallery: false,
+      });
+
+      if (!photo.base64String) {
+        void this.showToast('No fue posible leer la fotografia.');
+        return;
+      }
+
+      const contentType = this.photoContentType(photo.format);
+      const extension = this.photoExtension(photo.format);
+      this.selectedAttachment = {
+        name: `justificante-${this.timestampForFileName()}.${extension}`,
+        contentType,
+        size: this.base64ByteLength(photo.base64String),
+        dataUrl: `data:${contentType};base64,${photo.base64String}`,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error ?? '');
+      if (!this.isCameraCancel(message)) {
+        void this.showToast('No fue posible tomar la fotografia del justificante.');
+      }
+    }
+  }
+
+  clearAttachment(): void {
+    this.selectedAttachment = null;
   }
 
   statusColor(aviso: AvisoAsistencia): string {
@@ -272,17 +340,48 @@ export class AvisosAsistenciaPadrePage implements OnInit {
     };
   }
 
-  private readSelectedFile(): Promise<string | null> {
-    if (!this.selectedFile) {
-      return Promise.resolve(null);
-    }
-
+  private readFileAsDataUrl(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result);
+          return;
+        }
+
+        reject(new Error('No fue posible leer el justificante.'));
+      };
       reader.onerror = () => reject(new Error('No fue posible leer el justificante.'));
-      reader.readAsDataURL(this.selectedFile as File);
+      reader.readAsDataURL(file);
     });
+  }
+
+  private photoContentType(format?: string): string {
+    const normalized = (format || 'jpeg').toLowerCase();
+    if (normalized === 'png') return 'image/png';
+    if (normalized === 'webp') return 'image/webp';
+    return 'image/jpeg';
+  }
+
+  private photoExtension(format?: string): string {
+    const normalized = (format || 'jpg').toLowerCase();
+    if (normalized === 'png') return 'png';
+    if (normalized === 'webp') return 'webp';
+    return 'jpg';
+  }
+
+  private base64ByteLength(base64: string): number {
+    const padding = base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0;
+    return Math.max(0, Math.floor((base64.length * 3) / 4) - padding);
+  }
+
+  private timestampForFileName(): string {
+    return new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, '');
+  }
+
+  private isCameraCancel(message: string): boolean {
+    const normalized = message.toLowerCase();
+    return normalized.includes('cancel') || normalized.includes('dismiss') || normalized.includes('abort');
   }
 
   private async showToast(message: string): Promise<void> {

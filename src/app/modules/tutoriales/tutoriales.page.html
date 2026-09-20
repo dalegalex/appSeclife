@@ -1,0 +1,54 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start"><ion-back-button defaultHref="/home" text="Volver"></ion-back-button></ion-buttons>
+    <ion-title>Videotutoriales</ion-title>
+  </ion-toolbar>
+</ion-header>
+<ion-content>
+  <main class="catalog">
+    @if (allowed()) {
+      <form [formGroup]="filters" (ngSubmit)="reload()" class="filters">
+        <ion-searchbar formControlName="buscar" placeholder="Buscar tutorial" aria-label="Buscar tutorial" [debounce]="400" (ionInput)="onSearch($event)"></ion-searchbar>
+        <ion-select formControlName="categoria" label="Categoria" interface="action-sheet" (ionChange)="onCategory($event)">
+          <ion-select-option value="">Todas</ion-select-option>
+          <ion-select-option value="RED_FAMILIAR">Red familiar</ion-select-option>
+          <ion-select-option value="ASISTENCIA">Avisos de asistencia</ion-select-option>
+          <ion-select-option value="EVENTOS_FAMILIARES">Eventos familiares</ion-select-option>
+        </ion-select>
+      </form>
+    }
+    @if (error()) {
+      <div class="message" role="alert"><p>{{ error() }}</p>
+        @if (allowed()) { <ion-button fill="outline" (click)="load()">Reintentar</ion-button> }
+      </div>
+    }
+    <ion-list lines="full">
+      @for (row of rows(); track row.id) {
+        <ion-item button detail="true" (click)="open(row)">
+          <ion-icon slot="start" name="play-circle-outline" color="primary" aria-hidden="true"></ion-icon>
+          <ion-label class="ion-text-wrap"><h2>{{ row.titulo }}</h2><p>{{ categoryLabel(row.categoria) }} · {{ duration(row.duracion) }}</p><p>{{ row.descripcion }}</p></ion-label>
+        </ion-item>
+      } @empty {
+        @if (allowed() && !loading() && !error()) { <p class="empty">No hay videotutoriales disponibles para esta consulta.</p> }
+      }
+    </ion-list>
+    @if (loading()) { <div class="loading" role="status"><ion-spinner></ion-spinner><span>Cargando...</span></div> }
+    <ion-infinite-scroll [disabled]="!more() || !!error()" threshold="150px" (ionInfinite)="load($event)"><ion-infinite-scroll-content></ion-infinite-scroll-content></ion-infinite-scroll>
+  </main>
+</ion-content>
+<ion-modal [isOpen]="!!selected()" (didDismiss)="close()">
+  <ng-template>
+    <ion-header><ion-toolbar><ion-buttons slot="start"><ion-button (click)="close()"><ion-icon slot="start" name="arrow-back-outline"></ion-icon>Volver</ion-button></ion-buttons><ion-title>Videotutorial</ion-title></ion-toolbar></ion-header>
+    <ion-content>
+      <section class="player">
+        <h1>{{ selected()?.titulo }}</h1>
+        @if (preparing()) { <div class="loading" role="status"><ion-spinner></ion-spinner><span>Preparando video...</span></div> }
+        @if (link(); as source) {
+          <video #video controls playsinline preload="metadata" [src]="source.url" (loadedmetadata)="metadata()" (timeupdate)="rememberPosition()" (play)="checkExpiry()" (error)="playbackError()" aria-label="Reproductor del tutorial"></video>
+        }
+        @if (playerError()) { <div class="message" role="alert"><p>{{ playerError() }}</p><ion-button (click)="retryPlayback()" [disabled]="preparing()">Reintentar</ion-button></div> }
+        <p>{{ selected()?.descripcion }}</p>
+      </section>
+    </ion-content>
+  </ng-template>
+</ion-modal>
