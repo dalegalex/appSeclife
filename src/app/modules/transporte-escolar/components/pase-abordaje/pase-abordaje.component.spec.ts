@@ -67,8 +67,30 @@ describe('PaseAbordajeComponent', () => {
   pending.next({result:{...response,pase:undefined},codeNumber:200});pending.complete();await task;
   expect(component.estado()?.pase?.idrecorrido).toBe(20);
  });
- it('recupera la ruta con pase abierto al ingresar',async()=>{
+ it('no impone un pase abierto de otra ruta al ingresar',async()=>{
   api.consultar.and.callFake((id:number)=>of({codeNumber:200,message:'',result:id===2?response:{...response,idruta:1,pase:undefined}}));
-  await component.ngOnInit();expect(component.idruta()).toBe(2);expect(component.seleccionados()).toBe(1);
+  component.idruta.set(null);
+  await component.ngOnInit();
+  expect(component.idruta()).toBeNull();
+  expect(component.estado()).toBeNull();
+  expect(api.consultar).not.toHaveBeenCalled();
+ });
+ it('permite cambiar de ruta con pase abierto sin cerrarlo ni enviar avisos',async()=>{
+  component.rutas.set([{idruta:1,descripcion:'R1',sentido:'SALIDA',unidad:'U',conductor:'C'}]);
+  api.consultar.and.returnValue(of({codeNumber:200,message:'',result:{...response,idruta:1,pase:undefined,alumnos:[]}}));
+  await component.elegirRuta(1);
+  expect(component.idruta()).toBe(1);
+  expect(component.estado()?.pase).toBeUndefined();
+  expect(api.accion).not.toHaveBeenCalled();
+ });
+ it('rechaza respuestas antiguas al cambiar de ruta y volver',async()=>{
+  component.rutas.set([{idruta:1,descripcion:'R1',sentido:'SALIDA',unidad:'U',conductor:'C'},{idruta:2,descripcion:'R2',sentido:'SALIDA',unidad:'U',conductor:'C'}]);
+  const anterior=new Subject<any>();
+  api.consultar.and.returnValues(anterior,of({result:{...response,idruta:1,pase:undefined,alumnos:[]},codeNumber:200,message:''}),of({result:{...response,pase:{...response.pase!,revision:9}},codeNumber:200,message:''}));
+  const tarea=component.recargar(false);
+  await component.elegirRuta(1);
+  await component.elegirRuta(2);
+  anterior.next({result:response,codeNumber:200,message:''});anterior.complete();await tarea;
+  expect(component.estado()?.pase?.revision).toBe(9);
  });
 });

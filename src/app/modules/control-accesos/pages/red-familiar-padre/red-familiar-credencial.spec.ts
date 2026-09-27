@@ -60,6 +60,24 @@ describe('Red Familiar credential actions', () => {
     expect(page.puedeConsultarBrigada(registered)).toBeFalse();
     expect(page.alumnosConBrigada().size).toBe(0);
   });
+  it('lets the master or administrator upload a temporal photo without creating a user or TAG', async () => {
+    const temporal: MiembroFamiliar = { idfamiliamiembro: 10, idfamilia: 1, idinvitadoexterno: 10, familiar: 'TEMPORAL', esExterno: true, sitactivo: true };
+    api.guardarFotoTemporal = jasmine.createSpy().and.returnValue(of({ tieneFoto: true }));
+    spyOn<any>(page, 'fileToBase64').and.resolveTo('base64');
+    expect(page.puedeEditarFotoMiembro(temporal)).toBeTrue();
+    await page.seleccionarOrigenFoto(temporal, {} as any, {} as any);
+    expect(sheet.create).toHaveBeenCalled();
+    await page.cargarFotoMiembro(temporal, { target: { files: [new File(['x'], 'foto.png', { type: 'image/png' })], value: '' } } as any);
+    expect(api.guardarFotoTemporal).toHaveBeenCalledWith(1099, 1, 10, 'base64');
+    expect(api.actualizarMiembro).not.toHaveBeenCalled();
+    expect(api.guardarFotoCredencial).not.toHaveBeenCalled();
+    expect(page.fotosEnProceso().size).toBe(0);
+    page.rows[0].miembros![0].esMaster = false;
+    expect(page.puedeEditarFotoMiembro(temporal)).toBeFalse();
+    page.rows[0].miembros![0].puedeAdministrar = true;
+    expect(page.puedeEditarFotoMiembro(temporal)).toBeTrue();
+    expect(page.puedeVerFotoMiembro({ ...temporal, tieneFoto: true })).toBeTrue();
+  });
   it('offers on-demand viewing only for a member with a photo', async () => {
     await page.seleccionarOrigenFoto({ ...miembro, tieneFoto: true }, {} as any, {} as any);
     expect(sheet.create.calls.mostRecent().args[0].buttons.map((b: any) => b.text)).toContain('Mostrar fotografia');

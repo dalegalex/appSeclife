@@ -27,34 +27,40 @@ export class PaseAbordajeComponent implements OnInit, OnDestroy {
  readonly fallidos = computed(() => this.alumnos().some(a => a.avisos.fallidos > 0));
  private timer?: ReturnType<typeof setInterval>;
  private destroyed = false;
+ private consulta = 0;
 
  async ngOnInit() {
    clearInterval(this.timer);
    this.loading.set(true);
    try {
      this.rutas.set((await firstValueFrom(this.api.rutas())).result);
-     const estados = await Promise.all(this.rutas().map(r => firstValueFrom(this.api.consultar(r.idruta))));
-     const actual = estados.find(r => r.result.pase?.estado === 'ABIERTO') ?? estados[0];
-     this.idruta.set(actual?.result.idruta ?? null);
-     this.estado.set(actual?.result ?? null);
+     const anterior = this.idruta();
+     const id = this.rutas().some(r => r.idruta === anterior) ? anterior
+       : this.rutas().length === 1 ? this.rutas()[0].idruta : null;
+     this.idruta.set(id);
+     this.estado.set(null);
+     if (id) await this.recargar(false);
      this.timer = setInterval(() => { if (!this.busy()) void this.recargar(false); }, 15000);
    } catch (e) { this.error.set(this.errorText(e)); }
    finally { this.loading.set(false); }
  }
  ngOnDestroy() { this.destroyed = true; clearInterval(this.timer); }
  async elegirRuta(id: number) {
-   if (this.abierto() || this.busy()) return;
-   this.idruta.set(Number(id)); this.estado.set(null); await this.recargar();
+   const nueva = Number(id);
+   if (this.busy() || !this.rutas().some(r => r.idruta === nueva)) return;
+   this.idruta.set(nueva); this.estado.set(null); this.error.set(''); this.mensaje.set('');
+   await this.recargar();
  }
  async recargar(show = true) {
    const id = this.idruta(); if (this.busy()) return;
    if (!id) { if (show) await this.ngOnInit(); return; }
+   const consulta = ++this.consulta;
    if (show) this.loading.set(true);
    try {
      const response = await firstValueFrom(this.api.consultar(id));
-     if (!this.destroyed && !this.busy() && id === this.idruta()) { this.estado.set(response.result); this.error.set(''); }
-   } catch(e) { this.error.set(this.errorText(e)); }
-   finally { if(show) this.loading.set(false); }
+     if (!this.destroyed && !this.busy() && consulta === this.consulta && id === this.idruta()) { this.estado.set(response.result); this.error.set(''); }
+   } catch(e) { if (!this.destroyed && consulta === this.consulta && id === this.idruta()) this.error.set(this.errorText(e)); }
+   finally { if(consulta === this.consulta) this.loading.set(false); }
  }
  async iniciar() {
    const id=this.idruta(); if(!id || this.busy()) return;

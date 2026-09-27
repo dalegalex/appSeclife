@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Capacitor } from '@capacitor/core';
-import { Observable, map } from 'rxjs';
+import { Observable, forkJoin, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import {
   BuscarIdentidadesLecturaAsistidaResponse,
@@ -69,7 +69,7 @@ export class LecturaAsistidaService {
       .set('tipoPortador', tipoPortador)
       .set('searchText', searchText.trim());
 
-    return this.http.get<SpResponse<BuscarIdentidadesLecturaAsistidaResponse>>(
+    const base = this.http.get<SpResponse<BuscarIdentidadesLecturaAsistidaResponse>>(
       `${this.baseUrl}/identidades`,
       { params }
     ).pipe(
@@ -78,6 +78,17 @@ export class LecturaAsistidaService {
         return response.result ?? { resultados: [] };
       })
     );
+    if (tipoPortador !== 'FAMILIAR') return base;
+    const temporales = this.http.get<SpResponse<BuscarIdentidadesLecturaAsistidaResponse>>(
+      `${this.baseUrl}/temporales`, { params }
+    ).pipe(map(response => {
+      this.assertSuccess(response);
+      return response.result ?? { resultados: [] };
+    }));
+    return forkJoin({ base, temporales }).pipe(map(({ base, temporales }) => ({
+      resultados: [...(base.resultados ?? []), ...(temporales.resultados ?? [])]
+        .sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto, 'es'))
+    })));
   }
 
   resolverIdentidadManual(

@@ -1,10 +1,10 @@
 <section class="boarding">
  <header>
   <h1>Abordaje de salida</h1>
-  <ion-select aria-label="Ruta de salida" interface="action-sheet" [value]="idruta()" [disabled]="abierto() || busy() || loading()" (ionChange)="elegirRuta($event.detail.value)">
+  <ion-select aria-label="Ruta de salida" placeholder="Seleccionar ruta" interface="action-sheet" [value]="idruta()" [disabled]="busy() || loading()" (ionChange)="elegirRuta($event.detail.value)">
    @for(r of rutas(); track r.idruta) { <ion-select-option [value]="r.idruta">{{ r.descripcion }}</ion-select-option> }
   </ion-select>
-  <p>{{ ruta()?.unidad }} &middot; {{ ruta()?.conductor }}</p>
+  @if(ruta(); as actual) { <p>{{ actual.unidad }} &middot; {{ actual.conductor }}</p> }
  </header>
  @if(error()) { <p class="error" role="alert">{{ error() }}</p> }
  @if(mensaje()) { <p class="notice" role="status">{{ mensaje() }}</p> }

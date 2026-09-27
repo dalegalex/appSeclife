@@ -285,7 +285,7 @@
         </ion-item>
 
         <div class="identity-results">
-          @for (identidad of resultadosIdentidad; track identidad.idmatricula || identidad.idusrbt) {
+          @for (identidad of resultadosIdentidad; track identidad.esTemporal ? 'T:' + identidad.idfamiliamiembro : identidad.idmatricula ? 'A:' + identidad.idmatricula : 'U:' + identidad.idusrbt) {
             <ion-card class="identity-card identity-result" [class.unavailable]="!identidad.credencialDisponible">
               <ion-card-content>
                 @if (fotoSrc(identidad.foto)) {
@@ -294,7 +294,7 @@
                   <div class="avatar-fallback"><ion-icon name="person-outline"></ion-icon></div>
                 }
                 <div class="identity-result-data">
-                  <span class="eyebrow">{{ identidad.tipoPortador }}</span>
+                  <span class="eyebrow">{{ identidad.esTemporal ? 'TEMPORAL' : identidad.tipoPortador }}</span>
                   <h2>{{ identidad.nombreCompleto }}</h2>
                   @if (identidad.familia) { <p>Familia: {{ identidad.familia }}</p> }
                   @if (identidad.referencia) { <p>{{ identidad.referencia }}</p> }
@@ -302,7 +302,7 @@
                     <ion-note color="danger">{{ identidad.motivoNoDisponible || 'Identidad no disponible' }}</ion-note>
                   }
                 </div>
-                <ion-button fill="clear" (click)="seleccionarIdentidad(identidad)" [disabled]="loading || !identidad.credencialDisponible" aria-label="Seleccionar persona">
+                <ion-button fill="clear" (click)="seleccionarIdentidad(identidad)" [disabled]="loading || (!identidad.esTemporal && !identidad.credencialDisponible)" aria-label="Seleccionar persona">
                   <ion-icon slot="icon-only" name="checkmark-circle-outline"></ion-icon>
                 </ion-button>
               </ion-card-content>

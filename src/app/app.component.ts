@@ -1,4 +1,6 @@
 import { Component, effect, untracked } from '@angular/core';
+import { AppUpdateService } from './core/updates/app-update.service';
+import { TransporteOfflineSyncService } from './modules/transporte-escolar/services/transporte-offline-sync.service';
 import { Router } from '@angular/router';
 import { environment } from '../environments/environment';
 import { AuthService } from './core/auth/auth.service';
@@ -28,8 +30,8 @@ export class AppComponent {
   readonly appVersionLabel = `v${environment.appVersion} (${environment.appChannel})`;
   readonly privacyNoticeUrl = PRIVACY_NOTICE_URL;
   readonly privacyNoticeVersion = PRIVACY_NOTICE_VERSION;
-  readonly canDismissPrivacyConsent = (): boolean => !this.privacyConsentRequired;
-  readonly canDismissSessionLock = (): boolean => !this.sessionSecurity.locked();
+  readonly canDismissPrivacyConsent = (): boolean => !this.privacyConsentRequired || this.appUpdate.blocked() || this.appUpdate.recommended();
+  readonly canDismissSessionLock = (): boolean => !this.sessionSecurity.locked() || this.appUpdate.blocked() || this.appUpdate.recommended();
 
   private readonly adminProfiles = [1, 2, 3];
   private readonly allMenuItems: AppMenuItem[] = [
@@ -47,6 +49,7 @@ export class AppComponent {
       icon: 'notifications-outline',
       enabled: true,
     },
+    { title: 'Ficha Médica', subtitle: 'Referencia familiar', icon: 'heart-outline', url: '/ficha-medica', enabled: true },
     {
       title: 'Ayuda y videotutoriales',
       subtitle: 'Material de consulta',
@@ -185,10 +188,13 @@ export class AppComponent {
   constructor(
     public readonly authService: AuthService,
     public readonly sessionSecurity: SessionSecurityService,
+    public readonly appUpdate: AppUpdateService,
+    private readonly transportOffline: TransporteOfflineSyncService,
     private readonly router: Router,
     private readonly notificacionesPushRegistrationService: NotificacionesPushRegistrationService
   ) {
     void this.sessionSecurity.initialize();
+    this.appUpdate.initialize(() => this.transportOffline.hasPending());
     effect(() => {
       if (this.authService.isAuthenticated()) {
         untracked(() => {
@@ -214,6 +220,7 @@ export class AppComponent {
       if (item.url === '/ficha-personal/mi-ficha') {
         return this.isProfileAllowed(profileId, []);
       }
+      if (item.url === '/ficha-medica') return this.authService.canAccessAppRoute('/ficha-medica');
       if (item.url === '/ficha-alumno/mis-alumnos') {
         return this.canUseFamilyAccess(profileId);
       }

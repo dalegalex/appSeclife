@@ -18,6 +18,8 @@ export type TipoLecturaAsistida = 'ALUMNO' | 'FAMILIAR' | 'INVITADO_EXTERNO';
 export type TipoBusquedaIdentidad = 'ALUMNO' | 'FAMILIAR' | 'PERSONAL';
 
 export interface IdentidadLecturaAsistida {
+  esTemporal?: boolean;
+  idinvitadoexterno?: number | null;
   idperfil: number;
   tipoPortador: TipoBusquedaIdentidad;
   idmatricula?: number | null;
@@ -37,6 +39,7 @@ export interface BuscarIdentidadesLecturaAsistidaResponse {
 }
 
 export interface ResolverIdentidadLecturaAsistidaRequest {
+  idfamiliamiembroTemporal?: number | null;
   idorg: number;
   idmatricula?: number | null;
   idusrbtMiembro?: number | null;

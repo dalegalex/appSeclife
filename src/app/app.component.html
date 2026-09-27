@@ -1,4 +1,20 @@
 <ion-app>
+  <ion-modal [isOpen]="appUpdate.blocked() || appUpdate.recommended()" [backdropDismiss]="false" [canDismiss]="!appUpdate.blocked()" (didDismiss)="appUpdate.onDismiss()">
+    <ng-template>
+      <ion-header><ion-toolbar><ion-title>Actualizar Seclife</ion-title></ion-toolbar></ion-header>
+      <ion-content class="ion-padding">
+        <h2>{{ appUpdate.blocked() ? 'Actualizacion necesaria' : 'Nueva version disponible' }}</h2>
+        <p>{{ appUpdate.blocked() ? 'Para continuar utilizando Seclife, actualiza la aplicacion desde la tienda.' : 'Hay mejoras disponibles para tu aplicacion.' }}</p>
+        <p>No es necesario desinstalarla.</p>
+        <p>Instalada: {{ appUpdate.installed() }}</p>
+        <p>Disponible: {{ appUpdate.available() }}</p>
+        <ion-button expand="block" (click)="appUpdate.openStore()"><ion-icon slot="start" name="download-outline"></ion-icon>Actualizar en la tienda</ion-button>
+        <ion-button expand="block" fill="outline" [disabled]="appUpdate.busy()" (click)="appUpdate.check()"><ion-icon slot="start" name="refresh-outline"></ion-icon>Comprobar actualizacion</ion-button>
+        @if (!appUpdate.blocked()) { <ion-button expand="block" fill="clear" (click)="appUpdate.postpone()">Mas tarde</ion-button> }
+        @if (appUpdate.error()) { <p role="alert">{{ appUpdate.error() }}</p> }
+      </ion-content>
+    </ng-template>
+  </ion-modal>
   <ion-menu contentId="main-content" type="overlay">
     <ion-header>
       <ion-toolbar>
@@ -113,7 +129,7 @@
 
   <ion-modal
     class="privacy-consent-modal"
-    [isOpen]="privacyConsentRequired"
+    [isOpen]="privacyConsentRequired && !appUpdate.blocked() && !appUpdate.recommended()"
     [backdropDismiss]="false"
     [canDismiss]="canDismissPrivacyConsent"
   >
@@ -159,7 +175,7 @@
 
   <ion-modal
     class="session-lock-modal"
-    [isOpen]="sessionSecurity.locked()"
+    [isOpen]="sessionSecurity.locked() && !appUpdate.blocked() && !appUpdate.recommended()"
     [backdropDismiss]="false"
     [canDismiss]="canDismissSessionLock"
   >

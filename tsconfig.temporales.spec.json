@@ -1,0 +1,4 @@
+{
+ "extends": "./tsconfig.spec.json",
+ "include": ["src/app/modules/control-accesos/pages/red-familiar-padre/red-familiar-credencial.spec.ts", "src/app/modules/control-accesos/pages/lectura-asistida/temporales.spec.ts", "src/**/*.d.ts"]
+}

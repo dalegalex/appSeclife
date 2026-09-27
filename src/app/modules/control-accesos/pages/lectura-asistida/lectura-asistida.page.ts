@@ -292,6 +292,7 @@ export class LecturaAsistidaPage implements OnDestroy {
     try {
       const lectura = await firstValueFrom(this.lecturaService.resolverIdentidadManual({
         idorg: this.idorg,
+        idfamiliamiembroTemporal: identidad.esTemporal ? identidad.idfamiliamiembro : null,
         idmatricula: identidad.idmatricula ?? null,
         idusrbtMiembro: identidad.idusrbt ?? null,
         sentido: this.sentido,
@@ -299,9 +300,14 @@ export class LecturaAsistidaPage implements OnDestroy {
         iduas: this.iduasFiltroRequest(),
       }));
 
-      this.identificacionManual = true;
-      this.identidadManualSeleccionada = identidad;
-      this.codigo = '';
+      this.identificacionManual = !identidad.esTemporal;
+      this.identidadManualSeleccionada = identidad.esTemporal ? null : identidad;
+      this.codigo = identidad.esTemporal ? (lectura.credencial?.codigo ?? '') : '';
+      if (identidad.esTemporal) {
+        this.sentido = 'SALIDA';
+        this.modoAviso = false;
+        if (lectura.familiar) lectura.familiar.foto = identidad.foto ?? null;
+      }
       this.aplicarLectura(lectura);
       this.modalBusquedaAbierto = false;
     } catch (error: any) {

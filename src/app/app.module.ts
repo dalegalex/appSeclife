@@ -9,6 +9,7 @@ import { AppComponent } from './app.component';
 import { AppRoutingModule } from './app-routing.module';
 import { AuthInterceptor } from './core/auth/auth.interceptor';
 import { ConnectivityInterceptor } from './core/http/connectivity.interceptor';
+import { AppUpdateInterceptor } from './core/updates/app-update.interceptor';
 
 @NgModule({
   declarations: [AppComponent],
@@ -17,6 +18,7 @@ import { ConnectivityInterceptor } from './core/http/connectivity.interceptor';
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
     { provide: HTTP_INTERCEPTORS, useClass: ConnectivityInterceptor, multi: true },
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },
+    { provide: HTTP_INTERCEPTORS, useClass: AppUpdateInterceptor, multi: true },
   ],
   bootstrap: [AppComponent],
 })

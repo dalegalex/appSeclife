@@ -686,7 +686,7 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
         if (miembro) {
           this.upsertMiembroLocal(miembro);
         }
-        await this.showToast('Persona externa provisional registrada.', 'success');
+        await this.showToast('Persona temporal registrada.', 'success');
       },
       error: async (error) => {
         this.savingExterno = false;
@@ -1771,7 +1771,7 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
     galeriaInput: HTMLInputElement,
     camaraInput: HTMLInputElement
   ): Promise<void> {
-    if (this.esMiembroExterno(miembro)) {
+    if (this.esFamiliarExterno(miembro)) {
       await this.showToast('La fotografia de un familiar externo solo la administra su familia de origen.', 'warning');
       return;
     }
@@ -1832,6 +1832,15 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
     let guardada = false;
     try {
       const foto = await this.fileToBase64(file);
+      if (this.esInvitadoProvisional(miembro)) {
+        if (file.size > 5242880) throw new Error('Selecciona una fotografia de hasta 5 MB.');
+        await firstValueFrom(this.redFamiliarService.guardarFotoTemporal(this.idorg, idfamilia, miembro.idfamiliamiembro, foto));
+        guardada = true;
+        this.upsertMiembroLocal({ ...miembro, foto: null, tieneFoto: true });
+        this.rows = await firstValueFrom(this.redFamiliarService.consultarMiRed(this.idorg));
+        await this.showToast('Fotografia de la persona temporal actualizada.', 'success');
+        return;
+      }
       const actualizado = await firstValueFrom(this.redFamiliarService.actualizarMiembro(idfamilia, miembro.idfamiliamiembro, {
         idorg: this.idorg, idusrbtMiembro: miembro.idusrbt,
         nombre: this.toUpper(miembro.nombre || this.firstName(miembro.familiar)),
@@ -1874,8 +1883,8 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
   }
 
   puedeVerFotoMiembro(miembro: MiembroFamiliar): boolean {
-    return this.puedeAdministrarRed && !this.esMiembroExterno(miembro)
-      && !this.esInvitadoProvisional(miembro) && this.miembroTieneFoto(miembro);
+    return this.puedeAdministrarRed && !this.esFamiliarExterno(miembro)
+      && !miembro.sitMiembroSilencioso && this.miembroTieneFoto(miembro);
   }
 
   puedeAbrirMenuFoto(miembro: MiembroFamiliar): boolean {
@@ -1943,8 +1952,8 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
   }
 
   puedeEditarFotoMiembro(miembro: MiembroFamiliar): boolean {
-    return this.puedeAdministrarRed && !this.esMiembroExterno(miembro)
-      && !this.esInvitadoProvisional(miembro)
+    return this.puedeAdministrarRed && !this.esFamiliarExterno(miembro)
+      && !miembro.sitMiembroSilencioso
       && !this.miembroTieneEdicionLimitada(miembro);
   }
 

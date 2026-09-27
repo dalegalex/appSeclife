@@ -311,6 +311,16 @@ export class RedFamiliarService {
     );
   }
 
+  guardarFotoTemporal(idorg: number, idfamilia: number, idmiembro: number, fotoBase64: string): Observable<unknown> {
+    return this.http.put<SpResponse<unknown>>(
+      `${this.baseUrl}/familias/${idfamilia}/miembros/${idmiembro}/foto-temporal`,
+      { idorg, fotoBase64 }
+    ).pipe(map(response => {
+      if (response.codeNumber !== 200) throw new Error(response.message || 'No fue posible guardar la fotografia.');
+      return response.result;
+    }));
+  }
+
   consultarFotoFamiliar(idorg: number, idfamilia: number, idmiembro: number): Observable<string> {
     return this.http.get<SpResponse<{ fotoUrl: string }>>(`${this.baseUrl}/familias/${idfamilia}/miembros/${idmiembro}/foto`, { params: { idorg } })
       .pipe(map(response => {
