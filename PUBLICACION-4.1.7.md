@@ -62,9 +62,11 @@ Archivar y subir a TestFlight; validar fisicamente antes de enviar a revision.
 
 ## Publicacion
 
+Estado actual confirmado el 2026-10-11: 4.1.7 (20109) disponible para testers internos, release 11 del canal 4699629436129831654. Sin errores bloqueantes; mismas dos advertencias de desofuscacion y simbolos nativos. Produccion y politica de actualizacion obligatoria sin cambios. Pendiente prueba de persistencia del correo en dispositivo por Master y delegado antes de promocion.
+
 Build 20109: incluye la edicion de correo de Red Familiar del commit 524db5f. Angular production, cap sync android y Gradle bundleRelease/assembleRelease correctos. Firma APK verificada; version 4.1.7/20109 y texto del cambio comprobados en los artefactos. Las 43 pruebas de Red Familiar pasaron al implementar este ajuste. AAB SHA256: `FF69A060ED6B9C5008BB32CC29FD2A7DD5A4236F581BB2E8DE6927326B0D4F27`.
 
-Correccion posterior: el paquete 20107 tenia version nativa 4.1.7, pero ambos environments conservaban appVersion 4.1.6 y el menu mostraba ese texto fijo. Se corrigen a 4.1.7, se agrega `prebuild` para validar package/lock/environments/Android/iOS, con tres pruebas Node. El paquete 20107 no debe promoverse a produccion; usar 20108 tras nueva compilacion y prueba. Los hashes anteriores corresponden exclusivamente a 20107.
+Correccion posterior: el paquete 20107 tenia version nativa 4.1.7, pero ambos environments conservaban appVersion 4.1.6 y el menu mostraba ese texto fijo. Se corrigen a 4.1.7, se agrega `prebuild` para validar package/lock/environments/Android/iOS, con tres pruebas Node. Los paquetes 20107/20108 quedan sustituidos por 20109 para la siguiente promocion, previa prueba. Los hashes de la validacion inicial corresponden exclusivamente a 20107.
 Codi Mac debe actualizar esta rama antes de compilar. Si ya subio 4.1.7 (1), incrementar el build iOS a uno libre y generar otro archivo; no reutilizar el binario anterior.
 
 Validacion de 20108: Angular production y Gradle bundleRelease/assembleRelease correctos; firma APK verificada con el mismo certificado. Inspeccion del JavaScript dentro del AAB confirma appVersion 4.1.7. Tres pruebas del validador de versiones correctas.
