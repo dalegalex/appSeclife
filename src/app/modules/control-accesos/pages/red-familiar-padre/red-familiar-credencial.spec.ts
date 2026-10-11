@@ -25,6 +25,34 @@ describe('Red Familiar credential actions', () => {
     page.rows = [{ idfamilia: 1, miembros: [{ idfamiliamiembro: 1, idusrbt: 11, familiar: 'Master', esMaster: true, sitactivo: true, idtag: 11, idsittag: 3, sitbloqueo: false }, miembro] }];
     toast = spyOn<any>(page, 'showToast').and.resolveTo();
   });
+  it('allows master and delegate to change contact email while preserving TAG-protected fields', () => {
+    for (const delegate of [false, true]) {
+      const actor = page.rows[0].miembros![0];
+      actor.esMaster = !delegate;
+      actor.puedeAdministrar = delegate;
+      for (const state of [2, 3]) {
+        const target = { ...miembro, idsittag: state, nombre: 'FAMILIAR', apellidos: 'PRUEBA',
+          cel: '5550000000', idparentesco: 3, emailContacto: 'anterior@example.com' };
+        page.editarMiembro(target);
+        expect(page.miembroFormDatosBloqueados()).toBeTrue();
+        page.miembroForm.emailContacto = ' nuevo@example.com ';
+        page.miembroForm.nombre = 'NO CAMBIAR';
+        page.miembroForm.apellidos = 'NO CAMBIAR';
+        page.miembroForm.cel = 'OTRO';
+        page.miembroForm.idparentesco = 9;
+        page.miembroForm.puedeRecoger = false;
+        page.miembroForm.puedeAdministrar = true;
+        const request = (page as any).buildGuardarMiembroRequest();
+        expect(request.emailContacto).toBe('nuevo@example.com');
+        expect(request.nombre).toBe('FAMILIAR');
+        expect(request.apellidos).toBe('PRUEBA');
+        expect(request.cel).toBe('5550000000');
+        expect(request.idparentesco).toBe(3);
+        expect(request.puedeRecoger).toBeFalse();
+        expect(request.puedeAdministrar).toBeTrue();
+      }
+    }
+  });
   it('hides brigades when disabled, unavailable, ordinary or silent', () => {
     page.cargarDisponibilidadBrigadas(); expect(page.brigadasVisibles()).toBeFalse();
     api.consultarBrigadasSemanales.and.returnValue(of({visible:true,brigadas:[]}));

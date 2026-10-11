@@ -2090,7 +2090,7 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
         nombre: this.toUpper(miembro?.nombre || this.firstName(miembro?.familiar ?? '')),
         apellidos: this.toUpper(miembro?.apellidos || this.lastName(miembro?.familiar ?? '')),
         cel: miembro?.cel ?? null,
-        emailContacto: miembro?.emailContacto ?? null,
+        emailContacto: this.miembroForm.emailContacto?.trim() || null,
         idparentesco: miembro?.idparentesco ?? 10,
         puedeRecoger: this.miembroForm.puedeRecoger ?? false,
         puedeAdministrar: this.miembroForm.puedeAdministrar ?? false,

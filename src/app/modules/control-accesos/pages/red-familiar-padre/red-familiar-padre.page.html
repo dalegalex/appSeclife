@@ -387,7 +387,7 @@
 
         <form *ngIf="showMiembroForm" class="inline-form" (ngSubmit)="guardarMiembro()">
           <ion-note *ngIf="miembroFormDatosBloqueados()" color="warning" class="form-hint">
-            TAG en tramite o activada: solo puedes modificar permisos de entrega y administracion.
+            TAG en tramite o activada: solo puedes modificar el correo de contacto y los permisos de entrega y administracion.
           </ion-note>
           <ion-item>
             <ion-input label="Nombre" labelPlacement="stacked" [(ngModel)]="miembroForm.nombre" name="nombre" [disabled]="miembroFormDatosBloqueados()" (ionInput)="toUpperForm(miembroForm, 'nombre')"></ion-input>
@@ -406,7 +406,7 @@
             <ion-input label="Celular" labelPlacement="stacked" [(ngModel)]="miembroForm.cel" name="cel" [disabled]="miembroFormDatosBloqueados()"></ion-input>
           </ion-item>
           <ion-item>
-            <ion-input label="Correo de contacto" labelPlacement="stacked" [(ngModel)]="miembroForm.emailContacto" name="emailContacto" [disabled]="miembroFormDatosBloqueados()"></ion-input>
+            <ion-input label="Correo de contacto" type="email" labelPlacement="stacked" [(ngModel)]="miembroForm.emailContacto" name="emailContacto"></ion-input>
           </ion-item>
           <ion-item lines="none">
             <ion-checkbox [(ngModel)]="miembroForm.puedeRecoger" name="puedeRecoger">Puede recoger</ion-checkbox>

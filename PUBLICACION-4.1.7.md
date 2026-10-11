@@ -10,6 +10,8 @@
 
 ## Cambios integrados
 
+- Ajuste posterior al build 20108: Master/delegado puede modificar correo de contacto del familiar nucleo aun con edicion limitada por TAG. Se preservan nombre, apellidos, celular y parentesco. El correo se guarda en aschool.usr.email y puede afectar el acceso; API/SQL existentes mantienen validacion de duplicados. No cambia la regla de eliminacion de correo: un valor vacio conserva el anterior en SQL.
+- Este ajuste de correo NO esta en los artefactos 20107/20108. Generar un nuevo versionCode Android y un nuevo build iOS si ya se subio el anterior antes de distribuirlo.
 - Lectura asistida de brigadas y ajustes de avisos de asistencia.
 - Validacion de administracion de Red Familiar por estado de TAG, conservando la foto propia.
 - Expediente Documental: soporte adjunto a representacion y restauracion.
