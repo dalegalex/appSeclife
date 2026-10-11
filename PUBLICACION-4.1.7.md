@@ -60,6 +60,8 @@ Archivar y subir a TestFlight; validar fisicamente antes de enviar a revision.
 
 ## Publicacion
 
+Estado verificado el 2026-10-11: Android 4.1.7 (20107) disponible para testers internos en Play Console, release 9 del canal 4699629436129831654. Sin errores bloqueantes ni perdida de dispositivos compatibles. Advertencias: archivo de desofuscacion y simbolos nativos no adjuntos. Produccion no promovida; pendiente prueba del usuario sobre la instalacion de tienda. iOS pendiente de compilar y probar en Mac/TestFlight.
+
 Primero prueba interna Android y TestFlight iOS. No activar actualizacion obligatoria ni elevar minimos hasta que cada plataforma tenga la version disponible para su audiencia.
 Verificar Mexico, Canada y Estados Unidos antes de produccion. No se modificaron politicas productivas de versiones durante la preparacion.
 La compilacion de iOS debe realizarse en Mac; no se ha compilado ni enviado desde Windows.
