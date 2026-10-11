@@ -4,14 +4,14 @@
 
 - Fecha de preparacion: 2026-10-11.
 - Rama: `codex/appseclife-4.1.7-publicacion`, repositorio `dalegalex/appSeclife`.
-- Android corregido: versionName 4.1.7, versionCode 20108, target SDK 36.
+- Android actual: versionName 4.1.7, versionCode 20109, target SDK 36.
 - iOS: MARKETING_VERSION 4.1.7, build inicial 1; comprobar que no este utilizado en App Store Connect.
 - El usuario confirma SQL y GpsApi publicados y ultima version iOS 4.1.6. Esta confirmacion no sustituye pruebas de integracion.
 
 ## Cambios integrados
 
 - Ajuste posterior al build 20108: Master/delegado puede modificar correo de contacto del familiar nucleo aun con edicion limitada por TAG. Se preservan nombre, apellidos, celular y parentesco. El correo se guarda en aschool.usr.email y puede afectar el acceso; API/SQL existentes mantienen validacion de duplicados. No cambia la regla de eliminacion de correo: un valor vacio conserva el anterior en SQL.
-- Este ajuste de correo NO esta en los artefactos 20107/20108. Generar un nuevo versionCode Android y un nuevo build iOS si ya se subio el anterior antes de distribuirlo.
+- Este ajuste de correo NO esta en los artefactos 20107/20108. Se prepara Android 20109; generar un nuevo build iOS si ya se subio el anterior antes de distribuirlo.
 - Lectura asistida de brigadas y ajustes de avisos de asistencia.
 - Validacion de administracion de Red Familiar por estado de TAG, conservando la foto propia.
 - Expediente Documental: soporte adjunto a representacion y restauracion.
@@ -61,6 +61,8 @@ Archivar y subir a TestFlight; validar fisicamente antes de enviar a revision.
 - APK SHA256: `35E04BA7A488728A2F7A26CF63106B7FC5B224627894C3C9238619CDC1DFE50F`.
 
 ## Publicacion
+
+Build 20109: incluye la edicion de correo de Red Familiar del commit 524db5f. Angular production, cap sync android y Gradle bundleRelease/assembleRelease correctos. Firma APK verificada; version 4.1.7/20109 y texto del cambio comprobados en los artefactos. Las 43 pruebas de Red Familiar pasaron al implementar este ajuste. AAB SHA256: `FF69A060ED6B9C5008BB32CC29FD2A7DD5A4236F581BB2E8DE6927326B0D4F27`.
 
 Correccion posterior: el paquete 20107 tenia version nativa 4.1.7, pero ambos environments conservaban appVersion 4.1.6 y el menu mostraba ese texto fijo. Se corrigen a 4.1.7, se agrega `prebuild` para validar package/lock/environments/Android/iOS, con tres pruebas Node. El paquete 20107 no debe promoverse a produccion; usar 20108 tras nueva compilacion y prueba. Los hashes anteriores corresponden exclusivamente a 20107.
 Codi Mac debe actualizar esta rama antes de compilar. Si ya subio 4.1.7 (1), incrementar el build iOS a uno libre y generar otro archivo; no reutilizar el binario anterior.
