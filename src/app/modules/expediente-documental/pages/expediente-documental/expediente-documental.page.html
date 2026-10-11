@@ -34,7 +34,7 @@
         <div class="section-heading">
           <div>
             <h1>Representación legal</h1>
-            <p>Solicitudes sujetas a revisión del Colegio</p>
+            <p>Representantes vigentes y solicitudes con soporte</p>
           </div>
           <ion-button size="small" (click)="openRepresentation()">
             <ion-icon slot="start" name="add-outline"></ion-icon>
@@ -70,6 +70,23 @@
                   <ion-button fill="clear" size="small" [disabled]="uploadingSupport" (click)="selectAdditionalSupport(item)">
                     <ion-icon slot="start" name="attach-outline"></ion-icon>
                     Adjuntar soporte
+                  </ion-button>
+                </div>
+              }
+              @if (item.estatus === 'SUSPENDIDA') {
+                <div class="record-actions">
+                  <ion-button
+                    fill="outline"
+                    color="danger"
+                    size="small"
+                    [disabled]="restoringRepresentationId !== null"
+                    (click)="confirmRestoreRepresentation(item)">
+                    @if (restoringRepresentationId === item.idrepresentacionlegal) {
+                      <ion-spinner slot="start" name="crescent"></ion-spinner>
+                    } @else {
+                      <ion-icon slot="start" name="refresh-outline"></ion-icon>
+                    }
+                    Restaurar
                   </ion-button>
                 </div>
               }
@@ -160,23 +177,45 @@
             </ion-select>
           </ion-item>
           <ion-item>
-            <ion-select label="Representante propuesto" labelPlacement="stacked" interface="action-sheet" [(ngModel)]="representationForm.idfamiliamiembro" name="member">
+            <ion-select label="Representante propuesto" labelPlacement="stacked" interface="action-sheet" [(ngModel)]="representationForm.idfamiliamiembro" name="member" (ionChange)="onRepresentativeChange()">
               @for (item of familyMembers; track item.idfamiliamiembro) { <ion-select-option [value]="item.idfamiliamiembro">{{ item.nombre }} · {{ item.parentesco }}</ion-select-option> }
             </ion-select>
           </ion-item>
           <ion-item>
-            <ion-select label="Calidad jurídica" labelPlacement="stacked" interface="action-sheet" [(ngModel)]="representationForm.claveCalidad" name="quality">
-              @for (item of context.calidades; track item.clave) { <ion-select-option [value]="item.clave">{{ item.descripcion }}</ion-select-option> }
+            <ion-select label="Calidad jurídica" labelPlacement="stacked" interface="action-sheet" [(ngModel)]="representationForm.claveCalidad" name="quality" (ionChange)="onQualityChange()" [disabled]="qualityLocked">
+              @for (item of availableQualities; track item.clave) { <ion-select-option [value]="item.clave">{{ item.descripcion }}</ion-select-option> }
             </ion-select>
+          </ion-item>
+          @if (selectedRepresentative) {
+            <ion-note class="relationship-note">
+              La calidad jurídica disponible corresponde al parentesco {{ selectedRepresentative.parentesco || 'no especificado' }} registrado en Red Familiar.
+            </ion-note>
+          }
+          <ion-item>
+            <ion-input label="Ocupación" labelPlacement="stacked" maxlength="150"
+              [value]="representationForm.ocupacion" (ionInput)="updateRepresentationIdentity('ocupacion', $any($event))"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-input label="Nacionalidad" labelPlacement="stacked" maxlength="80"
+              [value]="representationForm.nacionalidad" (ionInput)="updateRepresentationIdentity('nacionalidad', $any($event))"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-input label="RFC (opcional)" labelPlacement="stacked" maxlength="13" autocapitalize="characters"
+              [value]="representationForm.rfc" (ionInput)="updateRepresentationIdentity('rfc', $any($event))"></ion-input>
           </ion-item>
           <ion-item><ion-textarea label="Observaciones" labelPlacement="stacked" autoGrow="true" maxlength="1000" [(ngModel)]="representationForm.observaciones" name="observations"></ion-textarea></ion-item>
           <ion-item>
-            <ion-toggle [(ngModel)]="hasLegalSupport" name="hasSupport">Existe documento acreditativo</ion-toggle>
+            <ion-toggle [(ngModel)]="hasLegalSupport" name="hasSupport" [disabled]="selectedQuality?.requiereSoporte === true">
+              Documento acreditativo
+            </ion-toggle>
           </ion-item>
         </ion-list>
 
         @if (hasLegalSupport) {
           <section class="support-fields">
+            @if (selectedQuality?.requiereSoporte) {
+              <ion-note color="warning">Esta calidad jurídica requiere adjuntar un PDF para enviarse al Colegio.</ion-note>
+            }
             <ion-select label="Tipo de soporte" labelPlacement="stacked" interface="action-sheet" [(ngModel)]="supportType" name="supportType">
               <ion-select-option value="RESOLUCION_JUDICIAL">Resolución judicial</ion-select-option>
               <ion-select-option value="RESOLUCION_CUSTODIA">Resolución de custodia</ion-select-option>
@@ -190,7 +229,12 @@
         }
 
         <ion-button expand="block" type="submit" [disabled]="savingRepresentation">
-          @if (savingRepresentation) { <ion-spinner name="crescent"></ion-spinner> } @else { <ion-icon slot="start" name="send-outline"></ion-icon>Enviar al Colegio }
+          @if (savingRepresentation) {
+            <ion-spinner name="crescent"></ion-spinner>
+          } @else {
+            <ion-icon slot="start" [name]="hasLegalSupport ? 'send-outline' : 'checkmark-circle-outline'"></ion-icon>
+            {{ hasLegalSupport ? 'Enviar al Colegio' : 'Autorizar representación' }}
+          }
         </ion-button>
       </form>
     </ion-content>

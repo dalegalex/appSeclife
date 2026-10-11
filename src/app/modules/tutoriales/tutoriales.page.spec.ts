@@ -13,13 +13,33 @@ describe('TutorialesPage', () => {
   const row: Tutorial = {id:1,titulo:'Red familiar',descripcion:'Demo',categoria:'RED_FAMILIAR',versionApp:'',duracion:60,bytes:100,ancho:900,alto:1920};
   const link: PlaybackLink = {url:'https://test.blob.core.windows.net/seclife-tutoriales/videos/1/demo.mp4?sig=demo',expiresAt:new Date(Date.now()+900000).toISOString()};
   beforeEach(() => {
-    service=jasmine.createSpyObj('TutorialesService',['list','playback']);
+    service=jasmine.createSpyObj('TutorialesService',['list','playback','categories']);
+    service.categories.and.returnValue(of([{value:'RED_FAMILIAR',label:'Red familiar'}]));
     service.list.and.returnValue(of([row])); service.playback.and.returnValue(of(link));
     auth={loadAppMenu:jasmine.createSpy().and.returnValue(of([])),canAccessAppRoute:jasmine.createSpy().and.returnValue(true)};
     TestBed.configureTestingModule({imports:[TutorialesPage],providers:[{provide:TutorialesService,useValue:service},{provide:AuthService,useValue:auth},{provide:SessionLockStateService,useValue:{locked:signal(false)}}]});
     page=TestBed.runInInjectionContext(() => new TutorialesPage());
   });
   afterEach(() => page.ngOnDestroy());
+  it('consulta y filtra categorias nuevas sin una lista fija',async () => {
+    service.categories.and.returnValue(of([{value:'FICHA_MEDICA',label:'Ficha Médica'},{value:'NUEVA',label:'Nueva'}]));
+    await page.ionViewWillEnter();
+    expect(page.categoryLabel('FICHA_MEDICA')).toBe('Ficha Médica');
+    page.filters.controls.categoria.setValue('NUEVA');await page.reload();
+    expect(service.list).toHaveBeenCalledWith(0,'','NUEVA');
+  });
+  it('un fallo del catalogo no bloquea listado ni reproduccion',async () => {
+    service.categories.and.returnValue(throwError(()=>({status:503})));
+    await page.ionViewWillEnter();await page.open(row);
+    expect(page.rows()).toEqual([row]);expect(page.error()).toBe('');expect(page.link()).toEqual(link);
+    expect(page.categoryLabel('RED_FAMILIAR')).toBe('Red familiar');
+  });
+  it('no espera al catalogo para listar videos e ignora su respuesta al salir',async () => {
+    const pending=new Subject<{value:string;label:string}[]>();service.categories.and.returnValue(pending);
+    await page.ionViewWillEnter();expect(page.rows()).toEqual([row]);page.ionViewWillLeave();
+    pending.next([{value:'NUEVA',label:'Nueva'}]);pending.complete();await Promise.resolve();
+    expect(page.categories().some(c=>c.value==='NUEVA')).toBeFalse();
+  });
   it('muestra titulo y duracion sin precargar reproductores',async () => {
     const fixture=TestBed.createComponent(TutorialesPage);
     await fixture.componentInstance.ionViewWillEnter();fixture.detectChanges();

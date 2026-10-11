@@ -279,3 +279,8 @@ ion-footer ion-toolbar {
   flex: 1;
   min-width: 0;
 }
+.brigada-warning {
+  color: var(--ion-color-warning-shade, #856000);
+  white-space: normal;
+  font-weight: 600;
+}

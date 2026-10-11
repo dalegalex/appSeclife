@@ -11,6 +11,13 @@ describe('TutorialesService', () => {
     service=TestBed.inject(TutorialesService);http=TestBed.inject(HttpTestingController);
   });
   afterEach(() => http.verify());
+  it('obtiene el catalogo sin enviar identidad del cliente', () => {
+    const categories=[{value:'FICHA_MEDICA',label:'Ficha Médica'}];
+    service.categories().subscribe(rows=>expect(rows).toEqual(categories));
+    const req=http.expectOne(r=>r.url.endsWith('/tutoriales/categorias'));
+    expect(req.request.method).toBe('GET');expect(req.request.params.keys()).toEqual([]);
+    req.flush({result:categories,codeNumber:200,message:'OK'});
+  });
   it('envia filtros y offset sin identidad ni organizacion del cliente', () => {
     service.list(20,'  familia  ','RED_FAMILIAR').subscribe(rows=>expect(rows).toEqual([]));
     const req=http.expectOne(r=>r.url.endsWith('/tutoriales'));

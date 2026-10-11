@@ -9,12 +9,16 @@ export interface Tutorial {
   versionApp: string; duracion: number; bytes: number; ancho: number; alto: number;
 }
 export interface PlaybackLink { url: string; expiresAt: string; }
+export interface TutorialCategory { value: string; label: string; }
 interface Envelope<T> { result: T; codeNumber: number; message: string; }
 
 @Injectable({ providedIn: 'root' })
 export class TutorialesService {
   private readonly http = inject(HttpClient);
   private readonly base = `${Capacitor.isNativePlatform() ? environment.androidApiUrl : environment.apiUrl}/tutoriales`;
+  categories() {
+    return this.http.get<Envelope<TutorialCategory[]>>(`${this.base}/categorias`).pipe(map(r => this.result(r) ?? []));
+  }
   list(topi: number, buscar: string, categoria: string) {
     const params = new HttpParams().set('topi', topi).set('buscar', buscar.trim()).set('categoria', categoria);
     return this.http.get<Envelope<Tutorial[]>>(this.base, { params }).pipe(map(r => this.result(r) ?? []));

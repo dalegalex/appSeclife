@@ -107,6 +107,19 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
       && (m.esMaster === true || m.puedeAdministrar === true)));
   }
 
+  get administracionBloqueadaPorTag(): boolean {
+    const usuario = this.authService.getCurrentUser()?.idusrbt;
+    return !this.rows.some(row => (row.miembros ?? []).some(m => m.idusrbt === usuario
+      && m.sitactivo !== false && !m.esExterno && !m.sitMiembroSilencioso
+      && !!m.idtag && (m.idsittag === 2 || m.idsittag === 3) && m.sitbloqueo === false));
+  }
+
+  private validarAdministracion(): boolean {
+    if (this.puedeAdministrarRed && !this.administracionBloqueadaPorTag) return true;
+    void this.showToast('Sus permisos de administrador se encuentran bloqueados, favor de comunicarse con su Colegio.', 'warning');
+    return false;
+  }
+
   credencialMiembro(miembro: MiembroFamiliar): CredencialFamiliar | undefined {
     return this.puedeAdministrarRed && !this.esMiembroExterno(miembro)
       ? this.credenciales().find(c => c.idfamiliamiembro === miembro.idfamiliamiembro) : undefined;
@@ -134,6 +147,7 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
   }
 
   async opcionesCredencial(miembro: MiembroFamiliar): Promise<void> {
+    if (!this.validarAdministracion()) return;
     if (this.credencialEnProceso() !== null || this.fotosEnProceso().has(miembro.idfamiliamiembro)) return;
     const credencial = this.credencialMiembro(miembro);
     if (!credencial) return;
@@ -145,6 +159,7 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
   }
 
   async compartirCredencial(miembro: MiembroFamiliar): Promise<void> {
+    if (!this.validarAdministracion()) return;
     if (!this.idfamilia || !this.credencialMiembro(miembro)?.activa || this.credencialEnProceso() !== null) return;
     this.credencialEnProceso.set(miembro.idfamiliamiembro);
     try {
@@ -225,6 +240,7 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
   }
 
   async regenerarCredencial(miembro: MiembroFamiliar): Promise<void> {
+    if (!this.validarAdministracion()) return;
     if (!this.idfamilia || !this.credencialMiembro(miembro)?.puedeRegenerar || this.credencialEnProceso() !== null) return;
     const alert = await this.alertController.create({
       header: 'Regenerar codigo virtual',
@@ -485,9 +501,11 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
     this.showCodigoForm = false;
     this.showExternoForm = false;
     this.externalPassMember = null;
+    this.changeDetector?.detectChanges();
   }
 
   toggleAlumnoForm(): void {
+    if (!this.validarAdministracion()) return;
     if (!this.puedeAgregarAlumno) return;
     this.showAlumnoForm = !this.showAlumnoForm;
     this.showMiembroForm = false;
@@ -500,6 +518,7 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
   }
 
   toggleMiembroForm(): void {
+    if (!this.validarAdministracion()) return;
     this.showMiembroForm = !this.showMiembroForm;
     this.showAutoForm = false;
     this.showAlumnoForm = false;
@@ -509,9 +528,11 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
       this.editingMiembro = null;
       this.miembroForm = this.createMiembroForm();
     }
+    this.changeDetector?.detectChanges();
   }
 
   toggleExternoForm(): void {
+    if (!this.validarAdministracion()) return;
     this.showExternoForm = !this.showExternoForm;
     this.showMiembroForm = false;
     this.showAutoForm = false;
@@ -521,9 +542,11 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
     if (this.showExternoForm) {
       this.externoForm = this.createExternoForm();
     }
+    this.changeDetector?.detectChanges();
   }
 
   editarMiembro(miembro: MiembroFamiliar): void {
+    if (!this.validarAdministracion()) return;
     if (this.esMiembroExterno(miembro)) {
       void this.showToast('Los familiares externos solo pueden eliminarse de tu red.', 'warning');
       return;
@@ -546,9 +569,11 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
       puedeAdministrar: miembro.puedeAdministrar ?? false,
       sitMiembroSilencioso: miembro.sitMiembroSilencioso ?? false,
     };
+    this.changeDetector?.detectChanges();
   }
 
   toggleCodigoForm(): void {
+    if (!this.validarAdministracion()) return;
     this.showCodigoForm = !this.showCodigoForm;
     this.showMiembroForm = false;
     this.showAutoForm = false;
@@ -565,9 +590,11 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
         .filter((alumno) => this.puedeCompartirAlumno(alumno))
         .map((alumno) => alumno.idmatricula)
     );
+    this.changeDetector?.detectChanges();
   }
 
   toggleAutoForm(): void {
+    if (!this.validarAdministracion()) return;
     this.showAutoForm = !this.showAutoForm;
     this.showMiembroForm = false;
     this.showAlumnoForm = false;
@@ -576,9 +603,11 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
     if (this.showAutoForm) {
       this.autoForm = this.createAutoForm();
     }
+    this.changeDetector?.detectChanges();
   }
 
   guardarAlumno(): void {
+    if (!this.validarAdministracion()) return;
     if (!this.puedeAgregarAlumno) return;
     const idfamilia = this.idfamilia;
     const master = this.masterMiembro;
@@ -628,6 +657,7 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
   }
 
   guardarMiembro(): void {
+    if (!this.validarAdministracion()) return;
     const idfamilia = this.idfamilia;
 
     if (!idfamilia || !this.puedeGuardarMiembro) {
@@ -660,6 +690,7 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
   }
 
   guardarExternoProvisional(): void {
+    if (!this.validarAdministracion()) return;
     const idfamilia = this.idfamilia;
 
     if (!idfamilia || !this.puedeGuardarExterno) {
@@ -696,6 +727,7 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
   }
 
   async abrirPaseExterno(miembro: MiembroFamiliar): Promise<void> {
+    if (!this.validarAdministracion()) return;
     if (!this.esInvitadoProvisional(miembro)) {
       await this.showToast('Solo los externos provisionales pueden generar este pase.', 'warning');
       return;
@@ -729,6 +761,7 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
   }
 
   async cancelarPaseExterno(miembro: MiembroFamiliar): Promise<void> {
+    if (!this.validarAdministracion()) return;
     const pase = this.paseActivoExterno(miembro);
     if (!pase) {
       await this.showToast('No hay pase QR activo para cancelar.', 'warning');
@@ -739,6 +772,7 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
   }
 
   async cancelarCodigoEmitido(codigo: CodigoCompartir): Promise<void> {
+    if (!this.validarAdministracion()) return;
     const idfamilia = this.idfamilia;
     if (!idfamilia) {
       await this.showToast('No se encontro la familia activa.', 'warning');
@@ -769,6 +803,7 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
     });
   }
   generarPaseExterno(): void {
+    if (!this.validarAdministracion()) return;
     const idfamilia = this.idfamilia;
     const miembro = this.externalPassMember;
     const alumnos = Array.from(this.selectedAlumnos).map((idmatricula) => ({ idmatricula }));
@@ -804,6 +839,7 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
   }
 
   guardarAuto(): void {
+    if (!this.validarAdministracion()) return;
     const idfamilia = this.idfamilia;
 
     if (!idfamilia || !this.puedeGuardarAuto) {
@@ -838,6 +874,7 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
   }
 
   async cambiarBloqueoMiembro(miembro: MiembroFamiliar): Promise<void> {
+    if (!this.validarAdministracion()) return;
     if (!this.puedeBloquearTag(miembro) || !miembro.idtag) {
       await this.showToast('Este familiar no tiene TAG administrable desde tu red.', 'warning');
       return;
@@ -871,6 +908,7 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
     });
   }
   async eliminarMiembro(miembro: MiembroFamiliar): Promise<void> {
+    if (!this.validarAdministracion()) return;
     if (miembro.esMaster) {
       await this.showToast('El miembro master no puede eliminarse desde la app.', 'warning');
       return;
@@ -896,6 +934,7 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
   }
 
   async eliminarAuto(auto: AutoFamiliar): Promise<void> {
+    if (!this.validarAdministracion()) return;
     const confirmed = await this.confirmar('Eliminar auto', `Se quitara el auto ${auto.placas || ''} del parque vehicular.`);
 
     if (!confirmed) {
@@ -912,6 +951,7 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
   }
 
   async eliminarAlumno(alumno: AlumnoFamiliar): Promise<void> {
+    if (!this.validarAdministracion()) return;
     if (!this.puedeQuitarAlumno(alumno)) return;
     const confirmed = await this.confirmar(
       'Quitar de mi familia',
@@ -934,6 +974,7 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
   }
 
   async retirarAlumnoCompartido(alumno: AlumnoFamiliar): Promise<void> {
+    if (!this.validarAdministracion()) return;
     const idfamilia = this.idfamilia;
     const idfamiliamiembroDestino = this.authService.getCurrentUser()?.idfamiliamiembro ?? null;
 
@@ -1128,6 +1169,7 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
   }
 
   generarCodigo(): void {
+    if (!this.validarAdministracion()) return;
     const idfamilia = this.idfamilia;
     const alumnos = Array.from(this.selectedAlumnos).map((idmatricula) => ({ idmatricula }));
     const form = this.codigoForm();
@@ -1184,6 +1226,7 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
   }
 
   async abrirCompartirFamiliar(miembro: MiembroFamiliar): Promise<void> {
+    if (!this.validarAdministracion()) return;
     if (this.esMiembroExterno(miembro)) {
       await this.showToast('Solo puedes compartir familiares de tu nucleo familiar.', 'warning');
       return;
@@ -1310,6 +1353,7 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
   }
 
   aplicarCodigo(): void {
+    if (!this.validarAdministracion()) return;
     const codigo = this.codigoConsultado?.codigo?.trim() || this.codigoCapturado().trim();
 
     if (!codigo) {
@@ -1342,6 +1386,7 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
   }
 
   async copiarCodigo(codigo: string): Promise<void> {
+    if (!this.validarAdministracion()) return;
     try {
       await navigator.clipboard?.writeText(codigo);
       await this.showToast('Codigo copiado.', 'success');
@@ -1351,6 +1396,7 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
   }
 
   async compartirCodigo(codigo: CodigoCompartir): Promise<void> {
+    if (!this.validarAdministracion()) return;
     const textoImagen = this.textoCompartirCodigo(codigo);
     const textoAdjunto = this.textoAdjuntoCompartirCodigo(codigo, textoImagen);
     const title = this.tituloCompartirCodigo(codigo);
@@ -1841,15 +1887,8 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
         await this.showToast('Fotografia de la persona temporal actualizada.', 'success');
         return;
       }
-      const actualizado = await firstValueFrom(this.redFamiliarService.actualizarMiembro(idfamilia, miembro.idfamiliamiembro, {
-        idorg: this.idorg, idusrbtMiembro: miembro.idusrbt,
-        nombre: this.toUpper(miembro.nombre || this.firstName(miembro.familiar)),
-        apellidos: this.toUpper(miembro.apellidos || this.lastName(miembro.familiar)),
-        foto: null, cel: miembro.cel, emailContacto: miembro.emailContacto,
-        idparentesco: miembro.idparentesco ?? 10, puedeRecoger: miembro.puedeRecoger ?? true,
-        puedeAdministrar: miembro.puedeAdministrar ?? false,
-        sitMiembroSilencioso: miembro.sitMiembroSilencioso ?? false
-      })) ?? miembro;
+      // La fotografia propia no requiere editar datos ni permisos del familiar.
+      const actualizado = miembro;
       const idusrbtMiembro = actualizado.idusrbt ?? miembro.idusrbt;
       if (!idusrbtMiembro) throw new Error('No fue posible identificar al familiar.');
       const resultado = await firstValueFrom(this.redFamiliarService.guardarFotoCredencial({
@@ -1953,8 +1992,10 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
 
   puedeEditarFotoMiembro(miembro: MiembroFamiliar): boolean {
     return this.puedeAdministrarRed && !this.esFamiliarExterno(miembro)
+      && (!this.administracionBloqueadaPorTag || miembro.idusrbt === this.authService.getCurrentUser()?.idusrbt)
       && !miembro.sitMiembroSilencioso
-      && !this.miembroTieneEdicionLimitada(miembro);
+      && (!this.miembroTieneEdicionLimitada(miembro)
+        || (!miembro.idtag && miembro.idusrbt === this.authService.getCurrentUser()?.idusrbt));
   }
 
   miembroFormDatosBloqueados(): boolean {

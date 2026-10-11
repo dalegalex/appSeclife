@@ -122,8 +122,8 @@ export class LecturaAsistidaPage implements OnDestroy {
 
   get alumnos(): LecturaAsistidaAlumno[] {
     return [...(this.lectura?.alumnos ?? [])].sort((a, b) => {
-      const aNucleo = this.esAlumnoNucleo(a) ? 0 : 1;
-      const bNucleo = this.esAlumnoNucleo(b) ? 0 : 1;
+      const aNucleo = this.esAlumnoNucleo(a) ? 0 : a.brigada ? 1 : 2;
+      const bNucleo = this.esAlumnoNucleo(b) ? 0 : b.brigada ? 1 : 2;
       if (aNucleo !== bNucleo) return aNucleo - bNucleo;
       return (a.alumno ?? '').localeCompare(b.alumno ?? '', 'es');
     });
@@ -182,7 +182,20 @@ export class LecturaAsistidaPage implements OnDestroy {
   }
 
   alumnoRelacionLabel(alumno: LecturaAsistidaAlumno): string {
-    return this.esAlumnoNucleo(alumno) ? 'Nucleo familiar' : 'Alumno externo';
+    return this.esAlumnoNucleo(alumno) ? 'Nucleo familiar' : alumno.brigada ? 'BRIGADA' : 'Alumno externo';
+  }
+
+  private async confirmarAdvertenciasBrigada(): Promise<boolean> {
+    const alumnos = this.alumnos.filter(a => this.seleccion.has(a.idmatricula)
+      && this.alumnoDisponible(a) && a.brigada?.advertencias?.length);
+    if (!alumnos.length) return true;
+    const alerta = await this.alertController.create({
+      header: 'Entrega programada alternativa',
+      message: 'Hay alumnos seleccionados con un permiso provisional o temporal vigente. Confirma que revisaste el aviso y que se entregaran al familiar identificado por brigada.',
+      buttons: [{ text: 'Volver', role: 'cancel' }, { text: 'Confirmar entrega', role: 'confirm' }],
+    });
+    await alerta.present();
+    return (await alerta.onDidDismiss()).role === 'confirm';
   }
 
   alumnoRelacionColor(alumno: LecturaAsistidaAlumno): string {
@@ -349,11 +362,17 @@ export class LecturaAsistidaPage implements OnDestroy {
   }
 
   async registrar(): Promise<void> {
+    if (this.saving) return;
     if (!this.lectura || !this.puedeRegistrar) {
       await this.showToast(this.entregaSalidaValida ? 'Selecciona al menos un alumno disponible.' : 'Selecciona la forma de entrega.', 'warning');
       return;
     }
 
+    this.saving = true;
+    if (!(await this.confirmarAdvertenciasBrigada())) {
+      this.saving = false;
+      return;
+    }
     if (this.modoAviso) {
       await this.registrarAvisoCarrusel();
       return;
@@ -364,6 +383,9 @@ export class LecturaAsistidaPage implements OnDestroy {
       .filter((alumno) => this.seleccion.has(alumno.idmatricula) && this.alumnoDisponible(alumno))
       .map((alumno) => ({
         idmatricula: alumno.idmatricula,
+        idbrigada: alumno.brigada?.idbrigada ?? null,
+        revisionAviso: alumno.brigada?.revisionAviso ?? null,
+        confirmarEntregaAlterna: !!alumno.brigada?.advertencias?.length,
         idalumnoautorizacion: alumno.idalumnoautorizacion ?? null,
         idfamiliamiembro: alumno.idfamiliamiembro ?? this.lectura?.familiar?.idfamiliamiembro ?? null,
       }));
@@ -410,6 +432,9 @@ export class LecturaAsistidaPage implements OnDestroy {
       .filter((alumno) => this.seleccion.has(alumno.idmatricula) && this.alumnoDisponible(alumno))
       .map((alumno) => ({
         idmatricula: alumno.idmatricula,
+        idbrigada: alumno.brigada?.idbrigada ?? null,
+        revisionAviso: alumno.brigada?.revisionAviso ?? null,
+        confirmarEntregaAlterna: !!alumno.brigada?.advertencias?.length,
         idalumnoautorizacion: alumno.idalumnoautorizacion ?? null,
         idfamiliamiembro: alumno.idfamiliamiembro ?? this.lectura?.familiar?.idfamiliamiembro ?? null,
       }));

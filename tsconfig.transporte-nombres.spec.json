@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.spec.json",
+  "include": ["src/app/modules/transporte-escolar/services/padre-rutas.service.spec.ts", "src/test.ts", "src/**/*.d.ts"]
+}

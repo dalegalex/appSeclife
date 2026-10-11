@@ -83,6 +83,9 @@ export interface RegistrarLecturaAsistidaRequest {
 }
 
 export interface LecturaAsistidaAlumnoSeleccionado {
+  idbrigada?: number | null;
+  revisionAviso?: string | null;
+  confirmarEntregaAlterna?: boolean;
   idmatricula: number;
   idalumnoautorizacion?: number | null;
   idfamiliamiembro?: number | null;
@@ -141,6 +144,16 @@ export interface LecturaAsistidaAuto {
 }
 
 export interface LecturaAsistidaAlumno {
+  entregadoA?: string | null;
+  brigada?: {
+    idbrigada: number;
+    idfamiliamiembro: number;
+    etiqueta: string;
+    familiaResponsable: string;
+    tipoRecogida: 'ABIERTO' | 'RESPONSABLE' | 'ALTERNATIVA';
+    revisionAviso: string;
+    advertencias: { persona: string; familia: string; origen: string }[];
+  } | null;
   idalumnoautorizacion?: number | null;
   idfamiliamiembro?: number | null;
   idfamilia?: number | null;

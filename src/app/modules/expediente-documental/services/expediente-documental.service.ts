@@ -34,12 +34,37 @@ export class ExpedienteDocumentalService {
     return this.json('POST', `${this.baseUrl}/representaciones`, body);
   }
 
+  proponerConSoporte(
+    body: ProponerRepresentacionRequest,
+    file: File,
+    tipoSoporte: string
+  ): Observable<SpResponse<{ idrepresentacionlegal: number }>> {
+    const form = new FormData();
+    form.append('idmatricula', String(body.idmatricula));
+    form.append('idfamiliamiembro', String(body.idfamiliamiembro));
+    form.append('claveCalidad', body.claveCalidad);
+    if (body.fechaInicio) form.append('fechaInicio', body.fechaInicio);
+    if (body.fechaFin) form.append('fechaFin', body.fechaFin);
+    if (body.observaciones?.trim()) form.append('observaciones', body.observaciones.trim());
+    if (body.ocupacion?.trim()) form.append('ocupacion', body.ocupacion.trim().toUpperCase());
+    if (body.nacionalidad?.trim()) form.append('nacionalidad', body.nacionalidad.trim().toUpperCase());
+    if (body.rfc?.trim()) form.append('rfc', body.rfc.replace(/[\s-]/g, '').toUpperCase());
+    form.append('archivo', file, file.name);
+    form.append('tipoSoporte', tipoSoporte);
+    return this.http.post<SpResponse<{ idrepresentacionlegal: number }>>(
+      `${this.baseUrl}/representaciones/con-soporte`, form);
+  }
+
   cargarSoporte(id: number, file: File, tipoSoporte: string): Observable<SpResponse<unknown>> {
     const form = new FormData();
     form.append('archivo', file, file.name);
     form.append('tipoSoporte', tipoSoporte);
     form.append('finalidad', 'ACREDITACION_REPRESENTACION');
     return this.http.post<SpResponse<unknown>>(`${this.baseUrl}/representaciones/${id}/soportes`, form);
+  }
+
+  restaurarRepresentacion(id: number): Observable<SpResponse<{ idrepresentacionlegal: number; estatus: string }>> {
+    return this.json('POST', `${this.baseUrl}/representaciones/${id}/restaurar`, {});
   }
 
   documentos(): Observable<SpResponse<DocumentoFirmante[]>> {

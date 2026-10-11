@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
-import { Observable, map } from 'rxjs';
+import { Observable, catchError, map, throwError } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import {
   AvisoAsistencia,
@@ -26,7 +26,10 @@ export class AvisoAsistenciaService {
       map((response) => {
         this.assertSuccess(response);
         return response.result ?? null;
-      })
+      }),
+      catchError(error => throwError(() => new Error(
+        error?.error?.message || error?.message || 'No fue posible enviar el aviso.'
+      )))
     );
   }
 

@@ -97,45 +97,98 @@
           <ion-list lines="full">
             <ion-item>
               <ion-label position="stacked">Calle</ion-label>
-              <ion-input formControlName="direccionCalle"></ion-input>
+              <ion-input formControlName="direccionCalle" maxlength="160"></ion-input>
             </ion-item>
             <ion-item>
-              <ion-label position="stacked">Numero</ion-label>
-              <ion-input formControlName="direccionNumero"></ion-input>
+              <ion-label position="stacked">Número exterior</ion-label>
+              <ion-input formControlName="direccionNumero" maxlength="40"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Número interior (opcional)</ion-label>
+              <ion-input formControlName="direccionNumeroInterior" maxlength="40"></ion-input>
             </ion-item>
             <ion-item>
               <ion-label position="stacked">Colonia</ion-label>
-              <ion-input formControlName="direccionColonia"></ion-input>
+              <ion-input formControlName="direccionColonia" maxlength="120"></ion-input>
             </ion-item>
             <ion-item>
               <ion-label position="stacked">Municipio</ion-label>
-              <ion-input formControlName="direccionMunicipio"></ion-input>
+              <ion-input formControlName="direccionMunicipio" maxlength="120"></ion-input>
             </ion-item>
             <ion-item>
               <ion-label position="stacked">Estado</ion-label>
-              <ion-input formControlName="direccionEstado"></ion-input>
+              <ion-input formControlName="direccionEstado" maxlength="120"></ion-input>
             </ion-item>
             <ion-item>
               <ion-label position="stacked">CP</ion-label>
-              <ion-input formControlName="direccionCp"></ion-input>
+              <ion-input formControlName="direccionCp" maxlength="12"></ion-input>
             </ion-item>
             <ion-item>
               <ion-label position="stacked">Referencia de domicilio</ion-label>
-              <ion-textarea rows="3" formControlName="referenciaDomicilio"></ion-textarea>
+              <ion-textarea rows="3" formControlName="referenciaDomicilio" maxlength="300"></ion-textarea>
             </ion-item>
             <ion-item>
               <ion-label position="stacked">Telefono casa</ion-label>
-              <ion-input formControlName="telefonoCasa"></ion-input>
+              <ion-input formControlName="telefonoCasa" maxlength="40"></ion-input>
             </ion-item>
             <ion-item>
               <ion-label position="stacked">Correo institucional</ion-label>
-              <ion-input class="email-lowercase" formControlName="emailInstitucional"></ion-input>
+              <ion-input class="email-lowercase" formControlName="emailInstitucional" maxlength="255"></ion-input>
             </ion-item>
             <ion-item>
               <ion-label position="stacked">Correo personal</ion-label>
-              <ion-input class="email-lowercase" formControlName="emailPersonal"></ion-input>
+              <ion-input class="email-lowercase" formControlName="emailPersonal" maxlength="255"></ion-input>
             </ion-item>
           </ion-list>
+
+          @if (domicilioFamiliarCargando) {
+            <div class="family-address-loading">
+              <ion-spinner name="crescent"></ion-spinner>
+              <span>Consultando hermanos...</span>
+            </div>
+          }
+
+          @if (domicilioFamiliarContexto?.puedeAdministrar && (domicilioFamiliarContexto?.hermanos?.length || 0) > 0) {
+            <section class="family-address-panel">
+              <div class="family-address-toggle">
+                <div>
+                  <strong>Aplicar domicilio a hermanos</strong>
+                  <p>La copia se realiza una sola vez y únicamente en los alumnos seleccionados.</p>
+                </div>
+                <ion-toggle
+                  aria-label="Aplicar domicilio a hermanos"
+                  [checked]="domicilioFamiliarActivo"
+                  (ionChange)="onDomicilioFamiliarChange($any($event))">
+                </ion-toggle>
+              </div>
+
+              @if (domicilioFamiliarActivo) {
+                <ion-list lines="full" class="family-address-list">
+                  @for (hermano of domicilioFamiliarContexto?.hermanos || []; track trackByHermanoDomicilio($index, hermano)) {
+                    <ion-item>
+                      <ion-checkbox
+                        slot="start"
+                        [checked]="hermanoDomicilioSeleccionado(hermano.idmatricula)"
+                        (ionChange)="onHermanoDomicilioChange(hermano, $any($event))">
+                      </ion-checkbox>
+                      <ion-label>
+                        <h3>{{ hermano.nombreCompleto }}</h3>
+                        <p>{{ hermano.gradoGrupo || hermano.matricula || 'Alumno del núcleo familiar' }}</p>
+                        @if (hermano.tieneDomicilio) {
+                          <ion-note color="warning">Ya cuenta con domicilio; se reemplazará si lo seleccionas.</ion-note>
+                          @if (hermano.domicilioActual) {
+                            <p class="current-address">{{ hermano.domicilioActual }}</p>
+                          }
+                        } @else {
+                          <ion-note color="medium">Sin domicilio capturado.</ion-note>
+                        }
+                      </ion-label>
+                    </ion-item>
+                  }
+                </ion-list>
+              }
+            </section>
+          }
         </section>
       }
 

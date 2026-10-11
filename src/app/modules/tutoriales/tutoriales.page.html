@@ -11,9 +11,9 @@
         <ion-searchbar formControlName="buscar" placeholder="Buscar tutorial" aria-label="Buscar tutorial" [debounce]="400" (ionInput)="onSearch($event)"></ion-searchbar>
         <ion-select formControlName="categoria" label="Categoria" interface="action-sheet" (ionChange)="onCategory($event)">
           <ion-select-option value="">Todas</ion-select-option>
-          <ion-select-option value="RED_FAMILIAR">Red familiar</ion-select-option>
-          <ion-select-option value="ASISTENCIA">Avisos de asistencia</ion-select-option>
-          <ion-select-option value="EVENTOS_FAMILIARES">Eventos familiares</ion-select-option>
+          @for (category of categories(); track category.value) {
+            <ion-select-option [value]="category.value">{{ category.label }}</ion-select-option>
+          }
         </ion-select>
       </form>
     }

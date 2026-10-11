@@ -28,10 +28,14 @@ export interface AlumnoExpediente {
 
 export interface FamiliarExpediente {
   idfamilia: number;
+  idmatricula: number;
   idfamiliamiembro: number;
   idusrbtFirmante: number;
   nombre: string;
   parentesco?: string | null;
+  ocupacion?: string | null;
+  nacionalidad?: string | null;
+  rfc?: string | null;
 }
 
 export interface CalidadRepresentacion {
@@ -53,6 +57,9 @@ export interface RepresentacionFamiliar {
   fechaFin?: string | null;
   firmante: string;
   observaciones?: string | null;
+  ocupacion?: string | null;
+  nacionalidad?: string | null;
+  rfc?: string | null;
   soportes: number;
 }
 
@@ -103,6 +110,9 @@ export interface ProponerRepresentacionRequest {
   fechaInicio?: string | null;
   fechaFin?: string | null;
   observaciones?: string | null;
+  ocupacion?: string | null;
+  nacionalidad?: string | null;
+  rfc?: string | null;
 }
 
 export interface OtpRegistration {

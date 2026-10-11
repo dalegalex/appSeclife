@@ -4,7 +4,7 @@ import { IonicModule, InfiniteScrollCustomEvent, SearchbarCustomEvent, SelectCus
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { SessionLockStateService } from '../../core/auth/session-lock-state.service';
-import { Tutorial, TutorialesService, PlaybackLink } from './tutoriales.service';
+import { Tutorial, TutorialesService, PlaybackLink, TutorialCategory } from './tutoriales.service';
 
 @Component({
   selector: 'app-tutoriales', standalone: true, imports: [IonicModule, ReactiveFormsModule],
@@ -16,6 +16,11 @@ export class TutorialesPage implements OnDestroy {
   private readonly lock = inject(SessionLockStateService);
   readonly filters = inject(FormBuilder).nonNullable.group({ buscar: '', categoria: '' });
   readonly rows = signal<Tutorial[]>([]);
+  readonly categories = signal<TutorialCategory[]>([
+    { value: 'RED_FAMILIAR', label: 'Red familiar' },
+    { value: 'ASISTENCIA', label: 'Avisos de asistencia' },
+    { value: 'EVENTOS_FAMILIARES', label: 'Eventos familiares' }
+  ]);
   readonly loading = signal(false);
   readonly error = signal('');
   readonly allowed = signal(false);
@@ -33,6 +38,7 @@ export class TutorialesPage implements OnDestroy {
   private position = 0;
   private renewed = false;
   private active = false;
+  private categoryGeneration = 0;
 
   constructor() {
     effect(() => { if (this.lock.locked()) this.close(); });
@@ -45,7 +51,17 @@ export class TutorialesPage implements OnDestroy {
     if (!this.active || generation !== this.generation) return;
     this.allowed.set(this.auth.canAccessAppRoute('/ayuda/tutoriales'));
     if (!this.allowed()) { this.rows.set([]); this.error.set('No tienes acceso a Videotutoriales.'); return; }
+    void this.loadCategories();
     await this.reload();
+  }
+  async loadCategories() {
+    const generation = ++this.categoryGeneration;
+    try {
+      const categories = await firstValueFrom(this.service.categories());
+      if (this.active && generation === this.categoryGeneration) this.categories.set(categories);
+    } catch {
+      // Conservar filtros conocidos; la consulta y reproduccion siguen independientes.
+    }
   }
   async reload() {
     if (!this.allowed()) return;
@@ -126,12 +142,12 @@ export class TutorialesPage implements OnDestroy {
     this.playbackGeneration++; this.video?.nativeElement.pause(); this.link.set(null);
     this.selected.set(null); this.playerError.set(''); this.preparing.set(false);
   }
-  ionViewWillLeave() { this.active = false; this.generation++; this.close(); }
+  ionViewWillLeave() { this.active = false; this.generation++; this.categoryGeneration++; this.close(); }
   ngOnDestroy() { this.ionViewWillLeave(); }
   @HostListener('document:visibilitychange')
   visibilityChanged() { if (document.hidden) this.video?.nativeElement.pause(); }
   duration(seconds: number) { return `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`; }
-  categoryLabel(value: string) { return ({ RED_FAMILIAR: 'Red familiar', ASISTENCIA: 'Avisos de asistencia', EVENTOS_FAMILIARES: 'Eventos familiares' } as Record<string, string>)[value] ?? value; }
+  categoryLabel(value: string) { return this.categories().find(c => c.value === value)?.label ?? value; }
   private message(e: unknown) {
     const error = e as { status?: number; error?: { message?: string }; message?: string };
     if (error.status === 0) return 'Sin conexion con Seclife. Revisa WiFi o datos moviles.';

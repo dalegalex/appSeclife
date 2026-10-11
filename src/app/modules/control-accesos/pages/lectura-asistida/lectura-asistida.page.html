@@ -192,13 +192,29 @@
       </div>
 
       <ion-list *ngIf="alumnos.length > 0; else noStudents" lines="none">
-        <ion-item *ngFor="let alumno of alumnos" class="student-item" [class.blocked]="!alumnoDisponible(alumno)">
+        @for (alumno of alumnos; track alumno.idmatricula; let i = $index) {
+        @if (alumno.brigada && (i === 0 || !alumnos[i - 1].brigada)) {
+          <ion-item-divider color="light"><ion-label>ALUMNOS BRIGADA</ion-label></ion-item-divider>
+        }
+        @if (!alumno.brigada && i > 0 && alumnos[i - 1].brigada) {
+          <ion-item-divider color="light"><ion-label>OTROS ALUMNOS AUTORIZADOS</ion-label></ion-item-divider>
+        }
+        <ion-item class="student-item" [class.blocked]="!alumnoDisponible(alumno)">
           <ion-label>
             <h3 class="student-name">
               <span *ngIf="alumno.colorGrupo" class="group-color" [style.background-color]="alumno.colorGrupo" aria-hidden="true"></span>
               <span>{{ alumno.alumno }}</span>
             </h3>
             <p>{{ alumno.gradoGrupo || 'Sin grupo activo' }}</p>
+            @if (alumno.brigada; as brigada) {
+              <p>{{ brigada.etiqueta }} · Responsable: {{ brigada.familiaResponsable }}</p>
+              @if (brigada.tipoRecogida === 'ALTERNATIVA') {
+                <p>Familia alternativa autorizada para hoy</p>
+              }
+              @for (aviso of brigada.advertencias; track $index) {
+                <p class="brigada-warning">Entrega programada: {{ aviso.persona }} · {{ aviso.familia }}</p>
+              }
+            }
             <div class="student-tags">
               <ion-chip [color]="alumnoRelacionColor(alumno)">
                 <ion-label>{{ alumnoRelacionLabel(alumno) }}</ion-label>
@@ -215,6 +231,9 @@
               {{ alumnoEnAvisoCarrusel(alumno) ? 'Aviso registrado' : 'Salida registrada' }}:
               {{ alumno.fechaHoraSalida | date:'HH:mm' }}
             </p>
+            @if (alumno.entregadoA && alumnoConSalidaRegistrada(alumno)) {
+              <p>Entregado a: {{ alumno.entregadoA }}</p>
+            }
           </ion-label>
           <ion-badge slot="end" [color]="estadoColor(alumno)">
             {{ estadoAlumno(alumno) }}
@@ -227,6 +246,7 @@
             (ionChange)="toggleAlumno(alumno, $event.detail.checked)"
           ></ion-checkbox>
         </ion-item>
+        }
       </ion-list>
 
       <ng-template #noStudents>
@@ -283,7 +303,6 @@
             }
           </ion-button>
         </ion-item>
-
         <div class="identity-results">
           @for (identidad of resultadosIdentidad; track identidad.esTemporal ? 'T:' + identidad.idfamiliamiembro : identidad.idmatricula ? 'A:' + identidad.idmatricula : 'U:' + identidad.idusrbt) {
             <ion-card class="identity-card identity-result" [class.unavailable]="!identidad.credencialDisponible">

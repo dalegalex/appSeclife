@@ -22,7 +22,7 @@ describe('Red Familiar credential actions', () => {
     modal = { create: jasmine.createSpy().and.resolveTo({ present: async () => {} }) };
     page = new RedFamiliarPadrePage(api, {} as any, sheet, {} as any,
       { getCurrentUser: () => ({ idusrbt: 11, idorg: 1099 }) } as any, modal);
-    page.rows = [{ idfamilia: 1, miembros: [{ idfamiliamiembro: 1, idusrbt: 11, familiar: 'Master', esMaster: true, sitactivo: true }, miembro] }];
+    page.rows = [{ idfamilia: 1, miembros: [{ idfamiliamiembro: 1, idusrbt: 11, familiar: 'Master', esMaster: true, sitactivo: true, idtag: 11, idsittag: 3, sitbloqueo: false }, miembro] }];
     toast = spyOn<any>(page, 'showToast').and.resolveTo();
   });
   it('hides brigades when disabled, unavailable, ordinary or silent', () => {
@@ -35,6 +35,57 @@ describe('Red Familiar credential actions', () => {
     page.cargarDisponibilidadBrigadas(); expect(api.consultarBrigadasSemanales).not.toHaveBeenCalled();
     page.rows[0].miembros![0].sitMiembroSilencioso=false;page.rows[0].miembros![0].esMaster=false;
     page.cargarDisponibilidadBrigadas(); expect(api.consultarBrigadasSemanales).not.toHaveBeenCalled();
+  });
+  it('blocks administrative attempts for assigned, missing, unknown or blocked actor TAGs', async () => {
+    const actor = page.rows[0].miembros![0];
+    for (const state of [1, 4, undefined]) {
+      actor.idsittag = state;
+      expect(page.administracionBloqueadaPorTag).toBeTrue();
+      page.toggleMiembroForm();
+      expect(page.showMiembroForm).toBeFalse();
+      await page.opcionesCredencial(miembro);
+      expect(sheet.create).not.toHaveBeenCalled();
+    }
+    actor.idsittag = 3; actor.sitbloqueo = true;
+    expect(page.administracionBloqueadaPorTag).toBeTrue();
+    actor.sitbloqueo = false; actor.idtag = undefined;
+    expect(page.administracionBloqueadaPorTag).toBeTrue();
+    expect(toast).toHaveBeenCalledWith('Sus permisos de administrador se encuentran bloqueados, favor de comunicarse con su Colegio.', 'warning');
+  });
+  it('allows normal master/delegate administration with TAG 2 or 3 independently of digital credentials', () => {
+    const actor = page.rows[0].miembros![0];
+    page.credenciales.set([]);
+    for (const state of [2, 3]) {
+      actor.idsittag = state;
+      expect(page.administracionBloqueadaPorTag).toBeFalse();
+      actor.esMaster = false; actor.puedeAdministrar = true;
+      expect(page.puedeAdministrarRed).toBeTrue();
+      expect(page.administracionBloqueadaPorTag).toBeFalse();
+    }
+  });
+  it('keeps own-photo activation and consultation without allowing edits to other members', async () => {
+    const actor = page.rows[0].miembros![0]; actor.idsittag = 1;
+    expect(page.puedeAdministrarRed).toBeTrue();
+    expect(page.puedeEditarFotoMiembro(actor)).toBeTrue();
+    expect(page.puedeEditarFotoMiembro(miembro)).toBeFalse();
+    expect(page.puedeVerFotoMiembro({...miembro,tieneFoto:true})).toBeTrue();
+    spyOn<any>(page, 'fileToBase64').and.resolveTo('base64');
+    await page.cargarFotoMiembro(actor, {target:{files:[new File(['x'],'foto.jpg',{type:'image/jpeg'})],value:''}} as any);
+    expect(api.actualizarMiembro).not.toHaveBeenCalled();
+    expect(api.guardarFotoCredencial).toHaveBeenCalled();
+    expect(page.administracionBloqueadaPorTag).toBeFalse();
+  });
+  it('keeps own photo capture available without a TAG and never grants an ordinary member administration', () => {
+    const actor = page.rows[0].miembros![0];
+    actor.idtag = undefined; actor.idsittag = undefined;
+    expect(page.puedeEditarFotoMiembro(actor)).toBeTrue();
+    actor.esMaster = false; actor.puedeAdministrar = false;
+    actor.idtag = 11; actor.idsittag = 3;
+    page.toggleMiembroForm();
+    expect(page.showMiembroForm).toBeFalse();
+    expect(page.puedeEditarFotoMiembro(actor)).toBeFalse();
+    actor.puedeAdministrar = true; actor.sitMiembroSilencioso = true;
+    expect(page.puedeAdministrarRed).toBeFalse();
   });
   it('cancels stale availability queries when the family reloads', () => {
     const previous=new Subject<any>(); api.consultarBrigadasSemanales.and.returnValue(previous);
@@ -288,7 +339,7 @@ describe('Red Familiar credential actions', () => {
     await Promise.resolve(); await Promise.resolve();
     saved.next({ idsittag: 3 }); saved.complete();
     await pending;
-    expect(api.actualizarMiembro).toHaveBeenCalledTimes(1);
+    expect(api.actualizarMiembro).not.toHaveBeenCalled();
     expect(page.fotosEnProceso().size).toBe(0);
     expect(page.familiares.find(m => m.idfamiliamiembro === 2)?.idsittag).toBe(3);
   });

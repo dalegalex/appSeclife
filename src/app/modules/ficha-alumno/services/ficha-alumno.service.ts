@@ -5,8 +5,11 @@ import { from, map, Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth/auth.service';
 import {
+  DomicilioFamiliarContexto,
   FichaAlumnoDetalle,
   FichaAlumnoResumen,
+  GuardarDomicilioFamiliarRequest,
+  GuardarDomicilioFamiliarResult,
   RegistrarDocumentoAlumnoRequest,
   ResponderAutorizacionAlumnoRequest,
   SpResponse,
@@ -58,6 +61,27 @@ export class FichaAlumnoService {
       `${this.baseUrl}/mis-alumnos/${idmatricula}/ficha`,
       request
     );
+  }
+
+  consultarDomicilioFamiliar(idmatricula: number): Observable<SpResponse<DomicilioFamiliarContexto>> {
+    const url = `${this.baseUrl}/mis-alumnos/${idmatricula}/domicilio-familiar/candidatos`;
+    if (Capacitor.isNativePlatform()) {
+      return this.nativeRequest<SpResponse<DomicilioFamiliarContexto>>('GET', url);
+    }
+
+    return this.http.get<SpResponse<DomicilioFamiliarContexto>>(url);
+  }
+
+  aplicarDomicilioFamiliar(
+    idmatricula: number,
+    request: GuardarDomicilioFamiliarRequest
+  ): Observable<SpResponse<GuardarDomicilioFamiliarResult>> {
+    const url = `${this.baseUrl}/mis-alumnos/${idmatricula}/domicilio-familiar`;
+    if (Capacitor.isNativePlatform()) {
+      return this.nativeRequest<SpResponse<GuardarDomicilioFamiliarResult>>('PUT', url, request);
+    }
+
+    return this.http.put<SpResponse<GuardarDomicilioFamiliarResult>>(url, request);
   }
 
   registrarDocumento(

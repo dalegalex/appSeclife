@@ -5,6 +5,8 @@ import { Capacitor } from '@capacitor/core';
 import { Directory, Filesystem } from '@capacitor/filesystem';
 import { AlertController, ToastController } from '@ionic/angular';
 import {
+  DomicilioFamiliarContexto,
+  DomicilioFamiliarHermano,
   FichaAlumnoAutorizacion,
   FichaAlumnoDetalle,
   FichaAlumnoDocumento,
@@ -41,10 +43,15 @@ export class MisAlumnosFichaPage implements OnInit {
   documentoUploading: number | null = null;
   documentoOpening: number | null = null;
   autorizacionSaving: number | null = null;
+  domicilioFamiliarContexto: DomicilioFamiliarContexto | null = null;
+  domicilioFamiliarActivo = false;
+  domicilioFamiliarCargando = false;
+  readonly idmatriculasDomicilioSeleccionadas = new Set<number>();
 
   readonly fichaForm = new FormGroup({
     direccionCalle: new FormControl<string | null>(null),
     direccionNumero: new FormControl<string | null>(null),
+    direccionNumeroInterior: new FormControl<string | null>(null),
     direccionColonia: new FormControl<string | null>(null),
     direccionMunicipio: new FormControl<string | null>(null),
     direccionEstado: new FormControl<string | null>(null),
@@ -118,6 +125,7 @@ export class MisAlumnosFichaPage implements OnInit {
     if (!Number.isFinite(parsed) || parsed <= 0) return;
 
     this.selectedIdmatricula = parsed;
+    this.reiniciarDomicilioFamiliar();
     this.cargarFicha(parsed);
   }
 
@@ -128,6 +136,7 @@ export class MisAlumnosFichaPage implements OnInit {
         this.detalle = response.result;
         this.patchForm();
         this.cargando = false;
+        this.cargarContextoDomicilioFamiliar(idmatricula);
       },
       error: async (error) => {
         this.cargando = false;
@@ -136,11 +145,57 @@ export class MisAlumnosFichaPage implements OnInit {
     });
   }
 
-  guardar(): void {
+  async guardar(): Promise<void> {
     if (!this.selectedIdmatricula || !this.puedeGuardar) return;
 
-    this.guardando = true;
     const payload = this.uppercasePayload(this.fichaForm.getRawValue());
+    if (this.activeTab === 'contacto' && this.domicilioFamiliarActivo) {
+      await this.confirmarDomicilioFamiliar(payload);
+      return;
+    }
+
+    this.guardarFichaIndividual(payload);
+  }
+
+  onDomicilioFamiliarChange(event: CustomEvent): void {
+    const activo = Boolean(event.detail?.checked);
+    if (!activo) {
+      this.domicilioFamiliarActivo = false;
+      this.idmatriculasDomicilioSeleccionadas.clear();
+      return;
+    }
+
+    if (!this.domicilioFamiliarContexto?.puedeAdministrar) {
+      void this.presentToast('Solo el master o un familiar con permiso para administrar puede usar esta opción.', 'warning');
+      return;
+    }
+
+    this.domicilioFamiliarActivo = true;
+    this.idmatriculasDomicilioSeleccionadas.clear();
+    for (const hermano of this.domicilioFamiliarContexto.hermanos) {
+      if (!hermano.tieneDomicilio) this.idmatriculasDomicilioSeleccionadas.add(hermano.idmatricula);
+    }
+  }
+
+  onHermanoDomicilioChange(hermano: DomicilioFamiliarHermano, event: CustomEvent): void {
+    if (event.detail?.checked) {
+      this.idmatriculasDomicilioSeleccionadas.add(hermano.idmatricula);
+    } else {
+      this.idmatriculasDomicilioSeleccionadas.delete(hermano.idmatricula);
+    }
+  }
+
+  hermanoDomicilioSeleccionado(idmatricula: number): boolean {
+    return this.idmatriculasDomicilioSeleccionadas.has(idmatricula);
+  }
+
+  trackByHermanoDomicilio(_index: number, hermano: DomicilioFamiliarHermano): number {
+    return hermano.idmatricula;
+  }
+
+  private guardarFichaIndividual(payload: Record<string, unknown>): void {
+    if (!this.selectedIdmatricula) return;
+    this.guardando = true;
     this.fichaAlumnoService.guardarMiAlumnoFicha(this.selectedIdmatricula, payload).subscribe({
       next: async (response) => {
         this.guardando = false;
@@ -152,6 +207,83 @@ export class MisAlumnosFichaPage implements OnInit {
         await this.presentToast(this.errorMessage(error, 'No fue posible guardar la ficha.'), 'danger');
       },
     });
+  }
+
+  private cargarContextoDomicilioFamiliar(idmatricula: number): void {
+    if (this.alumnos.length < 2) {
+      this.domicilioFamiliarContexto = null;
+      return;
+    }
+
+    this.domicilioFamiliarCargando = true;
+    this.fichaAlumnoService.consultarDomicilioFamiliar(idmatricula).subscribe({
+      next: (response) => {
+        if (this.selectedIdmatricula !== idmatricula) return;
+        this.domicilioFamiliarContexto = response.result;
+        this.domicilioFamiliarCargando = false;
+      },
+      error: () => {
+        if (this.selectedIdmatricula !== idmatricula) return;
+        this.domicilioFamiliarContexto = null;
+        this.domicilioFamiliarCargando = false;
+      },
+    });
+  }
+
+  private async confirmarDomicilioFamiliar(payload: Record<string, unknown>): Promise<void> {
+    const contexto = this.domicilioFamiliarContexto;
+    const destinos = contexto?.hermanos.filter((hermano) =>
+      this.idmatriculasDomicilioSeleccionadas.has(hermano.idmatricula)) ?? [];
+
+    if (!destinos.length) {
+      await this.presentToast('Selecciona al menos un hermano para aplicar el domicilio.', 'warning');
+      return;
+    }
+
+    const reemplazos = destinos.filter((hermano) => hermano.tieneDomicilio).length;
+    const nombres = destinos.map((hermano) => `- ${hermano.nombreCompleto}`).join('\n');
+    const advertencia = reemplazos
+      ? `\n\nATENCIÓN: ${reemplazos} ficha(s) ya tienen domicilio y serán reemplazadas.`
+      : '';
+    const alert = await this.alertController.create({
+      header: 'Aplicar domicilio a hermanos',
+      message: `Se copiará el domicilio a:\n\n${nombres}${advertencia}`,
+      cssClass: 'family-address-confirmation',
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        { text: 'Aplicar', role: 'confirm' },
+      ],
+    });
+
+    await alert.present();
+    const result = await alert.onDidDismiss();
+    if (result.role !== 'confirm' || !this.selectedIdmatricula) return;
+
+    this.guardando = true;
+    this.fichaAlumnoService.aplicarDomicilioFamiliar(this.selectedIdmatricula, {
+      ...(payload as object),
+      idmatriculasDestino: destinos.map((hermano) => hermano.idmatricula),
+      direccionNumeroExterior: String(payload['direccionNumero'] ?? '') || null,
+    }).subscribe({
+      next: async (response) => {
+        this.guardando = false;
+        this.reiniciarDomicilioFamiliar();
+        await this.presentToast(response.message ?? 'Domicilio familiar aplicado correctamente.', 'success');
+        this.refrescarSinCambiarTab();
+        this.cargarContextoDomicilioFamiliar(this.selectedIdmatricula as number);
+      },
+      error: async (error) => {
+        this.guardando = false;
+        await this.presentToast(this.errorMessage(error, 'No fue posible aplicar el domicilio familiar.'), 'danger');
+      },
+    });
+  }
+
+  private reiniciarDomicilioFamiliar(): void {
+    this.domicilioFamiliarActivo = false;
+    this.domicilioFamiliarContexto = null;
+    this.domicilioFamiliarCargando = false;
+    this.idmatriculasDomicilioSeleccionadas.clear();
   }
 
   seleccionarArchivo(doc: FichaAlumnoDocumento, event: Event): void {
@@ -712,6 +844,7 @@ export class MisAlumnosFichaPage implements OnInit {
     this.fichaForm.patchValue({
       direccionCalle: this.value('direccionCalle', 'direccion_calle'),
       direccionNumero: this.value('direccionNumero', 'direccion_numero'),
+      direccionNumeroInterior: this.value('direccionNumeroInterior', 'direccion_numero_interior'),
       direccionColonia: this.value('direccionColonia', 'direccion_colonia'),
       direccionMunicipio: this.value('direccionMunicipio', 'direccion_municipio'),
       direccionEstado: this.value('direccionEstado', 'direccion_estado'),
@@ -737,12 +870,21 @@ export class MisAlumnosFichaPage implements OnInit {
 
   private uppercasePayload<T extends Record<string, unknown>>(payload: T): T {
     return Object.entries(payload).reduce((acc, [key, value]) => {
-      if (key === 'emailInstitucional' || key === 'emailPersonal') {
-        acc[key as keyof T] = typeof value === 'string' ? value.toLowerCase() as T[keyof T] : value as T[keyof T];
+      if (typeof value !== 'string') {
+        acc[key as keyof T] = value as T[keyof T];
         return acc;
       }
 
-      acc[key as keyof T] = typeof value === 'string' ? value.toUpperCase() as T[keyof T] : value as T[keyof T];
+      const normalized = value.trim();
+      if (!normalized) {
+        acc[key as keyof T] = null as T[keyof T];
+        return acc;
+      }
+
+      const normalizedValue = key === 'emailInstitucional' || key === 'emailPersonal'
+        ? normalized.toLowerCase()
+        : normalized.toUpperCase();
+      acc[key as keyof T] = normalizedValue as T[keyof T];
       return acc;
     }, {} as T);
   }
@@ -770,13 +912,49 @@ export class MisAlumnosFichaPage implements OnInit {
   }
 
   private errorMessage(error: any, fallback: string): string {
-    if (typeof error?.error?.message === 'string' && error.error.message.trim()) return error.error.message;
-    if (typeof error?.error === 'string' && error.error.trim()) return error.error;
+    const apiMessage = this.extractApiErrorMessage(error?.error);
+    if (apiMessage) return apiMessage;
     if (error?.status === 0) return 'No fue posible conectar con el API. Revisa que GpsApi este iniciado y actualizado.';
     if (error?.status === 413) return 'El archivo es demasiado grande para enviarse desde la app.';
-    if (typeof error?.message === 'string' && error.message.trim()) return error.message;
+    const directMessage = this.extractApiErrorMessage(error?.message);
+    if (directMessage) return directMessage;
     if (error?.status) return `GpsApi devolvio HTTP ${error.status} sin detalle.`;
     return fallback;
+  }
+
+  private extractApiErrorMessage(payload: unknown): string | null {
+    if (typeof payload === 'string') {
+      const value = payload.trim();
+      if (!value) return null;
+
+      if (value.startsWith('{') || value.startsWith('[')) {
+        try {
+          return this.extractApiErrorMessage(JSON.parse(value));
+        } catch {
+          return null;
+        }
+      }
+
+      return value;
+    }
+
+    if (!payload || typeof payload !== 'object') return null;
+
+    const response = payload as { message?: unknown; errors?: unknown };
+    if (response.errors && typeof response.errors === 'object') {
+      for (const messages of Object.values(response.errors as Record<string, unknown>)) {
+        if (Array.isArray(messages)) {
+          const message = messages.find((item): item is string => typeof item === 'string' && Boolean(item.trim()));
+          if (message) return message;
+        } else if (typeof messages === 'string' && messages.trim()) {
+          return messages;
+        }
+      }
+    }
+
+    return typeof response.message === 'string' && response.message.trim()
+      ? response.message
+      : null;
   }
 
   private async presentToast(message: string, color: 'success' | 'warning' | 'danger' | 'medium'): Promise<void> {

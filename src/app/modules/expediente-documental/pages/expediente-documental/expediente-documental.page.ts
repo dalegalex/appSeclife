@@ -13,6 +13,7 @@ import {
   ExpedienteContexto,
   FamiliarExpediente,
   OtpRegistration,
+  ProponerRepresentacionRequest,
   RepresentacionFamiliar,
 } from '../../models/expediente-documental.model';
 import { ExpedienteDocumentalService } from '../../services/expediente-documental.service';
@@ -32,6 +33,7 @@ export class ExpedienteDocumentalPage implements OnInit {
   activeTab: ExpedienteTab = 'representacion';
   loading = false;
   savingRepresentation = false;
+  restoringRepresentationId: number | null = null;
   uploadingSupport = false;
   loadingDetail = false;
   savingSignature = false;
@@ -49,7 +51,7 @@ export class ExpedienteDocumentalPage implements OnInit {
   supportFile: File | null = null;
   supportType = 'RESOLUCION_JUDICIAL';
   hasLegalSupport = false;
-  representationForm = this.emptyRepresentationForm();
+  representationForm: ProponerRepresentacionRequest = this.emptyRepresentationForm();
 
   drawing = false;
   hasSignature = false;
@@ -81,11 +83,29 @@ export class ExpedienteDocumentalPage implements OnInit {
 
   get familyMembers(): FamiliarExpediente[] {
     const idfamilia = this.selectedStudent?.idfamilia;
-    return this.context.familiares.filter(item => item.idfamilia === idfamilia);
+    const idmatricula = this.selectedStudent?.idmatricula;
+    return this.context.familiares.filter(item => item.idfamilia === idfamilia && item.idmatricula === idmatricula);
   }
 
   get selectedQuality(): CalidadRepresentacion | undefined {
     return this.context.calidades.find(item => item.clave === this.representationForm.claveCalidad);
+  }
+
+  get selectedRepresentative(): FamiliarExpediente | undefined {
+    return this.familyMembers.find(item => item.idfamiliamiembro === this.representationForm.idfamiliamiembro);
+  }
+
+  get availableQualities(): CalidadRepresentacion[] {
+    const relationship = this.selectedRepresentative?.parentesco?.toUpperCase();
+    const forcedQuality = this.qualityForRelationship(relationship);
+    if (forcedQuality) {
+      return this.context.calidades.filter(item => item.clave === forcedQuality);
+    }
+    return this.context.calidades.filter(item => !['PADRE', 'MADRE'].includes(item.clave));
+  }
+
+  get qualityLocked(): boolean {
+    return !!this.qualityForRelationship(this.selectedRepresentative?.parentesco?.toUpperCase());
   }
 
   async load(event?: { target?: { complete?: () => void } }): Promise<void> {
@@ -116,6 +136,18 @@ export class ExpedienteDocumentalPage implements OnInit {
 
   onStudentChange(): void {
     this.representationForm.idfamiliamiembro = this.familyMembers[0]?.idfamiliamiembro ?? 0;
+    this.onRepresentativeChange();
+  }
+
+  onRepresentativeChange(): void {
+    this.representationForm.claveCalidad = this.qualityForRelationship(
+      this.selectedRepresentative?.parentesco?.toUpperCase()) ?? '';
+    this.representationForm.ocupacion = this.selectedRepresentative?.ocupacion ?? '';
+    this.representationForm.nacionalidad = this.selectedRepresentative?.nacionalidad ?? '';
+    this.representationForm.rfc = this.selectedRepresentative?.rfc ?? '';
+    this.hasLegalSupport = false;
+    this.supportFile = null;
+    this.onQualityChange();
   }
 
   onSupportSelected(event: Event): void {
@@ -123,24 +155,49 @@ export class ExpedienteDocumentalPage implements OnInit {
     this.supportFile = input.files?.[0] ?? null;
   }
 
+  onQualityChange(): void {
+    if (this.selectedQuality?.requiereSoporte) {
+      this.hasLegalSupport = true;
+    }
+  }
+
   async saveRepresentation(): Promise<void> {
     if (!this.representationForm.idmatricula || !this.representationForm.idfamiliamiembro || !this.representationForm.claveCalidad) {
       await this.toast('Selecciona alumno, representante y calidad juridica.', 'warning');
       return;
     }
-    if (this.hasLegalSupport && !this.supportFile) {
-      await this.toast('Selecciona el PDF acreditativo.', 'warning');
+    const rfc = this.normalizeRfc(this.representationForm.rfc);
+    if (rfc && !/^[A-Z&Ñ]{4}[0-9]{6}[A-Z0-9]{3}$/.test(rfc)) {
+      await this.toast('El RFC del representante debe contener 13 caracteres con formato de persona física.', 'warning');
+      return;
+    }
+    this.representationForm.ocupacion = this.normalizeText(this.representationForm.ocupacion);
+    this.representationForm.nacionalidad = this.normalizeText(this.representationForm.nacionalidad);
+    this.representationForm.rfc = rfc || null;
+    const supportRequired = this.selectedQuality?.requiereSoporte === true;
+    if ((supportRequired || this.hasLegalSupport) && !this.supportFile) {
+      await this.toast(
+        supportRequired
+          ? 'La calidad juridica seleccionada requiere un documento PDF acreditativo.'
+          : 'Selecciona el PDF acreditativo.',
+        'warning');
       return;
     }
     this.savingRepresentation = true;
     try {
-      const created = await firstValueFrom(this.service.proponer(this.representationForm));
-      if (this.hasLegalSupport && this.supportFile) {
-        await firstValueFrom(this.service.cargarSoporte(
-          created.result.idrepresentacionlegal, this.supportFile, this.supportType));
+      const includesSupport = (supportRequired || this.hasLegalSupport) && !!this.supportFile;
+      if (includesSupport) {
+        await firstValueFrom(this.service.proponerConSoporte(
+          this.representationForm, this.supportFile!, this.supportType));
+      } else {
+        await firstValueFrom(this.service.proponer(this.representationForm));
       }
       this.representationModalOpen = false;
-      await this.toast('Solicitud enviada al Colegio.', 'success');
+      await this.toast(
+        includesSupport
+          ? 'Representacion y soporte enviados al Colegio.'
+          : 'Representacion autorizada correctamente.',
+        'success');
       await this.load();
     } catch (error) {
       await this.toast(this.errorMessage(error, 'No fue posible registrar la representacion.'), 'danger');
@@ -171,6 +228,18 @@ export class ExpedienteDocumentalPage implements OnInit {
       this.supportTarget = null;
       input.value = '';
     }
+  }
+
+  async confirmRestoreRepresentation(item: RepresentacionFamiliar): Promise<void> {
+    const alert = await this.alertController.create({
+      header: 'Restaurar representación',
+      message: 'Solo continuará si la relación activa entre el familiar y el alumno ya existe nuevamente en Red Familiar. Si hay soporte jurídico, el Colegio deberá revisarla otra vez. Las asignaciones y firmas anteriores no se reactivarán.',
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        { text: 'Restaurar', handler: () => void this.restoreRepresentation(item) },
+      ],
+    });
+    await alert.present();
   }
 
   async reviewDocument(item: DocumentoFirmante): Promise<void> {
@@ -300,7 +369,7 @@ export class ExpedienteDocumentalPage implements OnInit {
   statusColor(status: string): string {
     const value = status.toUpperCase();
     if (['VIGENTE', 'FIRMADO', 'FIRMADA'].includes(value)) return 'success';
-    if (['RECHAZADO', 'BLOQUEADA_DISENSO'].includes(value)) return 'danger';
+    if (['SUSPENDIDA', 'SUSPENDIDO', 'RECHAZADO', 'RECHAZADA', 'REVOCADA', 'BLOQUEADA_DISENSO'].includes(value)) return 'danger';
     if (value === 'NO_REQUERIDA_POR_CUMPLIMIENTO') return 'medium';
     return 'warning';
   }
@@ -329,6 +398,20 @@ export class ExpedienteDocumentalPage implements OnInit {
     } catch (error) {
       await this.toast(this.errorMessage(error, 'No fue posible registrar el rechazo.'), 'danger');
       return false;
+    }
+  }
+
+  private async restoreRepresentation(item: RepresentacionFamiliar): Promise<void> {
+    if (this.restoringRepresentationId !== null) return;
+    this.restoringRepresentationId = item.idrepresentacionlegal;
+    try {
+      const response = await firstValueFrom(this.service.restaurarRepresentacion(item.idrepresentacionlegal));
+      await this.toast(response.message || 'Representación restaurada correctamente.', 'success');
+      await this.load();
+    } catch (error) {
+      await this.toast(this.errorMessage(error, 'No fue posible restaurar la representación.'), 'danger');
+    } finally {
+      this.restoringRepresentationId = null;
     }
   }
 
@@ -377,11 +460,35 @@ export class ExpedienteDocumentalPage implements OnInit {
     });
   }
 
-  private emptyRepresentationForm() {
-    return { idmatricula: 0, idfamiliamiembro: 0, claveCalidad: '', fechaInicio: null, fechaFin: null, observaciones: '' };
+  private emptyRepresentationForm(): ProponerRepresentacionRequest {
+    return {
+      idmatricula: 0, idfamiliamiembro: 0, claveCalidad: '', fechaInicio: null, fechaFin: null,
+      observaciones: '', ocupacion: '', nacionalidad: '', rfc: ''
+    };
+  }
+
+  updateRepresentationIdentity(field: 'ocupacion' | 'nacionalidad' | 'rfc', event: CustomEvent): void {
+    this.representationForm[field] = String(event.detail?.value ?? '').toUpperCase();
+  }
+
+  private normalizeText(value?: string | null): string | null {
+    return value?.trim().toUpperCase() || null;
+  }
+
+  private normalizeRfc(value?: string | null): string {
+    return value?.replace(/[\s-]/g, '').toUpperCase() ?? '';
+  }
+
+  private qualityForRelationship(relationship?: string): string | null {
+    if (relationship === 'PADRE') return 'PADRE';
+    if (relationship === 'MADRE') return 'MADRE';
+    if (relationship === 'TUTOR') return 'TUTOR_LEGAL';
+    return null;
   }
 
   private errorMessage(error: unknown, fallback: string): string {
+    const apiMessage = (error as { error?: { message?: unknown } } | null)?.error?.message;
+    if (typeof apiMessage === 'string' && apiMessage.trim()) return apiMessage;
     return error instanceof Error && error.message ? error.message : fallback;
   }
 

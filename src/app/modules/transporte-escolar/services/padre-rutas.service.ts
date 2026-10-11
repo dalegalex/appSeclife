@@ -433,7 +433,10 @@ export class PadreRutasService {
       }
 
       return items;
-    });
+    }).sort((a, b) =>
+      a.alumno.localeCompare(b.alumno, 'es', { sensitivity: 'base' }) ||
+      a.idmatricula - b.idmatricula
+    );
   }
 
   private resolveRutaEstadoTexto(

@@ -21,6 +21,42 @@ export interface FichaAlumnoResumen {
   puedeVerAcademico?: boolean | null;
 }
 
+export interface DomicilioFamiliarHermano {
+  idmatricula: number;
+  matricula?: string | null;
+  nombreCompleto: string;
+  gradoGrupo?: string | null;
+  tieneDomicilio: boolean;
+  domicilioActual?: string | null;
+}
+
+export interface DomicilioFamiliarContexto {
+  puedeAdministrar: boolean;
+  hermanos: DomicilioFamiliarHermano[];
+}
+
+export interface GuardarDomicilioFamiliarRequest {
+  idmatriculasDestino: number[];
+  direccionCalle?: string | null;
+  direccionNumero?: string | null;
+  direccionNumeroExterior?: string | null;
+  direccionNumeroInterior?: string | null;
+  direccionColonia?: string | null;
+  direccionMunicipio?: string | null;
+  direccionEstado?: string | null;
+  direccionCp?: string | null;
+  referenciaDomicilio?: string | null;
+  telefonoCasa?: string | null;
+  emailInstitucional?: string | null;
+  emailPersonal?: string | null;
+}
+
+export interface GuardarDomicilioFamiliarResult {
+  idmatriculaOrigen: number;
+  numeroDestinos: number;
+  destinos: Array<{ idmatricula: number }>;
+}
+
 export interface FichaAlumnoData {
   idalumnoficha?: number | null;
   idmatricula?: number | null;
@@ -45,6 +81,8 @@ export interface FichaAlumnoData {
   direccionCalle?: string | null;
   direccion_numero?: string | null;
   direccionNumero?: string | null;
+  direccion_numero_interior?: string | null;
+  direccionNumeroInterior?: string | null;
   direccion_colonia?: string | null;
   direccionColonia?: string | null;
   direccion_municipio?: string | null;
