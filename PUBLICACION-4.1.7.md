@@ -63,6 +63,11 @@ Archivar y subir a TestFlight; validar fisicamente antes de enviar a revision.
 Correccion posterior: el paquete 20107 tenia version nativa 4.1.7, pero ambos environments conservaban appVersion 4.1.6 y el menu mostraba ese texto fijo. Se corrigen a 4.1.7, se agrega `prebuild` para validar package/lock/environments/Android/iOS, con tres pruebas Node. El paquete 20107 no debe promoverse a produccion; usar 20108 tras nueva compilacion y prueba. Los hashes anteriores corresponden exclusivamente a 20107.
 Codi Mac debe actualizar esta rama antes de compilar. Si ya subio 4.1.7 (1), incrementar el build iOS a uno libre y generar otro archivo; no reutilizar el binario anterior.
 
+Validacion de 20108: Angular production y Gradle bundleRelease/assembleRelease correctos; firma APK verificada con el mismo certificado. Inspeccion del JavaScript dentro del AAB confirma appVersion 4.1.7. Tres pruebas del validador de versiones correctas.
+Play Console confirma 20108 disponible para testers internos el 2026-10-11 a las 15:18, release 10. Sustituye 20107 en el canal interno. Produccion sin cambios; pendiente verificacion en el dispositivo del usuario.
+- AAB 20108 SHA256: `D657C16D2412636794B22497A4B9927AFEED3BA0703D06A8D857FD40E2BE6623`.
+- APK 20108 SHA256: `EEA4F1967CD74715FC65962638989F0BF968D31FEC9DFB8893793CAEDAD43902`.
+
 Estado verificado el 2026-10-11: Android 4.1.7 (20107) disponible para testers internos en Play Console, release 9 del canal 4699629436129831654. Sin errores bloqueantes ni perdida de dispositivos compatibles. Advertencias: archivo de desofuscacion y simbolos nativos no adjuntos. Produccion no promovida; pendiente prueba del usuario sobre la instalacion de tienda. iOS pendiente de compilar y probar en Mac/TestFlight.
 
 Primero prueba interna Android y TestFlight iOS. No activar actualizacion obligatoria ni elevar minimos hasta que cada plataforma tenga la version disponible para su audiencia.
