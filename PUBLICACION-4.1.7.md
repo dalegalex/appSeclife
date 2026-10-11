@@ -62,7 +62,7 @@ Archivar y subir a TestFlight; validar fisicamente antes de enviar a revision.
 
 ## Publicacion
 
-Estado actual confirmado el 2026-10-11: 4.1.7 (20109) disponible para testers internos, release 11 del canal 4699629436129831654. Sin errores bloqueantes; mismas dos advertencias de desofuscacion y simbolos nativos. Produccion y politica de actualizacion obligatoria sin cambios. Pendiente prueba de persistencia del correo en dispositivo por Master y delegado antes de promocion.
+Estado actual confirmado el 2026-10-11: usuario confirma pruebas internas satisfactorias y autoriza produccion. 4.1.7 (20109) promovida a produccion, release 104 del canal 4697946813617665984, lanzamiento completo al 100%. Envio confirmado en Resumen de publicacion como "Cambios en revision", con comprobaciones rapidas iniciales en curso; todavia no acredita aprobacion ni disponibilidad publica. Segmentacion verificada: exclusivamente Canada, Estados Unidos y Mexico. Publicacion gestionada desactivada. Politica de actualizacion obligatoria sin cambios. Sin errores bloqueantes; tres advertencias de diagnostico (desofuscacion del APK legacy 20096 y del bundle 20109, y simbolos nativos del 20109). Se conserva el APK legacy incluido previamente. Evidencia local: releases/4.1.7/play-produccion-20109.jpg.
 
 Build 20109: incluye la edicion de correo de Red Familiar del commit 524db5f. Angular production, cap sync android y Gradle bundleRelease/assembleRelease correctos. Firma APK verificada; version 4.1.7/20109 y texto del cambio comprobados en los artefactos. Las 43 pruebas de Red Familiar pasaron al implementar este ajuste. AAB SHA256: `FF69A060ED6B9C5008BB32CC29FD2A7DD5A4236F581BB2E8DE6927326B0D4F27`.
 
