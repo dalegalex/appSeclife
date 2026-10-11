@@ -4,7 +4,7 @@
 
 - Fecha de preparacion: 2026-10-11.
 - Rama: `codex/appseclife-4.1.7-publicacion`, repositorio `dalegalex/appSeclife`.
-- Android: versionName 4.1.7, versionCode 20107, target SDK 36.
+- Android corregido: versionName 4.1.7, versionCode 20108, target SDK 36.
 - iOS: MARKETING_VERSION 4.1.7, build inicial 1; comprobar que no este utilizado en App Store Connect.
 - El usuario confirma SQL y GpsApi publicados y ultima version iOS 4.1.6. Esta confirmacion no sustituye pruebas de integracion.
 
@@ -59,6 +59,9 @@ Archivar y subir a TestFlight; validar fisicamente antes de enviar a revision.
 - APK SHA256: `35E04BA7A488728A2F7A26CF63106B7FC5B224627894C3C9238619CDC1DFE50F`.
 
 ## Publicacion
+
+Correccion posterior: el paquete 20107 tenia version nativa 4.1.7, pero ambos environments conservaban appVersion 4.1.6 y el menu mostraba ese texto fijo. Se corrigen a 4.1.7, se agrega `prebuild` para validar package/lock/environments/Android/iOS, con tres pruebas Node. El paquete 20107 no debe promoverse a produccion; usar 20108 tras nueva compilacion y prueba. Los hashes anteriores corresponden exclusivamente a 20107.
+Codi Mac debe actualizar esta rama antes de compilar. Si ya subio 4.1.7 (1), incrementar el build iOS a uno libre y generar otro archivo; no reutilizar el binario anterior.
 
 Estado verificado el 2026-10-11: Android 4.1.7 (20107) disponible para testers internos en Play Console, release 9 del canal 4699629436129831654. Sin errores bloqueantes ni perdida de dispositivos compatibles. Advertencias: archivo de desofuscacion y simbolos nativos no adjuntos. Produccion no promovida; pendiente prueba del usuario sobre la instalacion de tienda. iOS pendiente de compilar y probar en Mac/TestFlight.
 

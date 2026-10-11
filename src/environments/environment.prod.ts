@@ -1,6 +1,6 @@
 export const environment = {
   production: true,
-  appVersion: '4.1.6',
+  appVersion: '4.1.7',
   appBuild: 1,
   appChannel: 'campo',
   apiUrl: 'https://gpsapi-agerh3bdbyaddvbx.mexicocentral-01.azurewebsites.net/api',

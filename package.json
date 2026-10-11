@@ -6,6 +6,7 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve --port 4300",
+    "prebuild": "node scripts/check-release-version.cjs",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
