@@ -28,7 +28,7 @@
 - Los intentos iniciales fallaron por inclusion de specs fuera del tsconfig y por restricciones de inicio de Chrome/Gradle en sandbox; corregido el comando y ejecutado con acceso local, sin omitir validaciones.
 - AAB: `releases/4.1.8/appSeclife-4.1.8-20110.aab`, SHA256 `6F9F5B001ADFCA6E17B47296D1C260EEA4042B573B88FC2CE90288B0CC91AA42`.
 - APK: `releases/4.1.8/appSeclife-4.1.8-20110.apk`, SHA256 `4DB2A9CDA16066F07502A66BB20C390686E4F4C3F1207B277E76E47A7BE643D9`.
-- Carga interna en Play Console: en curso.
+- Play Console confirma 4.1.8 (20110) disponible para testers internos el 2026-10-17 a las 21:31, release 12 del canal 4699629436129831654. Sin errores bloqueantes ni perdida de dispositivos compatibles; dos advertencias de desofuscacion/simbolos nativos. Evidencia: releases/4.1.8/play-interna-20110.jpg.
 - No se ha compilado iOS desde Windows ni promovido esta version a produccion.
 
 ## Codi Mac
