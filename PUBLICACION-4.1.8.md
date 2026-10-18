@@ -29,7 +29,11 @@
 - AAB: `releases/4.1.8/appSeclife-4.1.8-20110.aab`, SHA256 `6F9F5B001ADFCA6E17B47296D1C260EEA4042B573B88FC2CE90288B0CC91AA42`.
 - APK: `releases/4.1.8/appSeclife-4.1.8-20110.apk`, SHA256 `4DB2A9CDA16066F07502A66BB20C390686E4F4C3F1207B277E76E47A7BE643D9`.
 - Play Console confirma 4.1.8 (20110) disponible para testers internos el 2026-10-17 a las 21:31, release 12 del canal 4699629436129831654. Sin errores bloqueantes ni perdida de dispositivos compatibles; dos advertencias de desofuscacion/simbolos nativos. Evidencia: releases/4.1.8/play-interna-20110.jpg.
-- No se ha compilado iOS desde Windows ni promovido esta version a produccion.
+- Alex confirma prueba satisfactoria como tester de 4.1.8 y autoriza publicacion.
+- Android promovido y enviado a revision de produccion el 2026-10-17; release 105, canal 4697946813617665984. Play Console muestra Cambios en revision, con comprobaciones rapidas aun en curso. Esto no confirma aprobacion ni disponibilidad publica.
+- Lanzamiento completo (100%) exclusivamente para Mexico, Canada y Estados Unidos, verificados en Paises/Territorios antes del envio. Publicacion gestionada desactivada.
+- Tres advertencias no bloqueantes de desofuscacion/simbolos (una del APK legacy 20096 conservado y dos de 20110), sin perdida de dispositivos compatibles. Evidencia: releases/4.1.8/play-produccion-20110.jpg.
+- No se ha compilado ni publicado iOS desde Windows.
 
 ## Codi Mac
 
@@ -62,7 +66,7 @@ Archivar, subir a TestFlight y probar en dispositivo antes de enviar a revision.
 
 ## Publicacion
 
-Primero prueba interna Android y TestFlight. Produccion pendiente de pruebas y confirmacion.
+Prueba interna Android confirmada por Alex. Envio a produccion realizado; pendiente aprobacion de Google y disponibilidad publica. iOS mantiene su proceso independiente con Codi Mac y TestFlight.
 Mantener exclusivamente Mexico, Canada y Estados Unidos en produccion.
 No elevar versiones minimas ni activar actualizacion obligatoria como parte de esta entrega.
 
