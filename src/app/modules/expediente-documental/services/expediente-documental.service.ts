@@ -81,6 +81,10 @@ export class ExpedienteDocumentalService {
     return this.http.post<SpResponse<OtpRegistration>>(`${this.baseUrl}/documentos/${id}/firma`, form);
   }
 
+  registrarAceptacion(id: number): Observable<SpResponse<OtpRegistration>> {
+    return this.json('POST', `${this.baseUrl}/documentos/${id}/aceptacion`, { aceptacionExpresa: true });
+  }
+
   confirmarOtp(id: number, idotpdesafio: number, nonce: string, codigo: string): Observable<SpResponse<{ estatus: string }>> {
     return this.json('POST', `${this.baseUrl}/documentos/${id}/otp/confirmar`, { idotpdesafio, nonce, codigo });
   }

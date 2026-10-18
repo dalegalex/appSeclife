@@ -24,6 +24,7 @@ export interface AlumnoExpediente {
   idua: number;
   matricula?: string | null;
   nombre: string;
+  grupo?: string | null;
 }
 
 export interface FamiliarExpediente {
@@ -116,10 +117,11 @@ export interface ProponerRepresentacionRequest {
 }
 
 export interface OtpRegistration {
-  idfirmagrafica: number;
+  idfirmagrafica?: number | null;
   idotpdesafio: number;
   nonce: string;
   fechaExpiracion: string;
   destino: string;
   codigoPrueba?: string | null;
+  modo?: 'FIRMA_GRAFICA_OTP' | 'ACEPTACION_OTP';
 }

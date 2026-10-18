@@ -15,7 +15,7 @@
         @if (pendingDocuments.length) { <ion-badge>{{ pendingDocuments.length }}</ion-badge> }
       </ion-segment-button>
       <ion-segment-button value="firmados">
-        <ion-label>Firmados</ion-label>
+        <ion-label>Atendidos</ion-label>
       </ion-segment-button>
     </ion-segment>
   </ion-toolbar>
@@ -57,6 +57,7 @@
                 <div>
                   <h2>{{ item.firmante }}</h2>
                   <p>{{ studentName(item.idmatricula) }}</p>
+                  <span class="student-group">Grupo: {{ studentGroup(item.idmatricula) }}</span>
                 </div>
                 <ion-chip [color]="statusColor(item.estatus)">{{ statusLabel(item.estatus) }}</ion-chip>
               </div>
@@ -117,7 +118,8 @@
                 </dl>
                 <div class="record-actions">
                   <ion-button size="small" (click)="reviewDocument(item)">
-                    <ion-icon slot="start" name="create-outline"></ion-icon>Revisar y firmar
+                    <ion-icon slot="start" [name]="item.requiereFirmaGrafica ? 'create-outline' : 'checkmark-circle-outline'"></ion-icon>
+                    {{ item.requiereFirmaGrafica ? 'Revisar y firmar' : 'Revisar y aceptar' }}
                   </ion-button>
                   <ion-button fill="clear" color="danger" size="small" (click)="reject(item)">Rechazar</ion-button>
                 </div>
@@ -128,9 +130,9 @@
       }
 
       @if (activeTab === 'firmados') {
-        <div class="section-heading"><div><h1>Documentos firmados</h1><p>Constancias disponibles y cumplimientos conjuntos</p></div></div>
+        <div class="section-heading"><div><h1>Documentos atendidos</h1><p>Firmas, aceptaciones y constancias disponibles</p></div></div>
         @if (!signedDocuments.length) {
-          <div class="empty-state"><ion-icon name="document-lock-outline"></ion-icon><strong>Sin documentos firmados</strong></div>
+          <div class="empty-state"><ion-icon name="document-lock-outline"></ion-icon><strong>Sin documentos atendidos</strong></div>
         }
         <section class="record-list">
           @for (item of signedDocuments; track item.idasignacion) {
@@ -246,7 +248,7 @@
     <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start"><ion-button (click)="documentModalOpen = false">Cerrar</ion-button></ion-buttons>
-        <ion-title>Firma documental</ion-title>
+        <ion-title>{{ detail?.requiereFirmaGrafica ? 'Firma documental' : 'Aceptación documental' }}</ion-title>
       </ion-toolbar>
     </ion-header>
     <ion-content>
@@ -257,7 +259,13 @@
           <div class="document-summary">
             <div><h2>{{ detail.documento }}</h2><p>{{ detail.claveDocumento }} · Versión {{ detail.numeroVersion }}</p></div>
             <ion-button fill="outline" size="small" [disabled]="openingFile" (click)="openDocument(selectedDocument)">
-              <ion-icon slot="start" name="eye-outline"></ion-icon>Abrir PDF
+              @if (openingFile) {
+                <ion-spinner slot="start" name="crescent"></ion-spinner>
+                Cargando PDF...
+              } @else {
+                <ion-icon slot="start" name="eye-outline"></ion-icon>
+                Abrir PDF
+              }
             </ion-button>
           </div>
           <div class="student-band">
@@ -268,14 +276,25 @@
 
           @if (!otp) {
             <section class="signature-area">
-              <div class="signature-heading"><h3>Firma gráfica</h3><ion-button fill="clear" size="small" (click)="clearSignature()"><ion-icon slot="start" name="refresh-outline"></ion-icon>Limpiar</ion-button></div>
-              <canvas #signatureCanvas width="900" height="300"
-                (pointerdown)="startSignature($event)" (pointermove)="drawSignature($event)"
-                (pointerup)="stopSignature()" (pointercancel)="stopSignature()" (pointerleave)="stopSignature()"></canvas>
+              @if (detail.requiereFirmaGrafica) {
+                <div class="signature-heading"><h3>Firma gráfica</h3><ion-button fill="clear" size="small" (click)="clearSignature()"><ion-icon slot="start" name="refresh-outline"></ion-icon>Limpiar</ion-button></div>
+                <canvas #signatureCanvas width="900" height="300"
+                  (pointerdown)="startSignature($event)" (pointermove)="drawSignature($event)"
+                  (pointerup)="stopSignature()" (pointercancel)="stopSignature()" (pointerleave)="stopSignature()"></canvas>
+              } @else {
+                <div class="acceptance-notice">
+                  <ion-icon name="document-text-outline"></ion-icon>
+                  <div><h3>Aceptación expresa</h3><p>Revisa el PDF completo antes de solicitar el código de confirmación.</p></div>
+                </div>
+              }
               <ion-item lines="none" class="legal-check">
-                <ion-checkbox [(ngModel)]="legalAccepted" labelPlacement="end">Confirmo que revisé el documento y que esta firma expresa mi voluntad.</ion-checkbox>
+                <ion-checkbox [(ngModel)]="legalAccepted" labelPlacement="end">
+                  {{ detail.requiereFirmaGrafica
+                    ? 'Confirmo que revisé el documento y que esta firma expresa mi voluntad.'
+                    : 'Confirmo que revisé el documento completo, estoy enterado y estoy de acuerdo con su contenido.' }}
+                </ion-checkbox>
               </ion-item>
-              <ion-button expand="block" [disabled]="savingSignature || !hasSignature || !legalAccepted" (click)="submitSignature()">
+              <ion-button expand="block" [disabled]="savingSignature || (detail.requiereFirmaGrafica && !hasSignature) || !legalAccepted" (click)="submitSignature()">
                 @if (savingSignature) { <ion-spinner name="crescent"></ion-spinner> } @else { <ion-icon slot="start" name="lock-closed-outline"></ion-icon>Solicitar código OTP }
               </ion-button>
             </section>
@@ -289,7 +308,7 @@
               }
               <ion-input label="Código de seis dígitos" labelPlacement="stacked" inputmode="numeric" maxlength="6" [(ngModel)]="otpCode"></ion-input>
               <ion-button expand="block" [disabled]="confirmingOtp || otpCode.length !== 6" (click)="confirmOtp()">
-                @if (confirmingOtp) { <ion-spinner name="crescent"></ion-spinner> } @else { Confirmar firma }
+                @if (confirmingOtp) { <ion-spinner name="crescent"></ion-spinner> } @else { {{ detail.requiereFirmaGrafica ? 'Confirmar firma' : 'Confirmar aceptación' }} }
               </ion-button>
             </section>
           }

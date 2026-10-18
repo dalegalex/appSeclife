@@ -300,14 +300,20 @@ export class ExpedienteDocumentalPage implements OnInit {
   clearSignature(): void { if (!this.otp) this.initializeCanvas(); }
 
   async submitSignature(): Promise<void> {
-    if (!this.selectedDocument || !this.hasSignature || !this.legalAccepted) {
-      await this.toast('Firma y confirma la declaracion para continuar.', 'warning');
+    if (!this.selectedDocument || !this.detail || !this.legalAccepted) {
+      await this.toast('Confirma la declaración para continuar.', 'warning');
+      return;
+    }
+    if (this.detail.requiereFirmaGrafica && !this.hasSignature) {
+      await this.toast('Registra tu firma gráfica para continuar.', 'warning');
       return;
     }
     this.savingSignature = true;
     try {
-      const jpeg = await this.canvasBlob();
-      const response = await firstValueFrom(this.service.registrarFirma(this.selectedDocument.idasignacion, jpeg));
+      const response = this.detail.requiereFirmaGrafica
+        ? await firstValueFrom(this.service.registrarFirma(
+            this.selectedDocument.idasignacion, await this.canvasBlob()))
+        : await firstValueFrom(this.service.registrarAceptacion(this.selectedDocument.idasignacion));
       this.otp = response.result;
       const codigoPrueba = this.mostrarOtpPrueba ? this.otp.codigoPrueba ?? '' : '';
       this.otpCode = codigoPrueba;
@@ -316,7 +322,9 @@ export class ExpedienteDocumentalPage implements OnInit {
         : `Codigo enviado a ${this.otp.destino}.`;
       await this.toast(otpMessage, 'success');
     } catch (error) {
-      await this.toast(this.errorMessage(error, 'No fue posible registrar la firma.'), 'danger');
+      await this.toast(this.errorMessage(error, this.detail.requiereFirmaGrafica
+        ? 'No fue posible registrar la firma.'
+        : 'No fue posible registrar la aceptación.'), 'danger');
     } finally {
       this.savingSignature = false;
     }
@@ -332,7 +340,11 @@ export class ExpedienteDocumentalPage implements OnInit {
       await firstValueFrom(this.service.confirmarOtp(
         this.selectedDocument.idasignacion, this.otp.idotpdesafio, this.otp.nonce, this.otpCode));
       this.documentModalOpen = false;
-      await this.toast('Firma confirmada correctamente.', 'success');
+      await this.toast(
+        this.detail?.requiereFirmaGrafica
+          ? 'Firma confirmada correctamente.'
+          : 'Aceptación confirmada correctamente.',
+        'success');
       await this.load();
       this.activeTab = 'firmados';
     } catch (error) {
@@ -364,6 +376,10 @@ export class ExpedienteDocumentalPage implements OnInit {
 
   studentName(idmatricula: number): string {
     return this.context.alumnos.find(item => item.idmatricula === idmatricula)?.nombre ?? `Alumno ${idmatricula}`;
+  }
+
+  studentGroup(idmatricula: number): string {
+    return this.context.alumnos.find(item => item.idmatricula === idmatricula)?.grupo?.trim() || 'Sin grupo asignado';
   }
 
   statusColor(status: string): string {
