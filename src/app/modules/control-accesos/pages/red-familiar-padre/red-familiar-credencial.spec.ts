@@ -25,7 +25,7 @@ describe('Red Familiar credential actions', () => {
     page.rows = [{ idfamilia: 1, miembros: [{ idfamiliamiembro: 1, idusrbt: 11, familiar: 'Master', esMaster: true, sitactivo: true, idtag: 11, idsittag: 3, sitbloqueo: false }, miembro] }];
     toast = spyOn<any>(page, 'showToast').and.resolveTo();
   });
-  it('allows master and delegate to change contact email while preserving TAG-protected fields', () => {
+  it('allows master and delegate to change phone and contact email while preserving TAG-protected fields', () => {
     for (const delegate of [false, true]) {
       const actor = page.rows[0].miembros![0];
       actor.esMaster = !delegate;
@@ -38,7 +38,7 @@ describe('Red Familiar credential actions', () => {
         page.miembroForm.emailContacto = ' nuevo@example.com ';
         page.miembroForm.nombre = 'NO CAMBIAR';
         page.miembroForm.apellidos = 'NO CAMBIAR';
-        page.miembroForm.cel = 'OTRO';
+        page.miembroForm.cel = ' 5551234567 ';
         page.miembroForm.idparentesco = 9;
         page.miembroForm.puedeRecoger = false;
         page.miembroForm.puedeAdministrar = true;
@@ -46,12 +46,17 @@ describe('Red Familiar credential actions', () => {
         expect(request.emailContacto).toBe('nuevo@example.com');
         expect(request.nombre).toBe('FAMILIAR');
         expect(request.apellidos).toBe('PRUEBA');
-        expect(request.cel).toBe('5550000000');
+        expect(request.cel).toBe('5551234567');
         expect(request.idparentesco).toBe(3);
         expect(request.puedeRecoger).toBeFalse();
         expect(request.puedeAdministrar).toBeTrue();
       }
     }
+  });
+  it('sends null when an authorized editor clears the contact phone', () => {
+    page.editarMiembro({ ...miembro, idsittag: 3, nombre: 'FAMILIAR', apellidos: 'PRUEBA', cel: '5550000000' });
+    page.miembroForm.cel = '   ';
+    expect((page as any).buildGuardarMiembroRequest().cel).toBeNull();
   });
   it('hides brigades when disabled, unavailable, ordinary or silent', () => {
     page.cargarDisponibilidadBrigadas(); expect(page.brigadasVisibles()).toBeFalse();

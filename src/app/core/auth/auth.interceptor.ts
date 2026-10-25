@@ -9,22 +9,25 @@ import {
 import { Observable, catchError, throwError } from 'rxjs';
 import { AuthService } from './auth.service';
 import { SessionLockStateService } from './session-lock-state.service';
+import { AccessAuditService } from './access-audit.service';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
   constructor(
     private readonly authService: AuthService,
-    private readonly lockState: SessionLockStateService
+    private readonly lockState: SessionLockStateService,
+    private readonly audit: AccessAuditService
   ) {}
 
   intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
     const token = this.authService.getToken();
 
-    const authorizedRequest = token ? request.clone({
+    const metadataRequest = request.clone({ setHeaders: this.audit.requestHeaders(request.url) });
+    const authorizedRequest = token ? metadataRequest.clone({
       setHeaders: {
         Authorization: `Bearer ${token}`,
       },
-    }) : request;
+    }) : metadataRequest;
 
     return next.handle(authorizedRequest).pipe(
       catchError((error: unknown) => {
@@ -76,6 +79,7 @@ export class AuthInterceptor implements HttpInterceptor {
     return url.includes('/auth/google')
       || url.includes('/auth/local/')
       || url.includes('/auth/registro-codigo')
-      || url.includes('/auth/biometria/ingresar');
+      || url.includes('/auth/biometria/ingresar')
+      || url.includes('/auth/biometria/renovar');
   }
 }

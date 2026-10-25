@@ -49,7 +49,7 @@ export class AvisoAsistenciaService {
     );
   }
 
-  listar(idorg: number, idmatricula?: number | null): Observable<AvisoAsistencia[]> {
+  listar(idorg: number, idmatricula?: number | null): Observable<AvisosAsistenciaFamiliaResponse> {
     let params = new HttpParams().set('idorg', String(idorg));
     if (idmatricula) {
       params = params.set('idmatricula', String(idmatricula));
@@ -61,7 +61,7 @@ export class AvisoAsistenciaService {
     ).pipe(
       map((response) => {
         this.assertSuccess(response);
-        return response.result?.avisos ?? [];
+        return response.result ?? { avisos: [] };
       })
     );
   }

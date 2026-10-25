@@ -36,6 +36,7 @@ export class AvisosAsistenciaPadrePage implements OnInit {
   cancellingAvisoId: number | null = null;
   alumnos: RedFamiliarRow[] = [];
   avisos: AvisoAsistencia[] = [];
+  modoGestion: 'SOLICITUD_JUSTIFICACION' | 'AVISO_DICTAMEN_POSTERIOR' = 'SOLICITUD_JUSTIFICACION';
   selectedAttachment: JustificanteAdjunto | null = null;
 
   form: AvisoForm = this.createForm();
@@ -58,6 +59,10 @@ export class AvisosAsistenciaPadrePage implements OnInit {
 
   get esAusencia(): boolean {
     return this.form.tipoPermiso === 'AUSENCIA_JUSTIFICADA';
+  }
+
+  get esModoDictamen(): boolean {
+    return this.modoGestion === 'AVISO_DICTAMEN_POSTERIOR';
   }
 
   cargarAlumnos(): void {
@@ -85,8 +90,11 @@ export class AvisosAsistenciaPadrePage implements OnInit {
     if (!this.idorg) return;
 
     this.avisoAsistenciaService.listar(this.idorg, this.form.idmatricula).subscribe({
-      next: (avisos) => {
-        this.avisos = avisos;
+      next: (result) => {
+        this.modoGestion = result.modoGestion === 'AVISO_DICTAMEN_POSTERIOR'
+          ? 'AVISO_DICTAMEN_POSTERIOR'
+          : 'SOLICITUD_JUSTIFICACION';
+        this.avisos = result.avisos ?? [];
       },
       error: () => {
         this.avisos = [];
@@ -129,7 +137,9 @@ export class AvisosAsistenciaPadrePage implements OnInit {
     }).subscribe({
       next: () => {
         this.saving = false;
-        void this.showToast('Aviso enviado al Colegio.');
+        void this.showToast(this.esModoDictamen
+          ? 'Aviso enviado. La inasistencia permanece pendiente de dictamen.'
+          : 'Aviso enviado al Colegio.');
         const idmatricula = this.form.idmatricula;
         this.form = this.createForm();
         this.form.idmatricula = idmatricula;
@@ -148,7 +158,7 @@ export class AvisosAsistenciaPadrePage implements OnInit {
   }
 
   puedeCancelar(aviso: AvisoAsistencia): boolean {
-    return (aviso.estatus || '').toUpperCase() === 'SOLICITADO';
+    return (aviso.estatus || '').toUpperCase() === 'SOLICITADO' && !aviso.fechaEnterado;
   }
 
   async confirmarCancelar(aviso: AvisoAsistencia): Promise<void> {
@@ -156,7 +166,9 @@ export class AvisosAsistenciaPadrePage implements OnInit {
 
     const alert = await this.alertController.create({
       header: 'Cancelar aviso',
-      message: 'La solicitud se cancelará y ya no quedará pendiente de autorización por el Colegio.',
+      message: this.esModoDictamen
+        ? 'El aviso se cancelará antes de que el Colegio registre que quedó enterado.'
+        : 'La solicitud se cancelará y ya no quedará pendiente de autorización por el Colegio.',
       buttons: [
         {
           text: 'Conservar',
@@ -294,11 +306,20 @@ export class AvisosAsistenciaPadrePage implements OnInit {
     return 'warning';
   }
 
-  tipoPermisoLabel(tipoPermiso?: string | null): string {
+  statusLabel(aviso: AvisoAsistencia): string {
+    const estatus = (aviso.estatus || '').toUpperCase();
+    if (!this.avisoEsModoDictamen(aviso)) return aviso.estatus || 'PENDIENTE';
+    if (estatus === 'AUTORIZADO') return 'JUSTIFICADA';
+    if (estatus === 'RECHAZADO') return 'NO JUSTIFICADA';
+    if (estatus === 'CANCELADO') return 'CANCELADO';
+    return aviso.fechaEnterado ? 'ENTERADO' : 'RECIBIDO';
+  }
+
+  tipoPermisoLabel(tipoPermiso?: string | null, aviso?: AvisoAsistencia): string {
     const tipo = (tipoPermiso || '').toUpperCase();
     if (tipo === 'RETARDO_JUSTIFICADO') return 'Ingreso tardío';
     if (tipo === 'SALIDA_TEMPRANA') return 'Salida temprana';
-    if (tipo === 'AUSENCIA_JUSTIFICADA') return 'Falta justificada';
+    if (tipo === 'AUSENCIA_JUSTIFICADA') return aviso && this.avisoEsModoDictamen(aviso) ? 'Aviso de inasistencia' : 'Falta justificada';
     return tipoPermiso || 'Aviso de asistencia';
   }
 
@@ -316,7 +337,11 @@ export class AvisosAsistenciaPadrePage implements OnInit {
   }
 
   documentoLabel(aviso: AvisoAsistencia): string {
-    return aviso.documentoNombre || 'Justificante adjunto';
+    return aviso.documentoNombre || (this.avisoEsModoDictamen(aviso) ? 'Evidencia adjunta' : 'Justificante adjunto');
+  }
+
+  private avisoEsModoDictamen(aviso: AvisoAsistencia): boolean {
+    return aviso.modoGestion === 'AVISO_DICTAMEN_POSTERIOR';
   }
 
   private formatDate(value?: string | null): string {

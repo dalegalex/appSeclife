@@ -106,7 +106,7 @@ export class SessionSecurityService {
       switch (this.unlockMethodSignal()) {
         case 'BIOMETRIC':
           if (requiresNewSession) {
-            await this.authService.loginWithBiometric();
+            await this.authService.loginWithBiometric(true);
           } else {
             await this.authService.verifyBiometricIdentity();
           }

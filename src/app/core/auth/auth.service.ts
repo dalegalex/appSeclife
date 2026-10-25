@@ -1,4 +1,5 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { AccessAuditService } from './access-audit.service';
 import { Injectable, computed, signal } from '@angular/core';
 import { SocialLogin } from '@capgo/capacitor-social-login';
 import {
@@ -72,7 +73,7 @@ export class AuthService {
     return !!session?.token && !this.isExpired(session.expiresAt);
   });
 
-  constructor(private readonly http: HttpClient) {}
+  constructor(private readonly http: HttpClient, private readonly audit: AccessAuditService) {}
 
   loginWithGoogle(idToken: string): Observable<AuthSession> {
     const request: GoogleLoginRequest = { idToken };
@@ -288,7 +289,7 @@ export class AuthService {
     return this.getBiometricCapability();
   }
 
-  async loginWithBiometric(): Promise<AuthSession> {
+  async loginWithBiometric(renewSession = false): Promise<AuthSession> {
     try {
       const credentials = await NativeBiometric.getSecureCredentials({
         server: BIOMETRIC_SERVER,
@@ -302,7 +303,7 @@ export class AuthService {
         credential: credentials.password,
       };
       const session = await firstValueFrom(
-        this.http.post<AuthSession>(`${this.baseUrl}/biometria/ingresar`, request).pipe(
+        this.http.post<AuthSession>(`${this.baseUrl}/biometria/${renewSession ? 'renovar' : 'ingresar'}`, request).pipe(
           tap(value => this.setSession(value))
         )
       );
@@ -429,6 +430,7 @@ export class AuthService {
   }
 
   signOut(): void {
+    this.audit.logout();
     const email = this.supportActorSession?.user?.email ?? this.getCurrentUser()?.email ?? null;
     this.supportActorSession = null;
     const metadata = this.readBiometricMetadata();
@@ -448,6 +450,7 @@ export class AuthService {
     this.resetAppMenu();
     localStorage.removeItem(SESSION_KEY);
     this.sessionSignal.set(session);
+    this.audit.session(session.token);
   }
 
   private restoreActorSession(): void {
@@ -502,6 +505,7 @@ export class AuthService {
   }
 
   clearSessionPreservingBiometricAccess(): void {
+    this.audit.session(null);
     localStorage.removeItem(SESSION_KEY);
     this.resetAppMenu();
     this.sessionSignal.set(null);

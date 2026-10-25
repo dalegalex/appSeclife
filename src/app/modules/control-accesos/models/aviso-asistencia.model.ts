@@ -27,6 +27,11 @@ export interface AvisoAsistencia {
   gradoGrupo?: string | null;
   tipoPermiso?: string | null;
   estatus?: string | null;
+  modoGestion?: 'SOLICITUD_JUSTIFICACION' | 'AVISO_DICTAMEN_POSTERIOR' | string | null;
+  estadoAviso?: 'RECIBIDO' | 'ENTERADO' | string | null;
+  dictamen?: 'PENDIENTE' | 'JUSTIFICADA' | 'NO_JUSTIFICADA' | string | null;
+  idusrbtEnterado?: number | null;
+  fechaEnterado?: string | null;
   fechaHoraInicio?: string | null;
   fechaHoraFin?: string | null;
   motivo?: string | null;
@@ -39,5 +44,6 @@ export interface AvisoAsistencia {
 }
 
 export interface AvisosAsistenciaFamiliaResponse {
+  modoGestion?: 'SOLICITUD_JUSTIFICACION' | 'AVISO_DICTAMEN_POSTERIOR' | string | null;
   avisos?: AvisoAsistencia[] | null;
 }
