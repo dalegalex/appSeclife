@@ -36,7 +36,8 @@
 - AAB verificado con jarsigner; advertencias de certificado autofirmado, timestamp y orden ZIP, iguales a las documentadas en 4.1.8.
 - AAB: releases/4.1.9/appSeclife-4.1.9-20111.aab, SHA256 5EBA9EDB7F207E1B30D869D5D825CD0AEE09F112530B9D5D52C837F8F40336B7.
 - APK: releases/4.1.9/appSeclife-4.1.9-20111.apk, SHA256 5873285C9B337FA8F3549868F891CCD2A70C17EBA565D7F164CB108C4209C17E.
-- Carga en curso en prueba interna de Play Console, release 13, canal 4699629436129831654. No confirma aun disponibilidad para testers ni produccion.
+- Play Console confirma Disponible para testers internos el 2026-10-25 a las 13:59 CDMX, release 13, canal 4699629436129831654. Sin errores bloqueantes ni perdida de dispositivos compatibles; dos advertencias de desofuscacion y simbolos nativos. Evidencia: releases/4.1.9/play-interna-20111.png.
+- Commit funcional subido a origin: 2848e66e92eb7968cfa68dcba47367c4a5698be8. Los commits posteriores de esta rama documentan el estado de publicacion.
 - Pendientes pruebas fisicas Android y iOS de esta entrega.
 
 ## Codi Mac
@@ -71,7 +72,7 @@ Verificar version 4.1.9 y build libre; archivar, validar, subir a TestFlight y p
 
 ## Publicacion
 
-Primero prueba interna Android y TestFlight iOS. Esperar prueba fisica satisfactoria antes de promover a produccion. Mantener Mexico, Canada y Estados Unidos exclusivamente.
+Android disponible en prueba interna; iOS pendiente de compilacion y TestFlight con Codi Mac. Esperar prueba fisica satisfactoria antes de promover a produccion. Mantener Mexico, Canada y Estados Unidos exclusivamente. No se modifico produccion durante esta preparacion.
 
 Play Console mantiene advertencia de optimizacion DEX para febrero 2027, independiente de esta entrega; no se activa minificacion sin su prueba especifica.
 
