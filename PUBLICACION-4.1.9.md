@@ -38,7 +38,7 @@
 - APK: releases/4.1.9/appSeclife-4.1.9-20111.apk, SHA256 5873285C9B337FA8F3549868F891CCD2A70C17EBA565D7F164CB108C4209C17E.
 - Play Console confirma Disponible para testers internos el 2026-10-25 a las 13:59 CDMX, release 13, canal 4699629436129831654. Sin errores bloqueantes ni perdida de dispositivos compatibles; dos advertencias de desofuscacion y simbolos nativos. Evidencia: releases/4.1.9/play-interna-20111.png.
 - Commit funcional subido a origin: 2848e66e92eb7968cfa68dcba47367c4a5698be8. Los commits posteriores de esta rama documentan el estado de publicacion.
-- Pendientes pruebas fisicas Android y iOS de esta entrega.
+- Alex confirma pruebas satisfactorias como tester Android y autoriza promocion a produccion. iOS mantiene su validacion independiente con Codi Mac.
 
 ## Codi Mac
 
@@ -72,7 +72,13 @@ Verificar version 4.1.9 y build libre; archivar, validar, subir a TestFlight y p
 
 ## Publicacion
 
-Android disponible en prueba interna; iOS pendiente de compilacion y TestFlight con Codi Mac. Esperar prueba fisica satisfactoria antes de promover a produccion. Mantener Mexico, Canada y Estados Unidos exclusivamente. No se modifico produccion durante esta preparacion.
+Android promovido a produccion y enviado a revision de Google tras confirmacion de pruebas de Alex. Release 106 del canal 4697946813617665984, mismo AAB 20111 de prueba interna, sin recompilar.
+
+Play Console muestra Cambios en revision, con comprobaciones rapidas aun en curso. No confirma aprobacion ni disponibilidad publica. Lanzamiento completo al 100%, exclusivamente Mexico, Canada y Estados Unidos, verificados en Paises/Territorios. Publicacion gestionada desactivada.
+
+Se conserva el APK legacy 20096 que ya estaba incluido en produccion. Sin perdida de dispositivos compatibles. Tres advertencias no bloqueantes: desofuscacion de 20096 y 20111, y simbolos nativos de 20111. No se modifica la regla de actualizacion obligatoria.
+
+Evidencia: releases/4.1.9/play-produccion-20111.png. iOS mantiene compilacion, TestFlight y revision independientes con Codi Mac.
 
 Play Console mantiene advertencia de optimizacion DEX para febrero 2027, independiente de esta entrega; no se activa minificacion sin su prueba especifica.
 
