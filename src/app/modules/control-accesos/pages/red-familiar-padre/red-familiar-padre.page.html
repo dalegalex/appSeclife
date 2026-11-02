@@ -87,6 +87,45 @@
                   <p>{{ codigoConsultado.familiarCompartido.parentesco || 'Familiar compartido' }}</p>
                 </ion-label>
               </ion-item>
+              <ng-container *ngIf="esCodigoFamiliarProvisional(codigoConsultado)">
+                <ion-item lines="none">
+                  <ion-label>
+                    <h3>Alumnos autorizados</h3>
+                    <p>Selecciona uno, varios o todos.</p>
+                  </ion-label>
+                </ion-item>
+                <ion-item *ngFor="let alumno of alumnosNucleoParaCodigo()" class="compact-item">
+                  <ion-checkbox
+                    slot="start"
+                    [checked]="codigoAlumnoSeleccionado(alumno.idmatricula)"
+                    (ionChange)="toggleCodigoAlumno(alumno.idmatricula, $event.detail.checked)"
+                  ></ion-checkbox>
+                  <ion-label>
+                    <h3>{{ alumno.alumno }}</h3>
+                    <p>{{ alumnoReferencia(alumno) }}</p>
+                  </ion-label>
+                </ion-item>
+                <ion-item>
+                  <ion-textarea
+                    label="Nota (opcional)"
+                    labelPlacement="stacked"
+                    maxlength="300"
+                    [counter]="true"
+                    [autoGrow]="true"
+                    placeholder="Ej. Recoger a las 14:30 por brigada, circuito o acceso principal."
+                    [value]="notaCodigoProvisional"
+                    (ionInput)="actualizarNotaCodigoProvisional($event.detail.value)"
+                  ></ion-textarea>
+                </ion-item>
+                <ion-note class="form-hint">
+                  Puedes indicar horario, brigada, circuito o punto de acceso para la recogida.
+                </ion-note>
+              </ng-container>
+              <ion-item *ngIf="codigoConsultado.tipoCompartir === 'FAMILIAR_EXISTENTE'" lines="none">
+                <ion-label>
+                  <p>La autorizacion permanente aplicara a todos los alumnos del nucleo.</p>
+                </ion-label>
+              </ion-item>
               <ion-item *ngFor="let alumno of codigoConsultado.alumnos" class="compact-item">
                 <ion-icon slot="start" name="school-outline"></ion-icon>
                 <ion-label>{{ alumno.alumno }}</ion-label>

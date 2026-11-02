@@ -10,17 +10,21 @@ describe('Red Familiar credential actions', () => {
   let toast: jasmine.Spy;
   let sheet: any;
   let modal: any;
+  let alert: any;
   const miembro: MiembroFamiliar = { idfamiliamiembro: 2, idfamilia: 1, idusrbt: 22, familiar: 'Familiar Prueba', idsittag: 1, codigo: 'VRPRUEBA', sitactivo: true };
   const credencial: CredencialFamiliar = { idfamiliamiembro: 2, idusrbt: 22, idtag: 3, nombreCompleto: 'Familiar Prueba', organizacion: 'Colegio Prueba', nombreFamilia: 'Familia Prueba', idciclo: 202627, cicloEscolar: '2026-2027', activa: true, virtual: true, puedeRegenerar: true, codigo: 'VRPRUEBA' };
   beforeEach(() => {
     api = { consultarCredenciales: jasmine.createSpy().and.returnValue(of([credencial])),
       actualizarMiembro: jasmine.createSpy().and.returnValue(of(miembro)),
       guardarFotoCredencial: jasmine.createSpy().and.returnValue(of({ idsittag: 3, tagActivada: true })),
+      aplicarCodigoCompartir: jasmine.createSpy().and.returnValue(of({ idcodigocompartir: 1, codigo: '123456', idfamilia: 1, idfamiliamiembro: 3, alumnosAgregados: 1 })),
+      listarCodigosCompartir: jasmine.createSpy().and.returnValue(of([])),
       consultarBrigadasSemanales: jasmine.createSpy().and.returnValue(of({visible:false,brigadas:[]})),
       consultarMiRed: jasmine.createSpy().and.callFake(() => of(page.rows)) };
     sheet = { create: jasmine.createSpy().and.resolveTo({ present: async () => {} }) };
     modal = { create: jasmine.createSpy().and.resolveTo({ present: async () => {} }) };
-    page = new RedFamiliarPadrePage(api, {} as any, sheet, {} as any,
+    alert = { create: jasmine.createSpy().and.resolveTo({ present: async () => {}, onDidDismiss: async () => ({ role: 'keep' }) }) };
+    page = new RedFamiliarPadrePage(api, {} as any, sheet, alert,
       { getCurrentUser: () => ({ idusrbt: 11, idorg: 1099 }) } as any, modal);
     page.rows = [{ idfamilia: 1, miembros: [{ idfamiliamiembro: 1, idusrbt: 11, familiar: 'Master', esMaster: true, sitactivo: true, idtag: 11, idsittag: 3, sitbloqueo: false }, miembro] }];
     toast = spyOn<any>(page, 'showToast').and.resolveTo();
@@ -414,6 +418,66 @@ describe('Red Familiar credential actions', () => {
     expect(labels).toContain('Compartir credencial digital');
     expect(labels).toContain('Regenerar codigo virtual');
     expect(labels).not.toContain('Compartir credencial virtual');
+  });
+  for (const decision of [
+    { role: 'keep', accion: 'CONSERVAR' },
+    { role: 'replace', accion: 'REEMPLAZAR' },
+  ]) {
+    it(`sends ${decision.accion} after confirming an existing provisional authorization`, async () => {
+      alert.create.and.resolveTo({ present: async () => {}, onDidDismiss: async () => ({ role: decision.role }) });
+      page.codigoConsultado = {
+        idcodigocompartir: 1, idorg: 1099, codigo: '123456',
+        tipoCompartir: 'INVITADO_EXTERNO',
+        familiarCompartido: { idfamiliamiembro: 30, familiar: 'FAMILIAR NUEVO' },
+        conflictosProvisionales: [{ idalumnoautorizacion: 10, idmatricula: 20, alumno: 'ALUMNA', familiar: 'FAMILIAR PREVIO' }],
+      };
+      page.selectedCodigoAlumnos = new Set([20]);
+      await page.aplicarCodigo();
+      expect(api.aplicarCodigoCompartir).toHaveBeenCalledWith('123456', jasmine.objectContaining({
+        accionDuplicidad: decision.accion,
+        alumnos: [{ idmatricula: 20 }],
+      }));
+    });
+  }
+  it('does not apply the code when the duplicate confirmation is cancelled', async () => {
+    alert.create.and.resolveTo({ present: async () => {}, onDidDismiss: async () => ({ role: 'cancel' }) });
+    page.codigoConsultado = {
+      idcodigocompartir: 1, idorg: 1099, codigo: '123456',
+      tipoCompartir: 'INVITADO_EXTERNO',
+      familiarCompartido: { idfamiliamiembro: 30, familiar: 'FAMILIAR NUEVO' },
+      conflictosProvisionales: [{ idalumnoautorizacion: 10, idmatricula: 20 }],
+    };
+    page.selectedCodigoAlumnos = new Set([20]);
+    await page.aplicarCodigo();
+    expect(api.aplicarCodigoCompartir).not.toHaveBeenCalled();
+  });
+  it('blocks an existing provisional authorization when the organization policy requires it', async () => {
+    alert.create.and.resolveTo({ present: async () => {} });
+    page.codigoConsultado = {
+      idcodigocompartir: 1, idorg: 1011, codigo: '123456',
+      tipoCompartir: 'INVITADO_EXTERNO',
+      familiarCompartido: { idfamiliamiembro: 30, familiar: 'FAMILIAR NUEVO' },
+      politicaDuplicadoProvisional: 'BLOQUEAR',
+      conflictosProvisionales: [{ idalumnoautorizacion: 10, idmatricula: 20, alumno: 'ALUMNA' }],
+    };
+    page.selectedCodigoAlumnos = new Set([20]);
+    await page.aplicarCodigo();
+    expect(alert.create).toHaveBeenCalledWith(jasmine.objectContaining({ header: 'Autorizacion provisional duplicada' }));
+    expect(api.aplicarCodigoCompartir).not.toHaveBeenCalled();
+  });
+  it('applies a provisional authorization only to the selected students', async () => {
+    page.codigoConsultado = {
+      idcodigocompartir: 1, idorg: 1099, codigo: '123456',
+      tipoCompartir: 'INVITADO_EXTERNO',
+      familiarCompartido: { idfamiliamiembro: 30, familiar: 'FAMILIAR NUEVO' },
+    };
+    page.selectedCodigoAlumnos = new Set([20, 21]);
+    page.actualizarNotaCodigoProvisional('  Recoger 14:30 por circuito norte.  ');
+    await page.aplicarCodigo();
+    expect(api.aplicarCodigoCompartir).toHaveBeenCalledWith('123456', jasmine.objectContaining({
+      alumnos: [{ idmatricula: 20 }, { idmatricula: 21 }],
+      nota: 'Recoger 14:30 por circuito norte.',
+    }));
   });
   for (const state of [
     { activa: true, virtual: true, share: true, regenerate: true },

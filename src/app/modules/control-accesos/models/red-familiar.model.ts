@@ -208,6 +208,15 @@ export interface CodigoCompartirFamiliar {
   leyendaIdentificacion?: string | null;
 }
 
+export interface ConflictoAutorizacionProvisional {
+  idalumnoautorizacion: number;
+  idmatricula: number;
+  alumno?: string | null;
+  familiar?: string | null;
+  fechaInicio?: string | null;
+  fechaFin?: string | null;
+}
+
 export interface CodigoCompartir {
   idcodigocompartir: number;
   idorg: number;
@@ -227,6 +236,8 @@ export interface CodigoCompartir {
   familiarCompartido?: CodigoCompartirFamiliar | null;
   alumnos?: CodigoCompartirAlumno[];
   aplicaciones?: CodigoCompartirAplicacion[];
+  conflictosProvisionales?: ConflictoAutorizacionProvisional[];
+  politicaDuplicadoProvisional?: 'AVISAR_CONFIRMAR' | 'BLOQUEAR' | null;
 }
 
 export interface GenerarCodigoCompartirRequest {
@@ -245,6 +256,9 @@ export interface AplicarCodigoCompartirRequest {
   idorg: number;
   idfamilia?: number | null;
   idfamiliamiembro?: number | null;
+  accionDuplicidad?: 'CONSERVAR' | 'REEMPLAZAR' | null;
+  nota?: string | null;
+  alumnos?: { idmatricula: number }[];
 }
 
 export interface AplicarCodigoCompartirResponse {
@@ -256,6 +270,7 @@ export interface AplicarCodigoCompartirResponse {
   aplicaRedCompleta?: boolean | null;
   miembrosDestino?: number | null;
   alumnosAgregados: number;
+  autorizacionesReemplazadas?: number | null;
   asignacionesAgregadas?: number | null;
   familiarCompartido?: CodigoCompartirFamiliar | null;
   alumnos?: CodigoCompartirAlumno[];

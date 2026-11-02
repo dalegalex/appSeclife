@@ -95,6 +95,8 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
   codigoAplicado: AplicarCodigoCompartirResponse | null = null;
   codigoCapturado = signal('');
   selectedAlumnos = new Set<number>();
+  selectedCodigoAlumnos = new Set<number>();
+  notaCodigoProvisional = '';
   editingMiembro: MiembroFamiliar | null = null;
   readonly fotosEnProceso = signal<Set<number>>(new Set());
   readonly credenciales = signal<CredencialFamiliar[]>([]);
@@ -1339,20 +1341,26 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
     this.codigoConsultado = null;
     this.codigoAplicado = null;
 
-    this.redFamiliarService.consultarCodigoCompartir(codigo, this.idorg).subscribe({
+    this.redFamiliarService.consultarCodigoCompartir(codigo, this.idorg, this.idfamilia).subscribe({
       next: (codigoInfo) => {
         this.applyingCode = false;
         this.codigoConsultado = codigoInfo;
+        this.selectedCodigoAlumnos = this.esCodigoFamiliarProvisional(codigoInfo)
+          ? new Set(this.alumnos.filter((alumno) => this.esAlumnoNucleo(alumno)).map((alumno) => alumno.idmatricula))
+          : new Set<number>();
+        this.notaCodigoProvisional = '';
         this.codigoCapturado.set('');
       },
       error: async (error) => {
         this.applyingCode = false;
+        this.selectedCodigoAlumnos.clear();
+        this.notaCodigoProvisional = '';
         await this.showToast(this.errorMessage(error, 'Codigo de autorizacion no valido.'), 'danger');
       },
     });
   }
 
-  aplicarCodigo(): void {
+  async aplicarCodigo(): Promise<void> {
     if (!this.validarAdministracion()) return;
     const codigo = this.codigoConsultado?.codigo?.trim() || this.codigoCapturado().trim();
 
@@ -1361,15 +1369,60 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
       return;
     }
 
+    const codigoInfo = this.codigoConsultado;
+    const esProvisional = this.esCodigoFamiliarProvisional(codigoInfo);
+    const alumnosSeleccionados = esProvisional
+      ? Array.from(this.selectedCodigoAlumnos).map((idmatricula) => ({ idmatricula }))
+      : undefined;
+    if (esProvisional && alumnosSeleccionados?.length === 0) {
+      await this.showToast('Selecciona al menos un alumno para la autorizacion provisional.', 'warning');
+      return;
+    }
+
+    let accionDuplicidad: 'CONSERVAR' | 'REEMPLAZAR' | undefined;
+    const conflictos = (codigoInfo?.conflictosProvisionales ?? [])
+      .filter((item) => !esProvisional || this.selectedCodigoAlumnos.has(item.idmatricula));
+    if (conflictos.length > 0) {
+      const personas = new Set(conflictos.map((item) => item.familiar).filter(Boolean)).size;
+      const alumnos = new Set(conflictos.map((item) => item.idmatricula)).size;
+      if (codigoInfo?.politicaDuplicadoProvisional === 'BLOQUEAR') {
+        const alert = await this.alertController.create({
+          header: 'Autorizacion provisional duplicada',
+          message: `No es posible continuar: ${alumnos} alumno(s) ya tienen autorizacion provisional para la fecha indicada.`,
+          buttons: ['Aceptar'],
+        });
+        await alert.present();
+        return;
+      }
+      const alert = await this.alertController.create({
+        header: 'Autorizacion provisional existente',
+        message: `Ya existen ${conflictos.length} autorizacion(es) de ${personas} persona(s) para ${alumnos} alumno(s) en la fecha indicada. Puedes conservarlas o reemplazarlas por la nueva persona.`,
+        buttons: [
+          { text: 'Cancelar', role: 'cancel' },
+          { text: 'Reemplazar anterior', role: 'replace' },
+          { text: 'Conservar ambas', role: 'keep' },
+        ],
+      });
+      await alert.present();
+      const decision = await alert.onDidDismiss();
+      if (decision.role === 'cancel' || !decision.role) return;
+      accionDuplicidad = decision.role === 'replace' ? 'REEMPLAZAR' : 'CONSERVAR';
+    }
+
     this.applyingCode = true;
     this.redFamiliarService.aplicarCodigoCompartir(codigo, {
       idorg: this.idorg,
       idfamilia: this.idfamilia,
+      accionDuplicidad,
+      nota: esProvisional ? this.notaCodigoProvisional.trim() || null : null,
+      alumnos: alumnosSeleccionados,
     }).subscribe({
       next: async (resultado) => {
         this.applyingCode = false;
         this.codigoAplicado = resultado;
         this.codigoConsultado = null;
+        this.selectedCodigoAlumnos.clear();
+        this.notaCodigoProvisional = '';
         await this.showToast('Codigo aplicado correctamente.', 'success');
         this.loading = true;
         this.recargarRed({
@@ -1383,6 +1436,27 @@ export class RedFamiliarPadrePage implements OnInit, OnDestroy {
         await this.showToast(this.errorMessage(error, 'No fue posible aplicar el codigo.'), 'danger');
       },
     });
+  }
+
+  esCodigoFamiliarProvisional(codigo = this.codigoConsultado): boolean {
+    return codigo?.tipoCompartir === 'INVITADO_EXTERNO' && !!codigo.familiarCompartido;
+  }
+
+  alumnosNucleoParaCodigo(): AlumnoFamiliar[] {
+    return this.alumnos.filter((alumno) => this.esAlumnoNucleo(alumno));
+  }
+
+  codigoAlumnoSeleccionado(idmatricula: number): boolean {
+    return this.selectedCodigoAlumnos.has(idmatricula);
+  }
+
+  toggleCodigoAlumno(idmatricula: number, checked: boolean | null | undefined): void {
+    if (checked) this.selectedCodigoAlumnos.add(idmatricula);
+    else this.selectedCodigoAlumnos.delete(idmatricula);
+  }
+
+  actualizarNotaCodigoProvisional(value: string | null | undefined): void {
+    this.notaCodigoProvisional = String(value || '').slice(0, 300);
   }
 
   async copiarCodigo(codigo: string): Promise<void> {

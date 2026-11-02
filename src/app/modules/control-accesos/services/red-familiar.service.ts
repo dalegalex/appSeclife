@@ -271,8 +271,11 @@ export class RedFamiliarService {
     );
   }
 
-  consultarCodigoCompartir(codigo: string, idorg: number): Observable<CodigoCompartir> {
-    const params = new HttpParams().set('idorg', String(idorg));
+  consultarCodigoCompartir(codigo: string, idorg: number, idfamilia?: number | null): Observable<CodigoCompartir> {
+    let params = new HttpParams().set('idorg', String(idorg));
+    if (idfamilia) {
+      params = params.set('idfamilia', String(idfamilia));
+    }
 
     return this.http.get<SpResponse<CodigoCompartir>>(`${this.baseUrl}/red-familiar/codigos/${encodeURIComponent(codigo)}`, { params }).pipe(
       map((response) => {
