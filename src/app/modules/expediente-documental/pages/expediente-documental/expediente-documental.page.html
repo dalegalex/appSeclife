@@ -66,6 +66,14 @@
                 <div><dt>Vigencia</dt><dd>{{ formatDate(item.fechaInicio) }}</dd></div>
                 <div><dt>Soportes</dt><dd>{{ item.soportes }}</dd></div>
               </dl>
+              @if (['PENDIENTE', 'VIGENTE', 'SUSPENDIDA'].includes(item.estatus)) {
+                <div class="record-actions">
+                  <ion-button fill="outline" size="small" (click)="openContractIdentity(item)">
+                    <ion-icon slot="start" name="create-outline"></ion-icon>
+                    Datos de contrato
+                  </ion-button>
+                </div>
+              }
               @if (item.estatus === 'PENDIENTE') {
                 <div class="record-actions">
                   <ion-button fill="clear" size="small" [disabled]="uploadingSupport" (click)="selectAdditionalSupport(item)">
@@ -205,6 +213,16 @@
             <ion-input label="RFC (opcional)" labelPlacement="stacked" maxlength="13" autocapitalize="characters"
               [value]="representationForm.rfc" (ionInput)="updateRepresentationIdentity('rfc', $any($event))"></ion-input>
           </ion-item>
+          <ion-list-header><ion-label>Datos para contratos</ion-label></ion-list-header>
+          <ion-item><ion-input label="Calle" labelPlacement="stacked" maxlength="160" [value]="representationForm.direccionCalle" (ionInput)="updateRepresentationIdentity('direccionCalle', $any($event))"></ion-input></ion-item>
+          <ion-item><ion-input label="Número exterior" labelPlacement="stacked" maxlength="40" [value]="representationForm.direccionNumeroExterior" (ionInput)="updateRepresentationIdentity('direccionNumeroExterior', $any($event))"></ion-input></ion-item>
+          <ion-item><ion-input label="Número interior (opcional)" labelPlacement="stacked" maxlength="40" [value]="representationForm.direccionNumeroInterior" (ionInput)="updateRepresentationIdentity('direccionNumeroInterior', $any($event))"></ion-input></ion-item>
+          <ion-item><ion-input label="Colonia" labelPlacement="stacked" maxlength="120" [value]="representationForm.direccionColonia" (ionInput)="updateRepresentationIdentity('direccionColonia', $any($event))"></ion-input></ion-item>
+          <ion-item><ion-input label="Municipio o alcaldía" labelPlacement="stacked" maxlength="120" [value]="representationForm.direccionMunicipio" (ionInput)="updateRepresentationIdentity('direccionMunicipio', $any($event))"></ion-input></ion-item>
+          <ion-item><ion-input label="Estado" labelPlacement="stacked" maxlength="120" [value]="representationForm.direccionEstado" (ionInput)="updateRepresentationIdentity('direccionEstado', $any($event))"></ion-input></ion-item>
+          <ion-item><ion-input label="Código postal" labelPlacement="stacked" maxlength="12" inputmode="numeric" [value]="representationForm.direccionCp" (ionInput)="updateRepresentationIdentity('direccionCp', $any($event))"></ion-input></ion-item>
+          <ion-item><ion-input label="Referencia (opcional)" labelPlacement="stacked" maxlength="250" [value]="representationForm.direccionReferencia" (ionInput)="updateRepresentationIdentity('direccionReferencia', $any($event))"></ion-input></ion-item>
+          <ion-item><ion-input label="Teléfonos" labelPlacement="stacked" maxlength="120" inputmode="tel" [value]="representationForm.telefonos" (ionInput)="updateRepresentationIdentity('telefonos', $any($event))"></ion-input></ion-item>
           <ion-item><ion-textarea label="Observaciones" labelPlacement="stacked" autoGrow="true" maxlength="1000" [(ngModel)]="representationForm.observaciones" name="observations"></ion-textarea></ion-item>
           <ion-item>
             <ion-toggle [(ngModel)]="hasLegalSupport" name="hasSupport" [disabled]="selectedQuality?.requiereSoporte === true">
@@ -243,6 +261,41 @@
   </ng-template>
 </ion-modal>
 
+<ion-modal [isOpen]="contractIdentityModalOpen" (didDismiss)="contractIdentityModalOpen = false">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-buttons slot="start"><ion-button (click)="contractIdentityModalOpen = false">Cancelar</ion-button></ion-buttons>
+        <ion-title>Datos de contrato</ion-title>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <form class="modal-form" (ngSubmit)="saveContractIdentity()">
+        <ion-list inset="true">
+          <ion-list-header><ion-label>{{ contractIdentityTarget?.firmante }}</ion-label></ion-list-header>
+          <ion-item><ion-input label="Ocupación" labelPlacement="stacked" maxlength="150" [value]="contractIdentityForm.ocupacion" (ionInput)="updateContractIdentityField('ocupacion', $any($event))"></ion-input></ion-item>
+          <ion-item><ion-input label="Nacionalidad" labelPlacement="stacked" maxlength="80" [value]="contractIdentityForm.nacionalidad" (ionInput)="updateContractIdentityField('nacionalidad', $any($event))"></ion-input></ion-item>
+          <ion-item><ion-input label="RFC" labelPlacement="stacked" maxlength="13" autocapitalize="characters" [value]="contractIdentityForm.rfc" (ionInput)="updateContractIdentityField('rfc', $any($event))"></ion-input></ion-item>
+          <ion-list-header><ion-label>Domicilio contractual</ion-label></ion-list-header>
+          <ion-item><ion-input label="Calle" labelPlacement="stacked" maxlength="160" [value]="contractIdentityForm.direccionCalle" (ionInput)="updateContractIdentityField('direccionCalle', $any($event))"></ion-input></ion-item>
+          <ion-item><ion-input label="Número exterior" labelPlacement="stacked" maxlength="40" [value]="contractIdentityForm.direccionNumeroExterior" (ionInput)="updateContractIdentityField('direccionNumeroExterior', $any($event))"></ion-input></ion-item>
+          <ion-item><ion-input label="Número interior (opcional)" labelPlacement="stacked" maxlength="40" [value]="contractIdentityForm.direccionNumeroInterior" (ionInput)="updateContractIdentityField('direccionNumeroInterior', $any($event))"></ion-input></ion-item>
+          <ion-item><ion-input label="Colonia" labelPlacement="stacked" maxlength="120" [value]="contractIdentityForm.direccionColonia" (ionInput)="updateContractIdentityField('direccionColonia', $any($event))"></ion-input></ion-item>
+          <ion-item><ion-input label="Municipio o alcaldía" labelPlacement="stacked" maxlength="120" [value]="contractIdentityForm.direccionMunicipio" (ionInput)="updateContractIdentityField('direccionMunicipio', $any($event))"></ion-input></ion-item>
+          <ion-item><ion-input label="Estado" labelPlacement="stacked" maxlength="120" [value]="contractIdentityForm.direccionEstado" (ionInput)="updateContractIdentityField('direccionEstado', $any($event))"></ion-input></ion-item>
+          <ion-item><ion-input label="Código postal" labelPlacement="stacked" maxlength="12" inputmode="numeric" [value]="contractIdentityForm.direccionCp" (ionInput)="updateContractIdentityField('direccionCp', $any($event))"></ion-input></ion-item>
+          <ion-item><ion-input label="Referencia (opcional)" labelPlacement="stacked" maxlength="250" [value]="contractIdentityForm.direccionReferencia" (ionInput)="updateContractIdentityField('direccionReferencia', $any($event))"></ion-input></ion-item>
+          <ion-item><ion-input label="Teléfonos" labelPlacement="stacked" maxlength="120" inputmode="tel" [value]="contractIdentityForm.telefonos" (ionInput)="updateContractIdentityField('telefonos', $any($event))"></ion-input></ion-item>
+        </ion-list>
+        <ion-button expand="block" type="submit" [disabled]="savingContractIdentity">
+          @if (savingContractIdentity) { <ion-spinner name="crescent"></ion-spinner> }
+          @else { <ion-icon slot="start" name="save-outline"></ion-icon>Guardar datos }
+        </ion-button>
+      </form>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
 <ion-modal class="signature-modal" [isOpen]="documentModalOpen" (didDismiss)="documentModalOpen = false" (didPresent)="initializeCanvas()">
   <ng-template>
     <ion-header>
@@ -274,8 +327,46 @@
             }
           </div>
 
+          @if (contractData?.esContrato && contractData?.requiereConfirmacion) {
+            <section class="contract-confirmation">
+              <div class="contract-confirmation-heading">
+                <ion-icon name="home-outline"></ion-icon>
+                <div><h3>Confirma tus datos del contrato</h3>
+                  <p>Revisa cuidadosamente esta información antes de firmar.</p></div>
+              </div>
+              @if (contractData?.origenDomicilio === 'ALUMNO') {
+                <ion-note color="warning">El domicilio fue sugerido desde la ficha de {{ contractData?.alumnoOrigen || 'uno de tus hijos' }}. No modifica tu ficha general y debes confirmarlo o corregirlo.</ion-note>
+              }
+              <ion-list inset="true">
+                <ion-item><ion-input label="Ocupación" labelPlacement="stacked" maxlength="150" [value]="contractDataForm.ocupacion" (ionInput)="updateAssignmentContractField('ocupacion', $any($event))"></ion-input></ion-item>
+                <ion-item><ion-input label="Nacionalidad" labelPlacement="stacked" maxlength="80" [value]="contractDataForm.nacionalidad" (ionInput)="updateAssignmentContractField('nacionalidad', $any($event))"></ion-input></ion-item>
+                <ion-item><ion-input label="RFC" labelPlacement="stacked" maxlength="13" autocapitalize="characters" [value]="contractDataForm.rfc" (ionInput)="updateAssignmentContractField('rfc', $any($event))"></ion-input></ion-item>
+                <ion-list-header><ion-label>Domicilio que aparecerá en este contrato</ion-label></ion-list-header>
+                <ion-item><ion-input label="Calle" labelPlacement="stacked" maxlength="160" [value]="contractDataForm.direccionCalle" (ionInput)="updateAssignmentContractField('direccionCalle', $any($event))"></ion-input></ion-item>
+                <ion-item><ion-input label="Número exterior" labelPlacement="stacked" maxlength="40" [value]="contractDataForm.direccionNumeroExterior" (ionInput)="updateAssignmentContractField('direccionNumeroExterior', $any($event))"></ion-input></ion-item>
+                <ion-item><ion-input label="Número interior (opcional)" labelPlacement="stacked" maxlength="40" [value]="contractDataForm.direccionNumeroInterior" (ionInput)="updateAssignmentContractField('direccionNumeroInterior', $any($event))"></ion-input></ion-item>
+                <ion-item><ion-input label="Colonia" labelPlacement="stacked" maxlength="120" [value]="contractDataForm.direccionColonia" (ionInput)="updateAssignmentContractField('direccionColonia', $any($event))"></ion-input></ion-item>
+                <ion-item><ion-input label="Municipio o alcaldía" labelPlacement="stacked" maxlength="120" [value]="contractDataForm.direccionMunicipio" (ionInput)="updateAssignmentContractField('direccionMunicipio', $any($event))"></ion-input></ion-item>
+                <ion-item><ion-input label="Estado" labelPlacement="stacked" maxlength="120" [value]="contractDataForm.direccionEstado" (ionInput)="updateAssignmentContractField('direccionEstado', $any($event))"></ion-input></ion-item>
+                <ion-item><ion-input label="Código postal" labelPlacement="stacked" maxlength="12" inputmode="numeric" [value]="contractDataForm.direccionCp" (ionInput)="updateAssignmentContractField('direccionCp', $any($event))"></ion-input></ion-item>
+                <ion-item><ion-input label="Referencia (opcional)" labelPlacement="stacked" maxlength="250" [value]="contractDataForm.direccionReferencia" (ionInput)="updateAssignmentContractField('direccionReferencia', $any($event))"></ion-input></ion-item>
+                <ion-item><ion-input label="Teléfonos" labelPlacement="stacked" maxlength="120" inputmode="tel" [value]="contractDataForm.telefonos" (ionInput)="updateAssignmentContractField('telefonos', $any($event))"></ion-input></ion-item>
+              </ion-list>
+              <ion-button expand="block" [disabled]="confirmingContractData" (click)="confirmAssignmentContractData()">
+                @if (confirmingContractData) { <ion-spinner name="crescent"></ion-spinner> }
+                @else { <ion-icon slot="start" name="checkmark-circle-outline"></ion-icon>Confirmar datos del contrato }
+              </ion-button>
+            </section>
+          } @else if (contractData?.esContrato && !contractData?.todosConfirmados) {
+            <section class="contract-waiting">
+              <ion-icon name="time-outline"></ion-icon>
+              <div><h3>Contrato pendiente de datos</h3><p>Faltan {{ contractData?.firmantesPendientes }} firmante(s) por confirmar su información. Las firmas se habilitarán cuando todos hayan concluido.</p></div>
+            </section>
+          }
+
           @if (!otp) {
-            <section class="signature-area">
+            @if (!contractData?.esContrato || contractData?.todosConfirmados) {
+              <section class="signature-area">
               @if (detail.requiereFirmaGrafica) {
                 <div class="signature-heading"><h3>Firma gráfica</h3><ion-button fill="clear" size="small" (click)="clearSignature()"><ion-icon slot="start" name="refresh-outline"></ion-icon>Limpiar</ion-button></div>
                 <canvas #signatureCanvas width="900" height="300"
@@ -297,7 +388,8 @@
               <ion-button expand="block" [disabled]="savingSignature || (detail.requiereFirmaGrafica && !hasSignature) || !legalAccepted" (click)="submitSignature()">
                 @if (savingSignature) { <ion-spinner name="crescent"></ion-spinner> } @else { <ion-icon slot="start" name="lock-closed-outline"></ion-icon>Solicitar código OTP }
               </ion-button>
-            </section>
+              </section>
+            }
           } @else {
             <section class="otp-area">
               <ion-icon name="mail-unread-outline"></ion-icon>

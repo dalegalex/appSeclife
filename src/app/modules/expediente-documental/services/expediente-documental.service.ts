@@ -6,6 +6,8 @@ import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth/auth.service';
 import {
   DetalleAsignacion,
+  DatosContractualesAsignacion,
+  ConfirmacionDatosContractuales,
   DocumentoFirmante,
   ExpedienteContexto,
   OtpRegistration,
@@ -49,6 +51,20 @@ export class ExpedienteDocumentalService {
     if (body.ocupacion?.trim()) form.append('ocupacion', body.ocupacion.trim().toUpperCase());
     if (body.nacionalidad?.trim()) form.append('nacionalidad', body.nacionalidad.trim().toUpperCase());
     if (body.rfc?.trim()) form.append('rfc', body.rfc.replace(/[\s-]/g, '').toUpperCase());
+    const identityFields: Array<[string, string | null | undefined]> = [
+      ['direccionCalle', body.direccionCalle],
+      ['direccionNumeroExterior', body.direccionNumeroExterior],
+      ['direccionNumeroInterior', body.direccionNumeroInterior],
+      ['direccionColonia', body.direccionColonia],
+      ['direccionMunicipio', body.direccionMunicipio],
+      ['direccionEstado', body.direccionEstado],
+      ['direccionCp', body.direccionCp],
+      ['direccionReferencia', body.direccionReferencia],
+      ['telefonos', body.telefonos],
+    ];
+    identityFields.forEach(([key, value]) => {
+      if (value?.trim()) form.append(key, value.trim().toUpperCase());
+    });
     form.append('archivo', file, file.name);
     form.append('tipoSoporte', tipoSoporte);
     return this.http.post<SpResponse<{ idrepresentacionlegal: number }>>(
@@ -67,12 +83,53 @@ export class ExpedienteDocumentalService {
     return this.json('POST', `${this.baseUrl}/representaciones/${id}/restaurar`, {});
   }
 
+  actualizarDatosContractuales(id: number, body: ProponerRepresentacionRequest): Observable<SpResponse<unknown>> {
+    return this.json('PUT', `${this.baseUrl}/representaciones/${id}/datos-contractuales`, {
+      ocupacion: body.ocupacion,
+      nacionalidad: body.nacionalidad,
+      rfc: body.rfc,
+      direccionCalle: body.direccionCalle,
+      direccionNumeroExterior: body.direccionNumeroExterior,
+      direccionNumeroInterior: body.direccionNumeroInterior,
+      direccionColonia: body.direccionColonia,
+      direccionMunicipio: body.direccionMunicipio,
+      direccionEstado: body.direccionEstado,
+      direccionCp: body.direccionCp,
+      direccionReferencia: body.direccionReferencia,
+      telefonos: body.telefonos,
+    });
+  }
+
   documentos(): Observable<SpResponse<DocumentoFirmante[]>> {
     return this.json('GET', `${this.baseUrl}/documentos`);
   }
 
   detalle(id: number): Observable<SpResponse<DetalleAsignacion>> {
     return this.json('GET', `${this.baseUrl}/documentos/${id}`);
+  }
+
+  datosContractuales(id: number): Observable<SpResponse<DatosContractualesAsignacion>> {
+    return this.json('GET', `${this.baseUrl}/documentos/${id}/datos-contractuales`);
+  }
+
+  confirmarDatosContractuales(
+    id: number,
+    body: ProponerRepresentacionRequest
+  ): Observable<SpResponse<ConfirmacionDatosContractuales>> {
+    return this.json('PUT', `${this.baseUrl}/documentos/${id}/datos-contractuales`, {
+      ocupacion: body.ocupacion,
+      nacionalidad: body.nacionalidad,
+      rfc: body.rfc,
+      direccionCalle: body.direccionCalle,
+      direccionNumeroExterior: body.direccionNumeroExterior,
+      direccionNumeroInterior: body.direccionNumeroInterior,
+      direccionColonia: body.direccionColonia,
+      direccionMunicipio: body.direccionMunicipio,
+      direccionEstado: body.direccionEstado,
+      direccionCp: body.direccionCp,
+      direccionReferencia: body.direccionReferencia,
+      telefonos: body.telefonos,
+    });
   }
 
   registrarFirma(id: number, jpeg: Blob): Observable<SpResponse<OtpRegistration>> {

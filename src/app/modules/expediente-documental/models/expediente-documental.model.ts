@@ -37,6 +37,15 @@ export interface FamiliarExpediente {
   ocupacion?: string | null;
   nacionalidad?: string | null;
   rfc?: string | null;
+  direccionCalle?: string | null;
+  direccionNumeroExterior?: string | null;
+  direccionNumeroInterior?: string | null;
+  direccionColonia?: string | null;
+  direccionMunicipio?: string | null;
+  direccionEstado?: string | null;
+  direccionCp?: string | null;
+  direccionReferencia?: string | null;
+  telefonos?: string | null;
 }
 
 export interface CalidadRepresentacion {
@@ -97,6 +106,34 @@ export interface DetalleAsignacion {
   alumnos: AlumnoAsignado[];
 }
 
+export interface DatosContractualesAsignacion {
+  esContrato: boolean;
+  requiereConfirmacion: boolean;
+  todosConfirmados: boolean;
+  firmantesPendientes: number;
+  origenDomicilio?: 'REPRESENTANTE' | 'ALUMNO' | null;
+  idmatriculaOrigen?: number | null;
+  alumnoOrigen?: string | null;
+  ocupacion?: string | null;
+  nacionalidad?: string | null;
+  rfc?: string | null;
+  direccionCalle?: string | null;
+  direccionNumeroExterior?: string | null;
+  direccionNumeroInterior?: string | null;
+  direccionColonia?: string | null;
+  direccionMunicipio?: string | null;
+  direccionEstado?: string | null;
+  direccionCp?: string | null;
+  direccionReferencia?: string | null;
+  telefonos?: string | null;
+}
+
+export interface ConfirmacionDatosContractuales {
+  idasignacion: number;
+  todosConfirmados: boolean;
+  firmantesPendientes: number;
+}
+
 export interface AlumnoAsignado {
   idmatricula: number;
   nombre: string;
@@ -114,6 +151,15 @@ export interface ProponerRepresentacionRequest {
   ocupacion?: string | null;
   nacionalidad?: string | null;
   rfc?: string | null;
+  direccionCalle?: string | null;
+  direccionNumeroExterior?: string | null;
+  direccionNumeroInterior?: string | null;
+  direccionColonia?: string | null;
+  direccionMunicipio?: string | null;
+  direccionEstado?: string | null;
+  direccionCp?: string | null;
+  direccionReferencia?: string | null;
+  telefonos?: string | null;
 }
 
 export interface OtpRegistration {

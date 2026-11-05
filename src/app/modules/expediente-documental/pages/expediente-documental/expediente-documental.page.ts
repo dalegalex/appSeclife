@@ -9,6 +9,7 @@ import {
   AlumnoExpediente,
   CalidadRepresentacion,
   DetalleAsignacion,
+  DatosContractualesAsignacion,
   DocumentoFirmante,
   ExpedienteContexto,
   FamiliarExpediente,
@@ -33,6 +34,8 @@ export class ExpedienteDocumentalPage implements OnInit {
   activeTab: ExpedienteTab = 'representacion';
   loading = false;
   savingRepresentation = false;
+  savingContractIdentity = false;
+  confirmingContractData = false;
   restoringRepresentationId: number | null = null;
   uploadingSupport = false;
   loadingDetail = false;
@@ -44,14 +47,19 @@ export class ExpedienteDocumentalPage implements OnInit {
   documents: DocumentoFirmante[] = [];
 
   representationModalOpen = false;
+  contractIdentityModalOpen = false;
   documentModalOpen = false;
   selectedDocument: DocumentoFirmante | null = null;
   detail: DetalleAsignacion | null = null;
+  contractData: DatosContractualesAsignacion | null = null;
+  contractDataForm: ProponerRepresentacionRequest = this.emptyRepresentationForm();
   supportTarget: RepresentacionFamiliar | null = null;
   supportFile: File | null = null;
   supportType = 'RESOLUCION_JUDICIAL';
   hasLegalSupport = false;
   representationForm: ProponerRepresentacionRequest = this.emptyRepresentationForm();
+  contractIdentityTarget: RepresentacionFamiliar | null = null;
+  contractIdentityForm: ProponerRepresentacionRequest = this.emptyRepresentationForm();
 
   drawing = false;
   hasSignature = false;
@@ -134,6 +142,66 @@ export class ExpedienteDocumentalPage implements OnInit {
     this.representationModalOpen = true;
   }
 
+  openContractIdentity(item: RepresentacionFamiliar): void {
+    const identity = this.context.familiares.find(member => member.idusrbtFirmante === item.idusrbtFirmante);
+    this.contractIdentityTarget = item;
+    this.contractIdentityForm = {
+      ...this.emptyRepresentationForm(),
+      ocupacion: identity?.ocupacion ?? item.ocupacion ?? '',
+      nacionalidad: identity?.nacionalidad ?? item.nacionalidad ?? '',
+      rfc: identity?.rfc ?? item.rfc ?? '',
+      direccionCalle: identity?.direccionCalle ?? '',
+      direccionNumeroExterior: identity?.direccionNumeroExterior ?? '',
+      direccionNumeroInterior: identity?.direccionNumeroInterior ?? '',
+      direccionColonia: identity?.direccionColonia ?? '',
+      direccionMunicipio: identity?.direccionMunicipio ?? '',
+      direccionEstado: identity?.direccionEstado ?? '',
+      direccionCp: identity?.direccionCp ?? '',
+      direccionReferencia: identity?.direccionReferencia ?? '',
+      telefonos: identity?.telefonos ?? '',
+    };
+    this.contractIdentityModalOpen = true;
+  }
+
+  updateContractIdentityField(field:
+    'ocupacion' | 'nacionalidad' | 'rfc' | 'direccionCalle' | 'direccionNumeroExterior' |
+    'direccionNumeroInterior' | 'direccionColonia' | 'direccionMunicipio' | 'direccionEstado' |
+    'direccionCp' | 'direccionReferencia' | 'telefonos', event: CustomEvent): void {
+    this.contractIdentityForm[field] = String(event.detail?.value ?? '').toUpperCase();
+  }
+
+  async saveContractIdentity(): Promise<void> {
+    if (!this.contractIdentityTarget) return;
+    const required: Array<keyof ProponerRepresentacionRequest> = [
+      'ocupacion', 'nacionalidad', 'rfc', 'direccionCalle', 'direccionNumeroExterior',
+      'direccionColonia', 'direccionMunicipio', 'direccionEstado', 'direccionCp', 'telefonos'
+    ];
+    if (required.some(field => !String(this.contractIdentityForm[field] ?? '').trim())) {
+      await this.toast('Completa ocupación, nacionalidad, RFC, domicilio y teléfonos.', 'warning');
+      return;
+    }
+    const rfc = this.normalizeRfc(this.contractIdentityForm.rfc);
+    if (!/^[A-Z&Ñ]{4}[0-9]{6}[A-Z0-9]{3}$/.test(rfc)) {
+      await this.toast('El RFC debe contener 13 caracteres con formato de persona física.', 'warning');
+      return;
+    }
+    this.contractIdentityForm.rfc = rfc;
+    this.contractIdentityForm.ocupacion = this.normalizeText(this.contractIdentityForm.ocupacion);
+    this.contractIdentityForm.nacionalidad = this.normalizeText(this.contractIdentityForm.nacionalidad);
+    this.savingContractIdentity = true;
+    try {
+      const response = await firstValueFrom(this.service.actualizarDatosContractuales(
+        this.contractIdentityTarget.idrepresentacionlegal, this.contractIdentityForm));
+      this.contractIdentityModalOpen = false;
+      await this.toast(response.message || 'Datos contractuales actualizados correctamente.', 'success');
+      await this.load();
+    } catch (error) {
+      await this.toast(this.errorMessage(error, 'No fue posible actualizar los datos contractuales.'), 'danger');
+    } finally {
+      this.savingContractIdentity = false;
+    }
+  }
+
   onStudentChange(): void {
     this.representationForm.idfamiliamiembro = this.familyMembers[0]?.idfamiliamiembro ?? 0;
     this.onRepresentativeChange();
@@ -145,6 +213,15 @@ export class ExpedienteDocumentalPage implements OnInit {
     this.representationForm.ocupacion = this.selectedRepresentative?.ocupacion ?? '';
     this.representationForm.nacionalidad = this.selectedRepresentative?.nacionalidad ?? '';
     this.representationForm.rfc = this.selectedRepresentative?.rfc ?? '';
+    this.representationForm.direccionCalle = this.selectedRepresentative?.direccionCalle ?? '';
+    this.representationForm.direccionNumeroExterior = this.selectedRepresentative?.direccionNumeroExterior ?? '';
+    this.representationForm.direccionNumeroInterior = this.selectedRepresentative?.direccionNumeroInterior ?? '';
+    this.representationForm.direccionColonia = this.selectedRepresentative?.direccionColonia ?? '';
+    this.representationForm.direccionMunicipio = this.selectedRepresentative?.direccionMunicipio ?? '';
+    this.representationForm.direccionEstado = this.selectedRepresentative?.direccionEstado ?? '';
+    this.representationForm.direccionCp = this.selectedRepresentative?.direccionCp ?? '';
+    this.representationForm.direccionReferencia = this.selectedRepresentative?.direccionReferencia ?? '';
+    this.representationForm.telefonos = this.selectedRepresentative?.telefonos ?? '';
     this.hasLegalSupport = false;
     this.supportFile = null;
     this.onQualityChange();
@@ -245,20 +322,81 @@ export class ExpedienteDocumentalPage implements OnInit {
   async reviewDocument(item: DocumentoFirmante): Promise<void> {
     this.selectedDocument = item;
     this.detail = null;
+    this.contractData = null;
     this.otp = null;
     this.otpCode = '';
     this.legalAccepted = false;
     this.documentModalOpen = true;
     this.loadingDetail = true;
     try {
-      const response = await firstValueFrom(this.service.detalle(item.idasignacion));
-      this.detail = response.result;
+      const [detailResponse, contractResponse] = await Promise.all([
+        firstValueFrom(this.service.detalle(item.idasignacion)),
+        firstValueFrom(this.service.datosContractuales(item.idasignacion)),
+      ]);
+      this.detail = detailResponse.result;
+      this.setContractData(contractResponse.result);
     } catch (error) {
       this.documentModalOpen = false;
       await this.toast(this.errorMessage(error, 'No fue posible abrir la asignacion.'), 'danger');
     } finally {
       this.loadingDetail = false;
     }
+  }
+
+  updateAssignmentContractField(field:
+    'ocupacion' | 'nacionalidad' | 'rfc' | 'direccionCalle' | 'direccionNumeroExterior' |
+    'direccionNumeroInterior' | 'direccionColonia' | 'direccionMunicipio' | 'direccionEstado' |
+    'direccionCp' | 'direccionReferencia' | 'telefonos', event: CustomEvent): void {
+    this.contractDataForm[field] = String(event.detail?.value ?? '').toUpperCase();
+  }
+
+  async confirmAssignmentContractData(): Promise<void> {
+    if (!this.selectedDocument || !this.contractData?.requiereConfirmacion) return;
+    const required: Array<keyof ProponerRepresentacionRequest> = [
+      'ocupacion', 'nacionalidad', 'rfc', 'direccionCalle', 'direccionNumeroExterior',
+      'direccionColonia', 'direccionMunicipio', 'direccionEstado', 'direccionCp', 'telefonos'
+    ];
+    if (required.some(field => !String(this.contractDataForm[field] ?? '').trim())) {
+      await this.toast('Completa ocupación, nacionalidad, RFC, domicilio y teléfonos.', 'warning');
+      return;
+    }
+    const rfc = this.normalizeRfc(this.contractDataForm.rfc);
+    if (!/^[A-Z&Ñ]{4}[0-9]{6}[A-Z0-9]{3}$/.test(rfc)) {
+      await this.toast('El RFC debe contener 13 caracteres con formato de persona física.', 'warning');
+      return;
+    }
+    this.contractDataForm.rfc = rfc;
+    this.contractDataForm.ocupacion = this.normalizeText(this.contractDataForm.ocupacion);
+    this.contractDataForm.nacionalidad = this.normalizeText(this.contractDataForm.nacionalidad);
+    this.confirmingContractData = true;
+    try {
+      const response = await firstValueFrom(this.service.confirmarDatosContractuales(
+        this.selectedDocument.idasignacion, this.contractDataForm));
+      const refreshed = await firstValueFrom(this.service.datosContractuales(this.selectedDocument.idasignacion));
+      this.setContractData(refreshed.result);
+      await this.toast(response.result.todosConfirmados
+        ? 'Datos confirmados. El contrato está listo para recopilar las firmas.'
+        : `Datos confirmados. Faltan ${response.result.firmantesPendientes} firmante(s) por confirmar.`, 'success');
+    } catch (error) {
+      await this.toast(this.errorMessage(error, 'No fue posible confirmar los datos contractuales.'), 'danger');
+    } finally {
+      this.confirmingContractData = false;
+    }
+  }
+
+  private setContractData(data: DatosContractualesAsignacion): void {
+    this.contractData = data;
+    this.contractDataForm = {
+      ...this.emptyRepresentationForm(),
+      ocupacion: data.ocupacion ?? '', nacionalidad: data.nacionalidad ?? '', rfc: data.rfc ?? '',
+      direccionCalle: data.direccionCalle ?? '',
+      direccionNumeroExterior: data.direccionNumeroExterior ?? '',
+      direccionNumeroInterior: data.direccionNumeroInterior ?? '',
+      direccionColonia: data.direccionColonia ?? '',
+      direccionMunicipio: data.direccionMunicipio ?? '',
+      direccionEstado: data.direccionEstado ?? '', direccionCp: data.direccionCp ?? '',
+      direccionReferencia: data.direccionReferencia ?? '', telefonos: data.telefonos ?? '',
+    };
   }
 
   initializeCanvas(): void {
@@ -479,11 +617,17 @@ export class ExpedienteDocumentalPage implements OnInit {
   private emptyRepresentationForm(): ProponerRepresentacionRequest {
     return {
       idmatricula: 0, idfamiliamiembro: 0, claveCalidad: '', fechaInicio: null, fechaFin: null,
-      observaciones: '', ocupacion: '', nacionalidad: '', rfc: ''
+      observaciones: '', ocupacion: '', nacionalidad: '', rfc: '',
+      direccionCalle: '', direccionNumeroExterior: '', direccionNumeroInterior: '',
+      direccionColonia: '', direccionMunicipio: '', direccionEstado: '', direccionCp: '',
+      direccionReferencia: '', telefonos: ''
     };
   }
 
-  updateRepresentationIdentity(field: 'ocupacion' | 'nacionalidad' | 'rfc', event: CustomEvent): void {
+  updateRepresentationIdentity(field:
+    'ocupacion' | 'nacionalidad' | 'rfc' | 'direccionCalle' | 'direccionNumeroExterior' |
+    'direccionNumeroInterior' | 'direccionColonia' | 'direccionMunicipio' | 'direccionEstado' |
+    'direccionCp' | 'direccionReferencia' | 'telefonos', event: CustomEvent): void {
     this.representationForm[field] = String(event.detail?.value ?? '').toUpperCase();
   }
 
