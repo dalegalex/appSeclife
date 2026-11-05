@@ -1,6 +1,9 @@
 # appSeclife 4.1.11
 
-Android 20113. Rama codex/appseclife-4.1.11-publicacion, base 8f5404d.
+Android 20114 (pruebas internas); iOS 4.1.11 (2), solo TestFlight.
+Rama codex/appseclife-4.1.11-publicacion. No promover el Android 20113 retirado.
+En ambos formularios, probar RFC vacio, mal formado y valido. Solo el mal
+formado debe impedir guardar si los demas datos son correctos.
 Expediente Documental: completar domicilio, telefonos y datos contractuales
 del representante legal. Validar con SQL y GpsApi desplegados: propuesta,
 edicion y confirmacion por documento. Usar cuentas y documentos de prueba;

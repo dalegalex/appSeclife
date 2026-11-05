@@ -275,7 +275,7 @@
           <ion-list-header><ion-label>{{ contractIdentityTarget?.firmante }}</ion-label></ion-list-header>
           <ion-item><ion-input label="Ocupación" labelPlacement="stacked" maxlength="150" [value]="contractIdentityForm.ocupacion" (ionInput)="updateContractIdentityField('ocupacion', $any($event))"></ion-input></ion-item>
           <ion-item><ion-input label="Nacionalidad" labelPlacement="stacked" maxlength="80" [value]="contractIdentityForm.nacionalidad" (ionInput)="updateContractIdentityField('nacionalidad', $any($event))"></ion-input></ion-item>
-          <ion-item><ion-input label="RFC" labelPlacement="stacked" maxlength="13" autocapitalize="characters" [value]="contractIdentityForm.rfc" (ionInput)="updateContractIdentityField('rfc', $any($event))"></ion-input></ion-item>
+          <ion-item><ion-input label="RFC (opcional)" labelPlacement="stacked" maxlength="13" autocapitalize="characters" [value]="contractIdentityForm.rfc" (ionInput)="updateContractIdentityField('rfc', $any($event))"></ion-input></ion-item>
           <ion-list-header><ion-label>Domicilio contractual</ion-label></ion-list-header>
           <ion-item><ion-input label="Calle" labelPlacement="stacked" maxlength="160" [value]="contractIdentityForm.direccionCalle" (ionInput)="updateContractIdentityField('direccionCalle', $any($event))"></ion-input></ion-item>
           <ion-item><ion-input label="Número exterior" labelPlacement="stacked" maxlength="40" [value]="contractIdentityForm.direccionNumeroExterior" (ionInput)="updateContractIdentityField('direccionNumeroExterior', $any($event))"></ion-input></ion-item>
@@ -340,7 +340,7 @@
               <ion-list inset="true">
                 <ion-item><ion-input label="Ocupación" labelPlacement="stacked" maxlength="150" [value]="contractDataForm.ocupacion" (ionInput)="updateAssignmentContractField('ocupacion', $any($event))"></ion-input></ion-item>
                 <ion-item><ion-input label="Nacionalidad" labelPlacement="stacked" maxlength="80" [value]="contractDataForm.nacionalidad" (ionInput)="updateAssignmentContractField('nacionalidad', $any($event))"></ion-input></ion-item>
-                <ion-item><ion-input label="RFC" labelPlacement="stacked" maxlength="13" autocapitalize="characters" [value]="contractDataForm.rfc" (ionInput)="updateAssignmentContractField('rfc', $any($event))"></ion-input></ion-item>
+                <ion-item><ion-input label="RFC (opcional)" labelPlacement="stacked" maxlength="13" autocapitalize="characters" [value]="contractDataForm.rfc" (ionInput)="updateAssignmentContractField('rfc', $any($event))"></ion-input></ion-item>
                 <ion-list-header><ion-label>Domicilio que aparecerá en este contrato</ion-label></ion-list-header>
                 <ion-item><ion-input label="Calle" labelPlacement="stacked" maxlength="160" [value]="contractDataForm.direccionCalle" (ionInput)="updateAssignmentContractField('direccionCalle', $any($event))"></ion-input></ion-item>
                 <ion-item><ion-input label="Número exterior" labelPlacement="stacked" maxlength="40" [value]="contractDataForm.direccionNumeroExterior" (ionInput)="updateAssignmentContractField('direccionNumeroExterior', $any($event))"></ion-input></ion-item>

@@ -21,7 +21,7 @@ android {
         applicationId "mx.com.seclife.schoolmaster"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 20113
+        versionCode 20114
         versionName "4.1.11"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {

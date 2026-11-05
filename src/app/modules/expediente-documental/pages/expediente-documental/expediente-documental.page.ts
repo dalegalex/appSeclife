@@ -173,15 +173,15 @@ export class ExpedienteDocumentalPage implements OnInit {
   async saveContractIdentity(): Promise<void> {
     if (!this.contractIdentityTarget) return;
     const required: Array<keyof ProponerRepresentacionRequest> = [
-      'ocupacion', 'nacionalidad', 'rfc', 'direccionCalle', 'direccionNumeroExterior',
+      'ocupacion', 'nacionalidad', 'direccionCalle', 'direccionNumeroExterior',
       'direccionColonia', 'direccionMunicipio', 'direccionEstado', 'direccionCp', 'telefonos'
     ];
     if (required.some(field => !String(this.contractIdentityForm[field] ?? '').trim())) {
-      await this.toast('Completa ocupación, nacionalidad, RFC, domicilio y teléfonos.', 'warning');
+      await this.toast('Completa ocupación, nacionalidad, domicilio y teléfonos.', 'warning');
       return;
     }
     const rfc = this.normalizeRfc(this.contractIdentityForm.rfc);
-    if (!/^[A-Z&Ñ]{4}[0-9]{6}[A-Z0-9]{3}$/.test(rfc)) {
+    if (rfc && !/^[A-Z&Ñ]{4}[0-9]{6}[A-Z0-9]{3}$/.test(rfc)) {
       await this.toast('El RFC debe contener 13 caracteres con formato de persona física.', 'warning');
       return;
     }
@@ -353,15 +353,15 @@ export class ExpedienteDocumentalPage implements OnInit {
   async confirmAssignmentContractData(): Promise<void> {
     if (!this.selectedDocument || !this.contractData?.requiereConfirmacion) return;
     const required: Array<keyof ProponerRepresentacionRequest> = [
-      'ocupacion', 'nacionalidad', 'rfc', 'direccionCalle', 'direccionNumeroExterior',
+      'ocupacion', 'nacionalidad', 'direccionCalle', 'direccionNumeroExterior',
       'direccionColonia', 'direccionMunicipio', 'direccionEstado', 'direccionCp', 'telefonos'
     ];
     if (required.some(field => !String(this.contractDataForm[field] ?? '').trim())) {
-      await this.toast('Completa ocupación, nacionalidad, RFC, domicilio y teléfonos.', 'warning');
+      await this.toast('Completa ocupación, nacionalidad, domicilio y teléfonos.', 'warning');
       return;
     }
     const rfc = this.normalizeRfc(this.contractDataForm.rfc);
-    if (!/^[A-Z&Ñ]{4}[0-9]{6}[A-Z0-9]{3}$/.test(rfc)) {
+    if (rfc && !/^[A-Z&Ñ]{4}[0-9]{6}[A-Z0-9]{3}$/.test(rfc)) {
       await this.toast('El RFC debe contener 13 caracteres con formato de persona física.', 'warning');
       return;
     }
