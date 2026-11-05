@@ -1,6 +1,7 @@
 # appSeclife 4.1.11
 
-Android 20115 (solo pruebas internas); iOS 4.1.11, solo TestFlight.
+Android 20115: guardado sin RFC y persistencia probados en dispositivo; enviado a revision de produccion.
+iOS: mantener 4.1.11 y cargar un build nuevo a TestFlight. El 20115 es de Android.
 Rama codex/appseclife-4.1.11-publicacion. No promover los builds 20113 ni 20114.
 Ambos envios de datos contractuales deben mandar null en lugar de cadena vacia para RFC.
 En Mac verificar el ultimo build cargado: si ya se subio el (2), usar (3) o el siguiente libre.
@@ -18,14 +19,18 @@ Con el arbol limpio:
 
 ```bash
 git fetch origin
-git switch --track origin/codex/appseclife-4.1.11-publicacion
+git switch codex/appseclife-4.1.11-publicacion
+git pull --ff-only origin codex/appseclife-4.1.11-publicacion
+git merge-base --is-ancestor 00f5748 HEAD || exit 1
 npm ci
 npm run build -- --configuration production
 npx cap sync ios
 npx cap open ios
 ```
 
-Si ya existe la rama local, cambiar a ella y usar git pull --ff-only.
+Si el pull no permite avance directo, detenerse y revisar la divergencia; no usar reset ni sobrescribir la firma.
+En Xcode seleccionar el target App, conservar su firma y usar un build superior al ultimo cargado para 4.1.11.
+Archivar en Release (Product > Archive), validar y subir a App Store Connect desde Organizer.
 Validar version 4.1.11 y build disponible en App Store Connect antes de archivar.
 Probar el mismo build en TestFlight antes de enviar a revision. Verificar que
 las declaraciones de privacidad en ambas tiendas cubran los datos recopilados.
