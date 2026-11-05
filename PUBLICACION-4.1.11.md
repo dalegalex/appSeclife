@@ -1,7 +1,9 @@
 # appSeclife 4.1.11
 
-Android 20114 (pruebas internas); iOS 4.1.11 (2), solo TestFlight.
-Rama codex/appseclife-4.1.11-publicacion. No promover el Android 20113 retirado.
+Android 20115 (solo pruebas internas); iOS 4.1.11, solo TestFlight.
+Rama codex/appseclife-4.1.11-publicacion. No promover los builds 20113 ni 20114.
+Ambos envios de datos contractuales deben mandar null en lugar de cadena vacia para RFC.
+En Mac verificar el ultimo build cargado: si ya se subio el (2), usar (3) o el siguiente libre.
 En ambos formularios, probar RFC vacio, mal formado y valido. Solo el mal
 formado debe impedir guardar si los demas datos son correctos.
 Expediente Documental: completar domicilio, telefonos y datos contractuales

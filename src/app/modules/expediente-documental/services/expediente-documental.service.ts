@@ -87,7 +87,7 @@ export class ExpedienteDocumentalService {
     return this.json('PUT', `${this.baseUrl}/representaciones/${id}/datos-contractuales`, {
       ocupacion: body.ocupacion,
       nacionalidad: body.nacionalidad,
-      rfc: body.rfc,
+      rfc: body.rfc?.trim() || null,
       direccionCalle: body.direccionCalle,
       direccionNumeroExterior: body.direccionNumeroExterior,
       direccionNumeroInterior: body.direccionNumeroInterior,
@@ -119,7 +119,7 @@ export class ExpedienteDocumentalService {
     return this.json('PUT', `${this.baseUrl}/documentos/${id}/datos-contractuales`, {
       ocupacion: body.ocupacion,
       nacionalidad: body.nacionalidad,
-      rfc: body.rfc,
+      rfc: body.rfc?.trim() || null,
       direccionCalle: body.direccionCalle,
       direccionNumeroExterior: body.direccionNumeroExterior,
       direccionNumeroInterior: body.direccionNumeroInterior,
