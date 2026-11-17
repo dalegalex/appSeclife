@@ -77,5 +77,11 @@ ni el minimo obligatorio como parte de esta entrega.
 - Android bundleRelease firmado correcto. AAB local:
   releases/4.1.12/appSeclife-4.1.12-20116.aab.
 - SHA256: cd9d5dd40d769f0c8429acd411e5e921d1cf932ff9e92be279e174600a01121b.
-- Pendiente: pruebas internas en Play Console y pruebas fisicas de esta candidata.
+- Play Console: 4.1.12 (20116) publicada el 2026-11-16 y verificada como
+  Disponible para testers internos. Produccion sin cambios.
+- Google Play: sin errores bloqueantes ni dispositivos que pierdan compatibilidad.
+  Advertencias: aumento de descarga (24.6 MB, +5.89 MB), sin archivo de
+  desofuscacion y sin simbolos de depuracion nativos.
+- Evidencia local: releases/4.1.12/play-interna-20116.jpg.
+- Pendiente: pruebas fisicas de esta candidata por Alex antes de produccion.
 - iOS no compilado aqui; requiere Codi Mac y TestFlight.
