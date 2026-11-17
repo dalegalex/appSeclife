@@ -32,6 +32,11 @@
       <ion-input type="date" [(ngModel)]="form.fecha"></ion-input>
     </ion-item>
 
+    <ion-item *ngIf="form.tipoPermiso === 'SALIDA_TEMPRANA'">
+      <ion-label position="stacked">Hora prevista para recoger (opcional)</ion-label>
+      <ion-input type="time" [(ngModel)]="form.horaSalidaProgramada"></ion-input>
+    </ion-item>
+
     <ion-item *ngIf="esAusencia">
       <ion-label position="stacked">Fecha inicial</ion-label>
       <ion-input type="date" [(ngModel)]="form.fechaInicio"></ion-input>
@@ -94,6 +99,7 @@
       <ion-label>
         <h2>{{ tipoPermisoLabel(aviso.tipoPermiso, aviso) }}</h2>
         <p class="scheduled-date">{{ fechaProgramadaLabel(aviso) }}</p>
+        <p *ngIf="aviso.horaSalidaProgramada">Hora prevista para recoger: {{ aviso.horaSalidaProgramada.slice(0, 5) }}</p>
         <p>{{ aviso.motivo || aviso.comentariosSolicitud || 'Sin motivo capturado' }}</p>
         <p *ngIf="aviso.comentariosResolucion">{{ aviso.comentariosResolucion }}</p>
         <ion-chip *ngIf="hasDocumento(aviso)" color="tertiary" outline="true" class="document-chip">

@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A10B11150000000000000001 /* SeclifePlacaOcrPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10B11150000000000000002 /* SeclifePlacaOcrPlugin.swift */; };
+		A10B07150000000000000001 /* SeclifeBoletaPdfPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10B07150000000000000002 /* SeclifeBoletaPdfPlugin.swift */; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
 		4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */ = {isa = PBXBuildFile; productRef = 4D22ABE82AF431CB00220026 /* CapApp-SPM */; };
 		A10F00010000000000000001 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = A10F00030000000000000003 /* FirebaseMessaging */; };
@@ -24,6 +26,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		A10B11150000000000000002 /* SeclifePlacaOcrPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeclifePlacaOcrPlugin.swift; sourceTree = "<group>"; };
+		A10B07150000000000000002 /* SeclifeBoletaPdfPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeclifeBoletaPdfPlugin.swift; sourceTree = "<group>"; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
 		50379B222058CBB4000EE86E /* capacitor.config.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = capacitor.config.json; sourceTree = "<group>"; };
 		504EC3041FED79650016851F /* App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = App.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -80,6 +84,8 @@
 				A10C00120000000000000012 /* SeclifeBridgeViewController.swift */,
 				A10C00140000000000000014 /* SeclifeQrScannerPlugin.swift */,
 				A10B00120000000000000012 /* SeclifeBadgePlugin.swift */,
+				A10B07150000000000000002 /* SeclifeBoletaPdfPlugin.swift */,
+				A10B11150000000000000002 /* SeclifePlacaOcrPlugin.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -187,6 +193,8 @@
 				A10C00110000000000000011 /* SeclifeBridgeViewController.swift in Sources */,
 				A10C00130000000000000013 /* SeclifeQrScannerPlugin.swift in Sources */,
 				A10B00110000000000000011 /* SeclifeBadgePlugin.swift in Sources */,
+				A10B07150000000000000001 /* SeclifeBoletaPdfPlugin.swift in Sources */,
+				A10B11150000000000000001 /* SeclifePlacaOcrPlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -328,7 +336,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = HQ4BYF4C25;
 				ENABLE_DEBUG_DYLIB = NO;
 				INFOPLIST_FILE = App/Info.plist;
@@ -337,7 +345,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 4.1.11;
+				MARKETING_VERSION = 4.1.12;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-weak_framework",
@@ -358,7 +366,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = HQ4BYF4C25;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
@@ -366,7 +374,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 4.1.11;
+				MARKETING_VERSION = 4.1.12;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-weak_framework",

@@ -35,6 +35,7 @@ export class AppComponent {
 
   private readonly adminProfiles = [1, 2, 3];
   private readonly allMenuItems: AppMenuItem[] = [
+    { title: 'Calificaciones', subtitle: 'Boletas publicadas', url: '/calificaciones', icon: 'reader-outline', enabled: true },
     {
       title: 'Inicio',
       subtitle: 'Tablero de modulos',

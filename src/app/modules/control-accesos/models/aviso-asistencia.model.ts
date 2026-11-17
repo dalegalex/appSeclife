@@ -8,6 +8,7 @@ export interface CrearAvisoAsistenciaRequest {
   idorg: number;
   idmatricula: number;
   tipoPermiso: string;
+  horaSalidaProgramada?: string | null;
   fecha?: string | null;
   fechaInicio?: string | null;
   fechaFin?: string | null;
@@ -26,6 +27,7 @@ export interface AvisoAsistencia {
   alumno?: string | null;
   gradoGrupo?: string | null;
   tipoPermiso?: string | null;
+  horaSalidaProgramada?: string | null;
   estatus?: string | null;
   modoGestion?: 'SOLICITUD_JUSTIFICACION' | 'AVISO_DICTAMEN_POSTERIOR' | string | null;
   estadoAviso?: 'RECIBIDO' | 'ENTERADO' | string | null;

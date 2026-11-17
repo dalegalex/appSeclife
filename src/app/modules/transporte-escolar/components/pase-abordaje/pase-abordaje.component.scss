@@ -1,5 +1,8 @@
 .boarding { max-width: 760px; margin: 0 auto; padding: 16px 16px 32px; }
 .boarding h1 { font-size: 22px; margin: 8px 0 16px; }
+.boarding h2 { font-size: 18px; }
+.boarding ion-label h2, .boarding ion-label h3 { font-size: 16px; }
+.warning { color: #795500; }
 .boarding header p, .state { color: var(--ion-color-medium); font-size: 14px; }
 .totals { display: grid; grid-template-columns: 1fr 1fr; border-block: 1px solid var(--ion-color-light-shade); padding: 16px 0; gap: 16px; }
 .totals span { display: block; font-size: 13px; }
@@ -10,3 +13,9 @@
 .pending { border-left: 3px solid var(--ion-color-warning); padding: 8px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; }
 ion-item { --padding-start: 0; --inner-padding-end: 0; }
 ion-checkbox { --size: 24px; margin-inline-end: 14px; }
+.notice-details { margin-top: 10px; white-space: normal; overflow-wrap: anywhere; }
+.notice-details summary { cursor: pointer; padding-block: 8px; color: var(--ion-color-primary); font-size: 14px; }
+.notice-details ul { list-style: none; margin: 0; padding: 0; }
+.notice-details li { border-top: 1px solid var(--ion-color-light-shade); padding-block: 10px; }
+.notice-details strong { display: block; font-size: 14px; font-weight: 600; }
+.notice-details p { margin-block: 4px; }

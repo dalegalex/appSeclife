@@ -148,8 +148,8 @@
           </div>
         </div>
 
-        <ion-segment [value]="tipoEntrega" (ionChange)="cambiarTipoEntrega($any($event.detail.value))">
-          <ion-segment-button value="AUTO" [disabled]="autos.length === 0">
+        <ion-segment [value]="tipoEntrega" [disabled]="saving || ocrOcupado" (ionChange)="cambiarTipoEntrega($any($event.detail.value))">
+          <ion-segment-button value="AUTO">
             <ion-icon name="car-outline"></ion-icon>
             <ion-label>Auto</ion-label>
           </ion-segment-button>
@@ -163,17 +163,37 @@
           </ion-segment-button>
         </ion-segment>
 
-        <ion-item *ngIf="tipoEntrega === 'AUTO'" lines="none" class="auto-select">
-          <ion-select label="Auto familiar" labelPlacement="stacked" [(ngModel)]="idautofamiliarSeleccionado" interface="popover" placeholder="Seleccionar auto">
-            <ion-select-option *ngFor="let auto of autos" [value]="auto.idautofamiliar">
+        <ion-item *ngIf="tipoEntrega === 'AUTO'" lines="none">
+          <ion-input label="Buscar o capturar placas" labelPlacement="stacked" [value]="placaManual"
+            (ionInput)="cambiarPlaca($any($event.detail.value))" maxlength="60" autocapitalize="characters"
+            [disabled]="saving || ocrOcupado" placeholder="ABC123" [clearInput]="true"></ion-input>
+          <ion-button slot="end" fill="clear" (click)="capturarPlaca()" [disabled]="saving || loading || qrActivo || ocrOcupado"
+            aria-label="Leer placa con camara" title="Leer placa con camara">
+            @if (ocrProcesando()) {
+              <ion-spinner name="crescent" aria-label="Leyendo placa"></ion-spinner>
+            } @else {
+              <ion-icon slot="icon-only" name="camera-outline"></ion-icon>
+            }
+          </ion-button>
+        </ion-item>
+        <ion-item *ngIf="tipoEntrega === 'AUTO' && autosFiltrados.length > 0" lines="none" class="auto-select">
+          <ion-select label="Auto familiar" labelPlacement="stacked" [(ngModel)]="idautofamiliarSeleccionado" [disabled]="saving" interface="popover" placeholder="Seleccionar auto">
+            <ion-select-option *ngFor="let auto of autosFiltrados" [value]="auto.idautofamiliar">
               {{ autoLabel(auto) }}
             </ion-select-option>
           </ion-select>
         </ion-item>
 
-        <div *ngIf="tipoEntrega === 'AUTO' && autos.length === 0" class="empty-state compact-empty">
-          No hay autos activos registrados para esta familia.
-        </div>
+        <ion-item *ngIf="tipoEntrega === 'AUTO' && !idautofamiliarSeleccionado && placaNormalizada" lines="none">
+          <ion-checkbox [(ngModel)]="guardarAutoFamiliar" [disabled]="saving" labelPlacement="end">
+            Guardar en el parque vehicular familiar
+          </ion-checkbox>
+        </ion-item>
+        <ion-button *ngIf="tipoEntrega === 'AUTO' && !idautofamiliarSeleccionado && placaNormalizada"
+          [disabled]="!placaValida || saving || placaConfirmada" (click)="confirmarPlaca()" fill="outline">
+          <ion-icon slot="start" name="checkmark-outline"></ion-icon>
+          {{ placaConfirmada ? 'Placa confirmada' : 'Usar placa' }}
+        </ion-button>
       </ion-card-content>
     </ion-card>
 
@@ -256,6 +276,50 @@
       </ng-template>
     </section>
   </section>
+  <ion-modal [isOpen]="ocrAbierto()" (didDismiss)="cerrarOcr()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Revisar placa</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="cerrarOcr()" aria-label="Cancelar lectura de placa" title="Cancelar">
+              <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
+        <img class="placa-ocr-foto" [src]="ocrImagen()" alt="Fotografia de la placa capturada" />
+        @if (ocrCandidatos().length > 1) {
+          <ion-item>
+            <ion-select label="Coincidencias" labelPlacement="stacked" [value]="ocrPlaca()"
+              (ionChange)="ocrPlaca.set($any($event.detail.value))" interface="popover">
+              @for (placa of ocrCandidatos(); track placa) {
+                <ion-select-option [value]="placa">{{ placa }}</ion-select-option>
+              }
+            </ion-select>
+          </ion-item>
+        }
+        @if (!ocrCandidatos().length) {
+          <ion-text color="warning"><p>No se detecto una placa. Puedes capturarla manualmente.</p></ion-text>
+        }
+        <ion-item>
+          <ion-input label="Placa" labelPlacement="stacked" [value]="ocrPlaca()" maxlength="30" autocapitalize="characters"
+            (ionInput)="ocrPlaca.set($any($event.detail.value) ?? '')"></ion-input>
+        </ion-item>
+      </ion-content>
+      <ion-footer>
+        <ion-toolbar>
+          <ion-buttons slot="start"><ion-button (click)="cerrarOcr()">Cancelar</ion-button></ion-buttons>
+          <ion-buttons slot="end">
+            <ion-button color="primary" [disabled]="!ocrPlacaValida" (click)="aceptarPlacaOcr()">
+              <ion-icon slot="start" name="checkmark-outline"></ion-icon>Confirmar placa
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-footer>
+    </ng-template>
+  </ion-modal>
 </ion-content>
 
 <ion-modal [isOpen]="modalBusquedaAbierto" [backdropDismiss]="!buscandoIdentidad && !loading" (didDismiss)="cerrarBusquedaManual()">

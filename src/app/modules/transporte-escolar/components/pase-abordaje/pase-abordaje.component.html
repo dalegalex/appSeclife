@@ -29,18 +29,59 @@
       <ion-button expand="block" fill="outline" [disabled]="busy() || porEnviar() > 0" (click)="cerrar()">Cerrar abordaje</ion-button>
      </div>
     }
-    @if(fallidos()) { <ion-button expand="block" color="warning" [disabled]="busy()" (click)="reintentar()">Reintentar avisos fallidos</ion-button> }
+    @if(reintentables()) { <ion-button expand="block" color="warning" [disabled]="busy()" (click)="reintentar()"><ion-icon slot="start" name="refresh-outline"></ion-icon>Reintentar avisos temporales ({{ reintentables() }})</ion-button> }
     <ion-list>
-     @for(a of alumnos(); track a.idrecorridoalumno) {
+     @for(a of disponibles(); track a.idrecorridoalumno) {
       <ion-item lines="full">
        <ion-checkbox slot="start" [aria-label]="'Abordaje de ' + a.nombre" [checked]="a.seleccionado" [disabled]="busy() || !abierto() || !!a.idevento || !!a.salidaRegistrada" (ionChange)="cambiarSeleccion(a,$event)"></ion-checkbox>
        <ion-label class="ion-text-wrap"><h2>{{ a.nombre }}</h2><p>{{ estadoAviso(a) }}</p>
+        @if(a.advertencia) { <p class="warning">{{ a.advertencia }}</p> }
         @if(a.correccion) { <p class="error">Correccion: {{ a.correccion }}</p> }
        </ion-label>
        @if(a.idevento) { <ion-button slot="end" fill="clear" aria-label="Registrar correccion" [disabled]="busy()" (click)="corregir(a)"><ion-icon name="create-outline"></ion-icon></ion-button> }
       </ion-item>
      }
     </ion-list>
+    @if(registrados().length) {
+     <h2>Registrados ({{ registrados().length }})</h2>
+     <ion-list>
+      @for(a of registrados(); track a.idrecorridoalumno) {
+       <ion-item><ion-label class="ion-text-wrap"><h3>{{ a.nombre }}</h3><p>{{ estadoAviso(a) }}</p>
+        @if(a.correccion) { <p>Correccion: {{ a.correccion }}</p> }
+        <details class="notice-details">
+         <summary>Detalle de avisos ({{ a.avisos.total }})</summary>
+         @if(a.detalleAvisos; as detalle) {
+          <ul>
+           @for(aviso of detalle; track aviso.idnotificacion) {
+            <li>
+             <strong>{{ aviso.familiar }}</strong>
+             <p [class.warning]="aviso.puedeReintentar" [class.error]="aviso.estado === 'ERROR_FINAL'">{{ aviso.motivo }}</p>
+             @if(aviso.aceptadoPorProveedor && aviso.estado !== 'ENVIADA' && aviso.estado !== 'LEIDA' && !aviso.puedeReintentar) {
+              <p>Envio aceptado en al menos un dispositivo.</p>
+             }
+            </li>
+           } @empty {
+            <li>{{ a.procesado ? 'Sin destinatarios habilitados' : 'Preparando avisos' }}</li>
+           }
+          </ul>
+         } @else {
+          <p>Detalle no disponible. Actualiza el servicio de abordaje.</p>
+         }
+        </details>
+       </ion-label>
+       <ion-button slot="end" fill="clear" aria-label="Registrar correccion" [disabled]="busy()" (click)="corregir(a)"><ion-icon name="create-outline"></ion-icon></ion-button>
+       </ion-item>
+      }
+     </ion-list>
+    }
+    @if(excluidos().length) {
+     <h2>No disponibles para abordar ({{ excluidos().length }})</h2>
+     <ion-list>
+      @for(a of excluidos(); track a.idrecorridoalumno) {
+       <ion-item><ion-label class="ion-text-wrap"><h3>{{ a.nombre }}</h3><p>{{ estadoAviso(a) }}</p></ion-label></ion-item>
+      }
+     </ion-list>
+    }
    } @else {
     <ion-button expand="block" [disabled]="busy()" (click)="iniciar()"><ion-icon slot="start" name="play-outline"></ion-icon>Iniciar abordaje</ion-button>
     @if(current.programados; as programados) {

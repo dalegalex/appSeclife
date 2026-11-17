@@ -4,7 +4,7 @@
 
 export const environment = {
   production: false,
-  appVersion: '4.1.11',
+  appVersion: '4.1.12',
   appBuild: 1,
   appChannel: 'local',
   apiUrl: 'https://localhost:7013/api',

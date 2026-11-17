@@ -59,6 +59,9 @@ export interface ResolverLecturaAsistidaParams {
 }
 
 export interface RegistrarLecturaAsistidaRequest {
+  placaEntrega?: string | null;
+  idfamiliaVehiculo?: number | null;
+  guardarAutoFamiliar?: boolean;
   idorg: number;
   identificacionManual?: boolean | null;
   idmatricula?: number | null;

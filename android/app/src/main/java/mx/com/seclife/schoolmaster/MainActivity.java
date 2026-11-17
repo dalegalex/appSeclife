@@ -7,6 +7,8 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(SeclifeTextToSpeechPlugin.class);
+        registerPlugin(SeclifePlacaOcrPlugin.class);
+        registerPlugin(SeclifeBoletaPdfPlugin.class);
         registerPlugin(SeclifeBackgroundLocationPlugin.class);
         super.onCreate(savedInstanceState);
     }

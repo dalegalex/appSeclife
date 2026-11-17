@@ -1,0 +1,26 @@
+:host { display: block; min-width: 0; margin-bottom: 18px; }
+.preparacion { border-top: 1px solid #cbd5d1; border-bottom: 1px solid #cbd5d1; }
+summary { cursor: pointer; padding: 16px 4px; font-weight: 600; color: #185844; }
+summary ion-icon { margin-right: 8px; vertical-align: middle; }
+.preparacion-content { padding: 0 4px 16px; }
+.filters { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 12px; }
+ion-spinner { width: 20px; height: 20px; vertical-align: middle; margin-right: 8px; }
+ion-button { max-width: 100%; }
+p { font-size: 14px; line-height: 1.5; }
+.error { color: #a02732; }
+.notice { border-left: 3px solid #247960; padding-left: 12px; }
+.notice.waiting { background: #fff3cd; color: #664d03; border-left-color: #c29100; padding: 12px; border-radius: 4px; }
+.timestamp, small { color: #59635f; font-size: 12px; }
+article { border-top: 1px solid #d8ddda; padding: 18px 0; }
+h2 { font-size: 16px; line-height: 1.4; margin: 0 0 8px; }
+h3 { font-size: 14px; display: flex; gap: 8px; align-items: center; margin: 16px 0 8px; }
+h3 ion-icon { flex: 0 0 18px; }
+.status { color: #185844; font-weight: 600; margin: 4px 0; }
+.status.incomplete { color: #9c4528; }
+.students { color: #59635f; }
+ul { padding-left: 18px; margin: 8px 0; }
+li { margin-bottom: 12px; font-size: 14px; }
+li strong, li span, li small { display: block; line-height: 1.45; }
+.school { border-left: 3px solid #bba245; padding-left: 12px; }
+h2, p, li, summary { overflow-wrap: anywhere; letter-spacing: 0; }
+@media (max-width: 420px) { .filters { grid-template-columns: minmax(0, 1fr); } }

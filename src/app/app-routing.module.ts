@@ -3,6 +3,7 @@ import { PreloadAllModules, RouterModule, Routes } from '@angular/router';
 import { AuthGuard } from './core/auth/auth.guard';
 
 const routes: Routes = [
+  { path: 'calificaciones', canActivate: [AuthGuard], loadComponent: () => import('./modules/calificaciones/calificaciones.page').then(m => m.CalificacionesPage) },
   { path: 'ficha-medica', canActivate: [AuthGuard], loadComponent: () => import('./modules/ficha-medica/ficha-medica.page').then(m => m.FichaMedicaPage) },
 
   {

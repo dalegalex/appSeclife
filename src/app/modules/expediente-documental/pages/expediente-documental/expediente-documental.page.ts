@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, Inject, OnInit, Optional, ViewChild, ViewRef } from '@angular/core';
 import { FileOpener } from '@capawesome-team/capacitor-file-opener';
 import { Capacitor } from '@capacitor/core';
 import { Directory, Filesystem } from '@capacitor/filesystem';
@@ -28,7 +28,18 @@ type ExpedienteTab = 'representacion' | 'pendientes' | 'firmados';
   standalone: false,
 })
 export class ExpedienteDocumentalPage implements OnInit {
-  @ViewChild('signatureCanvas') signatureCanvas?: ElementRef<HTMLCanvasElement>;
+  private signatureCanvasRef?: ElementRef<HTMLCanvasElement>;
+  @ViewChild('signatureCanvas')
+  set signatureCanvas(value: ElementRef<HTMLCanvasElement> | undefined) {
+    if (this.signatureCanvasRef?.nativeElement === value?.nativeElement) return;
+    this.signatureCanvasRef = value;
+    this.drawing = false;
+    this.hasSignature = false;
+    if (value) this.initializeCanvas();
+  }
+  get signatureCanvas(): ElementRef<HTMLCanvasElement> | undefined {
+    return this.signatureCanvasRef;
+  }
   @ViewChild('supportPicker') supportPicker?: ElementRef<HTMLInputElement>;
 
   activeTab: ExpedienteTab = 'representacion';
@@ -71,10 +82,17 @@ export class ExpedienteDocumentalPage implements OnInit {
   constructor(
     private readonly service: ExpedienteDocumentalService,
     private readonly toastController: ToastController,
-    private readonly alertController: AlertController
+    private readonly alertController: AlertController,
+    @Optional() @Inject(ChangeDetectorRef) private readonly changeDetector: ChangeDetectorRef | null = null
   ) {}
 
   ngOnInit(): void { this.load(); }
+
+  changeTab(value: unknown): void {
+    if (value !== 'representacion' && value !== 'pendientes' && value !== 'firmados') return;
+    this.activeTab = value;
+    if (this.changeDetector && !(this.changeDetector as ViewRef).destroyed) this.changeDetector.detectChanges();
+  }
 
   get pendingDocuments(): DocumentoFirmante[] {
     return this.documents.filter(item => item.estatusFirmante === 'PENDIENTE'
@@ -131,6 +149,7 @@ export class ExpedienteDocumentalPage implements OnInit {
       await this.toast(this.errorMessage(error, 'No fue posible consultar el expediente documental.'), 'danger');
     } finally {
       this.loading = false;
+      if (this.changeDetector && !(this.changeDetector as ViewRef).destroyed) this.changeDetector.detectChanges();
       event?.target?.complete?.();
     }
   }
@@ -320,6 +339,8 @@ export class ExpedienteDocumentalPage implements OnInit {
   }
 
   async reviewDocument(item: DocumentoFirmante): Promise<void> {
+    this.drawing = false;
+    this.hasSignature = false;
     this.selectedDocument = item;
     this.detail = null;
     this.contractData = null;
@@ -404,6 +425,11 @@ export class ExpedienteDocumentalPage implements OnInit {
     if (!canvas) return;
     const context = canvas.getContext('2d');
     if (!context) return;
+    this.drawing = false;
+    context.resetTransform();
+    context.globalAlpha = 1;
+    context.globalCompositeOperation = 'source-over';
+    context.beginPath();
     context.fillStyle = '#ffffff';
     context.fillRect(0, 0, canvas.width, canvas.height);
     context.strokeStyle = '#172033';
@@ -416,7 +442,7 @@ export class ExpedienteDocumentalPage implements OnInit {
   startSignature(event: PointerEvent): void {
     const canvas = this.signatureCanvas?.nativeElement;
     const context = canvas?.getContext('2d');
-    if (!canvas || !context || this.otp) return;
+    if (!canvas || !context || this.otp || this.savingSignature) return;
     canvas.setPointerCapture(event.pointerId);
     const point = this.canvasPoint(event, canvas);
     context.beginPath();
@@ -427,7 +453,7 @@ export class ExpedienteDocumentalPage implements OnInit {
   drawSignature(event: PointerEvent): void {
     const canvas = this.signatureCanvas?.nativeElement;
     const context = canvas?.getContext('2d');
-    if (!this.drawing || !canvas || !context) return;
+    if (!this.drawing || !canvas || !context || this.otp || this.savingSignature) return;
     const point = this.canvasPoint(event, canvas);
     context.lineTo(point.x, point.y);
     context.stroke();
@@ -435,9 +461,10 @@ export class ExpedienteDocumentalPage implements OnInit {
   }
 
   stopSignature(): void { this.drawing = false; }
-  clearSignature(): void { if (!this.otp) this.initializeCanvas(); }
+  clearSignature(): void { if (!this.otp && !this.savingSignature) this.initializeCanvas(); }
 
   async submitSignature(): Promise<void> {
+    if (this.savingSignature || this.otp) return;
     if (!this.selectedDocument || !this.detail || !this.legalAccepted) {
       await this.toast('Confirma la declaración para continuar.', 'warning');
       return;
@@ -446,6 +473,7 @@ export class ExpedienteDocumentalPage implements OnInit {
       await this.toast('Registra tu firma gráfica para continuar.', 'warning');
       return;
     }
+    this.drawing = false;
     this.savingSignature = true;
     try {
       const response = this.detail.requiereFirmaGrafica
@@ -600,7 +628,16 @@ export class ExpedienteDocumentalPage implements OnInit {
   private canvasBlob(): Promise<Blob> {
     const canvas = this.signatureCanvas?.nativeElement;
     if (!canvas) return Promise.reject(new Error('No existe el lienzo de firma.'));
-    return new Promise((resolve, reject) => canvas.toBlob(
+    // CSS backgrounds are not exported. Flatten a stable copy onto white pixels.
+    const output = document.createElement('canvas');
+    output.width = canvas.width;
+    output.height = canvas.height;
+    const context = output.getContext('2d');
+    if (!context) return Promise.reject(new Error('No fue posible preparar la imagen de firma.'));
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, output.width, output.height);
+    context.drawImage(canvas, 0, 0);
+    return new Promise((resolve, reject) => output.toBlob(
       blob => blob ? resolve(blob) : reject(new Error('No fue posible generar la firma JPEG.')),
       'image/jpeg', 0.9));
   }

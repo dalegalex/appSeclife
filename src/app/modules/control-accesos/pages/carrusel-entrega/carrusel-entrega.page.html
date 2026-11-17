@@ -113,6 +113,7 @@
                 </button>
                 <p>{{ paquete.familiarRecoge || 'Familiar' }}</p>
               </div>
+              <p *ngIf="paquete.placas"><ion-icon name="car-outline" aria-hidden="true"></ion-icon> Placas: {{ paquete.placas }}</p>
             </div>
             <ion-badge [color]="estadoColor(paquete.estatus)">{{ paquete.estatus }}</ion-badge>
           </div>

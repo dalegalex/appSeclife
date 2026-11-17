@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.spec.json",
+  "include": ["src/app/modules/expediente-documental/**/*.spec.ts", "src/test.ts", "src/**/*.d.ts"]
+}

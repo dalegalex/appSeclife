@@ -4,6 +4,7 @@ import { Capacitor, CapacitorHttp, HttpHeaders, HttpResponse } from '@capacitor/
 import { from, map, Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth/auth.service';
+import { PreparacionCatalogo, PreparacionResultado } from '../models/expediente-preparacion.model';
 import {
   DetalleAsignacion,
   DatosContractualesAsignacion,
@@ -25,6 +26,14 @@ export class ExpedienteDocumentalService {
 
   contexto(): Observable<SpResponse<ExpedienteContexto>> {
     return this.json<SpResponse<ExpedienteContexto>>('GET', `${this.baseUrl}/contexto`);
+  }
+
+  preparacionCatalogo(): Observable<SpResponse<PreparacionCatalogo>> {
+    return this.json('GET', `${this.baseUrl}/preparacion/catalogo`);
+  }
+
+  preparacion(): Observable<SpResponse<PreparacionResultado>> {
+    return this.json('GET', `${this.baseUrl}/preparacion`);
   }
 
   representaciones(idmatricula?: number): Observable<SpResponse<RepresentacionFamiliar[]>> {

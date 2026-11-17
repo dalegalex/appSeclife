@@ -21,6 +21,16 @@
             "inlineStyleLanguage": "scss",
             "assets": [
               {
+                "glob": "html2canvas.min.js",
+                "input": "node_modules/html2canvas/dist",
+                "output": "assets/pdf"
+              },
+              {
+                "glob": "jspdf.umd.min.js",
+                "input": "node_modules/jspdf/dist",
+                "output": "assets/pdf"
+              },
+              {
                 "glob": "**/*",
                 "input": "src/assets",
                 "output": "assets"

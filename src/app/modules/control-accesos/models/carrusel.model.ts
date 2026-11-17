@@ -94,6 +94,9 @@ export interface AbrirCarruselRequest {
 }
 
 export interface RegistrarAvisoCarruselRequest {
+  placaEntrega?: string | null;
+  idfamiliaVehiculo?: number | null;
+  guardarAutoFamiliar?: boolean;
   idorg: number;
   idcarruseldispositivo?: number | null;
   idfamiliamiembro?: number | null;

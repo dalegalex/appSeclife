@@ -6,7 +6,7 @@
     <ion-title>Expediente Documental</ion-title>
   </ion-toolbar>
   <ion-toolbar class="tabs-toolbar">
-    <ion-segment [(ngModel)]="activeTab" mode="md">
+    <ion-segment [value]="activeTab" (ionChange)="changeTab($event.detail.value)" mode="md">
       <ion-segment-button value="representacion">
         <ion-label>Representación</ion-label>
       </ion-segment-button>
@@ -30,6 +30,7 @@
     <div class="state-panel"><ion-spinner name="crescent"></ion-spinner><span>Consultando expediente</span></div>
   } @else {
     <main class="page-content">
+      @if (activeTab !== 'firmados') { <app-expediente-preparacion></app-expediente-preparacion> }
       @if (activeTab === 'representacion') {
         <div class="section-heading">
           <div>
@@ -296,7 +297,7 @@
   </ng-template>
 </ion-modal>
 
-<ion-modal class="signature-modal" [isOpen]="documentModalOpen" (didDismiss)="documentModalOpen = false" (didPresent)="initializeCanvas()">
+<ion-modal class="signature-modal" [isOpen]="documentModalOpen" (didDismiss)="documentModalOpen = false">
   <ng-template>
     <ion-header>
       <ion-toolbar>
@@ -368,7 +369,7 @@
             @if (!contractData?.esContrato || contractData?.todosConfirmados) {
               <section class="signature-area">
               @if (detail.requiereFirmaGrafica) {
-                <div class="signature-heading"><h3>Firma gráfica</h3><ion-button fill="clear" size="small" (click)="clearSignature()"><ion-icon slot="start" name="refresh-outline"></ion-icon>Limpiar</ion-button></div>
+                <div class="signature-heading"><h3>Firma gráfica</h3><ion-button fill="clear" size="small" [disabled]="savingSignature" (click)="clearSignature()"><ion-icon slot="start" name="refresh-outline"></ion-icon>Limpiar</ion-button></div>
                 <canvas #signatureCanvas width="900" height="300"
                   (pointerdown)="startSignature($event)" (pointermove)="drawSignature($event)"
                   (pointerup)="stopSignature()" (pointercancel)="stopSignature()" (pointerleave)="stopSignature()"></canvas>

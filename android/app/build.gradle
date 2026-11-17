@@ -21,8 +21,8 @@ android {
         applicationId "mx.com.seclife.schoolmaster"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 20115
-        versionName "4.1.11"
+        versionCode 20116
+        versionName "4.1.12"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -68,6 +68,7 @@ repositories {
 }
 
 dependencies {
+    implementation 'com.google.mlkit:text-recognition:16.0.1'
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"

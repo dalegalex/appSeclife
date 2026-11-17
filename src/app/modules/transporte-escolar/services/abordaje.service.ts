@@ -5,11 +5,18 @@ import { environment } from '../../../../environments/environment';
 
 export interface AbordajePase { idrecorrido: number; fecha: string; estado: string; revision: number; }
 export interface AbordajeRuta { idruta: number; descripcion: string; sentido: 'SALIDA'; unidad: string; conductor: string; }
-export interface AbordajeAlumno {
-  idrecorridoalumno: number; nombre: string; seleccionado: boolean; idevento?: number;
-  correccion?: string; salidaRegistrada?: boolean; procesado: boolean; avisos: { total: number; enviados: number; fallidos: number };
+export interface AbordajeAviso {
+  idnotificacion: number; familiar: string; estado: string; motivo: string;
+  aceptadoPorProveedor: boolean; puedeReintentar: boolean;
 }
-export interface AbordajeEstado { idruta: number; fechaServidor: string; pase?: AbordajePase; alumnos: AbordajeAlumno[]; pendientes: AbordajePase[]; programados?: { idmatricula: number; nombre: string; salidaRegistrada?: boolean }[]; }
+export interface AbordajeAlumno {
+  detalleAvisos?: AbordajeAviso[];
+  sinEntrada?: boolean; motivoBloqueo?: string; advertencia?: string;
+  idrecorridoalumno: number; nombre: string; seleccionado: boolean; idevento?: number;
+  correccion?: string; salidaRegistrada?: boolean; procesado: boolean;
+  avisos: { total: number; enviados: number; fallidos: number; omitidos?: number; reintentables?: number; definitivos?: number; pendientes?: number };
+}
+export interface AbordajeEstado { seleccionLocalVersion?: number; versionEvaluacion?: string; preseleccionar?: boolean; idruta: number; fechaServidor: string; pase?: AbordajePase; alumnos: AbordajeAlumno[]; pendientes: AbordajePase[]; programados?: { idmatricula: number; nombre: string; salidaRegistrada?: boolean }[]; }
 export interface AbordajeResponse<T> { result: T; message: string; codeNumber: number; }
 @Injectable({ providedIn: 'root' })
 export class AbordajeService {

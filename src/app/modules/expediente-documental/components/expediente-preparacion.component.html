@@ -1,0 +1,63 @@
+@if (catalog()?.habilitado !== false) {
+  <details class="preparacion">
+    <summary><ion-icon name="list-outline" aria-hidden="true"></ion-icon> Antes de firmar</summary>
+    <div class="preparacion-content">
+      @if (loadingCatalog()) {
+        <p role="status"><ion-spinner name="crescent"></ion-spinner> Consultando familia y ciclo activo</p>
+      }
+      @if (error()) {
+        <p class="error" role="alert">{{ error() }}</p>
+        @if (!catalog()) { <ion-button fill="outline" size="small" (click)="loadCatalog()" [disabled]="loadingCatalog()">Reintentar</ion-button> }
+      }
+      @if (catalog(); as options) {
+        @if (!options.contextoResuelto) {
+          <p role="status">{{ options.mensajeContexto || 'No fue posible determinar tu familia y ciclo activo. Solicita apoyo al Colegio. Tus documentos asignados siguen disponibles.' }}</p>
+          <ion-button fill="outline" size="small" (click)="loadCatalog()" [disabled]="loadingCatalog()">Volver a consultar</ion-button>
+        } @else {
+          <div class="filters">
+            <p><strong>Familia:</strong> {{ options.familia }}</p>
+            <p><strong>Ciclo escolar:</strong> {{ options.ciclo || options.idciclo }}</p>
+          </div>
+          <ion-button (click)="review()" [disabled]="loading()">
+            <ion-icon slot="start" name="refresh-outline"></ion-icon>Revisar requisitos
+          </ion-button>
+          @if (loading()) { <p role="status"><ion-spinner name="crescent"></ion-spinner> Revisando documentos y datos</p> }
+          @if (result(); as report) {
+            <p class="timestamp">Consulta: {{ report.consultadoUtc | date:'dd/MM/yyyy HH:mm' }}</p>
+            @if (!report.documentos.length) { <p>No hay documentos publicados y vigentes aplicables a esta familia y ciclo.</p> }
+            @for (item of report.documentos; track item.version + ':' + item.idmatricula) {
+              <article>
+                <h2>{{ item.documento }}</h2>
+                <p>Asignación: {{ item.modoAsignacion === 'AUTOMATICO' ? 'Automática (aún no activada)' : 'Manual por el Colegio' }}</p>
+                <p class="notice" [class.waiting]="item.estado === 'PENDIENTE_ASIGNACION' || item.estado === 'AUTOMATICO_NO_ACTIVO'" role="status">{{ item.mensajeAsignacion }}</p>
+                <p class="status" [class.incomplete]="item.estado === 'FALTAN_DATOS' || item.estado === 'NO_VERIFICADO'">{{ label(item.estado) }}</p>
+                <p class="students">{{ item.alumnos.join(' · ') }}</p>
+                @if (item.estado === 'YA_ASIGNADO') {
+                  @if (item.asignacionesRegistradas?.length) { <small>Asignaciones registradas: {{ item.asignacionesRegistradas?.join(', ') }}</small> }
+                } @else {
+                  <section>
+                    <h3><ion-icon name="people-outline" aria-hidden="true"></ion-icon> Por completar en familia</h3>
+                    @if (!pending(item, 'FAMILIA').length && item.estado !== 'NO_VERIFICADO') { <p>Sin datos faltantes detectados en esta revisión.</p> }
+                    <ul>
+                      @for (task of pending(item, 'FAMILIA'); track $index) {
+                        <li><strong>{{ task.sujeto }}</strong><span>{{ task.campo }}</span><small>{{ task.alFirmar ? 'Cuando recibas el contrato para firmar' : task.donde }}</small></li>
+                      }
+                    </ul>
+                  </section>
+                  @if (pending(item, 'COLEGIO').length) { <section class="school">
+                    <h3><ion-icon name="school-outline" aria-hidden="true"></ion-icon> Pendiente del Colegio</h3>
+                    <ul>
+                      @for (task of pending(item, 'COLEGIO'); track $index) {
+                        <li><strong>{{ task.sujeto }}</strong><span>{{ task.campo }}</span></li>
+                      }
+                    </ul>
+                  </section> }
+                }
+              </article>
+            }
+          }
+        }
+      }
+    </div>
+  </details>
+}

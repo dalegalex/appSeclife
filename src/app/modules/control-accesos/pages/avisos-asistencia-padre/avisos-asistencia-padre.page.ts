@@ -10,6 +10,7 @@ import { RedFamiliarService } from '../../services/red-familiar.service';
 type AvisoForm = {
   idmatricula: number | null;
   tipoPermiso: string;
+  horaSalidaProgramada: string;
   fecha: string;
   fechaInicio: string;
   fechaFin: string;
@@ -125,6 +126,7 @@ export class AvisosAsistenciaPadrePage implements OnInit {
       idorg: this.idorg,
       idmatricula: this.form.idmatricula,
       tipoPermiso: this.form.tipoPermiso,
+      horaSalidaProgramada: this.form.tipoPermiso === 'SALIDA_TEMPRANA' ? (this.form.horaSalidaProgramada || null) : null,
       fecha: this.esAusencia ? null : this.form.fecha,
       fechaInicio: this.esAusencia ? this.form.fechaInicio : null,
       fechaFin: this.esAusencia ? this.form.fechaFin : null,
@@ -357,6 +359,7 @@ export class AvisosAsistenciaPadrePage implements OnInit {
     return {
       idmatricula: null,
       tipoPermiso: 'RETARDO_JUSTIFICADO',
+      horaSalidaProgramada: '',
       fecha: today,
       fechaInicio: today,
       fechaFin: today,

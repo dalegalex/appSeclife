@@ -5,6 +5,12 @@ import { DetalleAsignacion, DocumentoFirmante } from '../../models/expediente-do
 describe('Expediente documental: firma y aceptacion', () => {
   let page: ExpedienteDocumentalPage;
   let service: jasmine.SpyObj<any>;
+  it('solo permite las tres pestanas conocidas', () => {
+    const page = new ExpedienteDocumentalPage({} as any, {} as any, {} as any);
+    page.changeTab('pendientes'); expect(page.activeTab).toBe('pendientes');
+    page.changeTab('desconocida'); expect(page.activeTab).toBe('pendientes');
+    page.changeTab('firmados'); expect(page.activeTab).toBe('firmados');
+  });
   beforeEach(() => {
     service = jasmine.createSpyObj('service', ['registrarAceptacion', 'registrarFirma']);
     const result = { idotpdesafio: 10, nonce: 'demo', fechaExpiracion: '', destino: 'demo@example.com' };

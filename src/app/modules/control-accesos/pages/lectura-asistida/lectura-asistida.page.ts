@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, NgZone, OnDestroy } from '@angular/core';
+import { ChangeDetectorRef, Component, NgZone, OnDestroy, signal } from '@angular/core';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import {
   CapacitorBarcodeScannerCameraDirection,
@@ -10,6 +10,7 @@ import { AlertController, ToastController } from '@ionic/angular';
 import { Subscription, firstValueFrom } from 'rxjs';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { scanQrCode } from '../../../../core/qr-scanner';
+import { candidatosPlaca, placaOcr } from '../../../../core/placa-ocr';
 import {
   IdentidadLecturaAsistida,
   LecturaAsistidaAlumno,
@@ -44,6 +45,16 @@ export class LecturaAsistidaPage implements OnDestroy {
   seleccion = new Set<number>();
   tipoEntrega: TipoEntregaSalida | null = null;
   idautofamiliarSeleccionado: number | null = null;
+  placaManual = '';
+  placaConfirmada = false;
+  guardarAutoFamiliar = true;
+  readonly ocrProcesando = signal(false);
+  readonly ocrAbierto = signal(false);
+  readonly ocrImagen = signal('');
+  readonly ocrPlaca = signal('');
+  readonly ocrCandidatos = signal<string[]>([]);
+  private ocrReactivarNfc = false;
+  private ocrLectura: LecturaAsistidaResponse | null = null;
   unidadesAdministrativas: UnidadAdministrativaLectura[] = [];
   unidadesSeleccionadas = new Set<number>();
   cargandoUnidades = false;
@@ -98,6 +109,7 @@ export class LecturaAsistidaPage implements OnDestroy {
 
   ionViewDidLeave(): void {
     this.paginaActiva = false;
+    void this.cerrarOcr();
     this.limpiarRecuperacionNfc();
     void this.detenerLecturaNfc();
   }
@@ -132,6 +144,92 @@ export class LecturaAsistidaPage implements OnDestroy {
   get autos(): LecturaAsistidaAuto[] {
     return (this.lectura?.autos ?? []).filter((auto) => auto.sitactivo !== false);
   }
+
+  normalizarPlaca(value: string | null | undefined): string {
+    return (value ?? '').toUpperCase().replace(/[ -]/g, '');
+  }
+
+  get placaNormalizada(): string { return this.normalizarPlaca(this.placaManual); }
+  get ocrOcupado(): boolean { return this.ocrProcesando() || this.ocrAbierto(); }
+  get ocrPlacaValida(): boolean { return /^[A-Z0-9]{1,30}$/.test(this.normalizarPlaca(this.ocrPlaca())); }
+
+  async capturarPlaca(): Promise<void> {
+    if (this.ocrOcupado || this.loading || this.saving || this.qrActivo || !this.requiereEntregaSalida || this.tipoEntrega !== 'AUTO') return;
+    if (!placaOcr.disponible()) {
+      await this.showToast('La lectura de placas requiere la app actualizada en Android o iPhone. Puedes capturar la placa manualmente.', 'warning');
+      return;
+    }
+    const lectura = this.lectura;
+    this.ocrLectura = lectura;
+    this.ocrReactivarNfc = this.nfcHabilitadoPorUsuario && this.nfcActivo;
+    this.ocrProcesando.set(true);
+    this.limpiarRecuperacionNfc();
+    try {
+      if (this.ocrReactivarNfc) await this.detenerLecturaNfc();
+      const result = await placaOcr.capturar();
+      if (!this.paginaActiva || this.lectura !== lectura || this.ocrLectura !== lectura) return;
+      const opciones = candidatosPlaca(result.lines, this.autos.map(a => a.placas ?? ''));
+      this.ocrImagen.set(result.imagen);
+      this.ocrCandidatos.set(opciones);
+      this.ocrPlaca.set(opciones[0] ?? '');
+      this.ocrAbierto.set(true);
+    } catch (error: any) {
+      if (this.paginaActiva && !/cancel/i.test(String(error?.message ?? ''))) {
+        await this.showToast('No fue posible leer la placa. Revisa el permiso de camara e intenta otra foto, o captura las placas manualmente.', 'warning');
+      }
+    } finally {
+      this.ocrProcesando.set(false);
+      if (!this.ocrAbierto()) await this.cerrarOcr();
+    }
+  }
+
+  async aceptarPlacaOcr(): Promise<void> {
+    if (!this.ocrAbierto() || !this.ocrPlacaValida || this.ocrLectura !== this.lectura || this.tipoEntrega !== 'AUTO') return;
+    this.cambiarPlaca(this.ocrPlaca());
+    this.confirmarPlaca();
+    await this.cerrarOcr();
+  }
+
+  async cerrarOcr(): Promise<void> {
+    this.ocrAbierto.set(false);
+    this.ocrImagen.set('');
+    this.ocrPlaca.set('');
+    this.ocrCandidatos.set([]);
+    this.ocrLectura = null;
+    if (this.ocrReactivarNfc && !this.ocrProcesando()) {
+      this.ocrReactivarNfc = false;
+      if (this.paginaActiva && this.nfcHabilitadoPorUsuario) await this.restaurarNfcDespuesQr();
+    }
+  }
+  get placaValida(): boolean { return /^[A-Z0-9]{1,30}$/.test(this.placaNormalizada); }
+
+  confirmarPlaca(): void {
+    if (!this.placaValida || this.saving) return;
+    this.placaManual = this.placaNormalizada;
+    this.placaConfirmada = true;
+  }
+
+  get autosFiltrados(): LecturaAsistidaAuto[] {
+    return this.autos.filter(a => this.normalizarPlaca(a.placas).includes(this.placaNormalizada));
+  }
+
+  cambiarPlaca(value: string | null | undefined): void {
+    this.placaConfirmada = false;
+    this.placaManual = (value ?? '').toUpperCase();
+    this.idautofamiliarSeleccionado = this.placaNormalizada
+      ? this.autos.find(a => this.normalizarPlaca(a.placas) === this.placaNormalizada)?.idautofamiliar ?? null
+      : null;
+  }
+
+  private datosPlacaEntrega(): { placaEntrega: string | null; idfamiliaVehiculo: number | null; guardarAutoFamiliar: boolean } {
+    const auto = this.autos.find(a => a.idautofamiliar === this.idautofamiliarSeleccionado);
+    const aplica = this.requiereEntregaSalida && this.tipoEntrega === 'AUTO';
+    return {
+      placaEntrega: aplica ? this.normalizarPlaca(auto?.placas ?? this.placaManual) || null : null,
+      idfamiliaVehiculo: aplica ? auto?.idfamilia ?? this.lectura?.familiar?.idfamilia ?? null : null,
+      guardarAutoFamiliar: aplica && !auto && this.guardarAutoFamiliar,
+    };
+  }
   get carruselSeleccionado(): CarruselSesion | null {
     return this.carruselesActivos.find((sesion) => sesion.idcarruselsesion === this.idcarruselsesionSeleccionada) ?? null;
   }
@@ -155,14 +253,15 @@ export class LecturaAsistidaPage implements OnDestroy {
     }
 
     if (this.tipoEntrega === 'AUTO') {
-      return !!this.idautofamiliarSeleccionado;
+      return !!this.idautofamiliarSeleccionado
+        || (!!this.lectura?.familiar?.idfamilia && this.placaConfirmada && this.placaValida);
     }
 
     return this.tipoEntrega === 'OTRO_AUTO' || this.tipoEntrega === 'PEATONAL';
   }
 
   get puedeRegistrar(): boolean {
-    return this.entregaSalidaValida
+    return !this.ocrOcupado && this.entregaSalidaValida
       && this.avisoCarruselValido
       && this.alumnos.some((alumno) => this.seleccion.has(alumno.idmatricula) && this.alumnoDisponible(alumno));
   }
@@ -212,6 +311,7 @@ export class LecturaAsistidaPage implements OnDestroy {
   }
 
   async resolver(): Promise<void> {
+    if (this.ocrOcupado) return;
     const codigo = this.codigo.trim();
     if (!codigo) {
       await this.showToast('Captura o lee un codigo de credencial.', 'warning');
@@ -332,6 +432,7 @@ export class LecturaAsistidaPage implements OnDestroy {
   }
 
   cambiarTipoEntrega(tipo: TipoEntregaSalida): void {
+    if (this.ocrOcupado) return;
     this.tipoEntrega = tipo;
     this.ultimaTipoEntregaSeleccionada = tipo;
     if (tipo !== 'AUTO') {
@@ -362,7 +463,7 @@ export class LecturaAsistidaPage implements OnDestroy {
   }
 
   async registrar(): Promise<void> {
-    if (this.saving) return;
+    if (this.saving || this.ocrOcupado) return;
     if (!this.lectura || !this.puedeRegistrar) {
       await this.showToast(this.entregaSalidaValida ? 'Selecciona al menos un alumno disponible.' : 'Selecciona la forma de entrega.', 'warning');
       return;
@@ -391,6 +492,7 @@ export class LecturaAsistidaPage implements OnDestroy {
       }));
 
     this.lecturaService.registrarLectura({
+      ...this.datosPlacaEntrega(),
       idorg: this.idorg,
       identificacionManual: this.identificacionManual,
       idmatricula: this.identificacionManual ? this.identidadManualSeleccionada?.idmatricula ?? null : null,
@@ -441,6 +543,7 @@ export class LecturaAsistidaPage implements OnDestroy {
 
     try {
       const paquete = await firstValueFrom(this.carruselService.registrarAviso(this.idcarruselsesionSeleccionada, {
+        ...this.datosPlacaEntrega(),
         idorg: this.idorg,
         idcarruseldispositivo: this.puntoLecturaCarrusel?.idcarruseldispositivo ?? null,
         codigo: this.identificacionManual ? null : this.codigo.trim(),
@@ -547,7 +650,7 @@ export class LecturaAsistidaPage implements OnDestroy {
   }
 
   async activarQr(): Promise<void> {
-    if (this.loading || this.saving || this.qrActivo) {
+    if (this.loading || this.saving || this.qrActivo || this.ocrOcupado) {
       return;
     }
 
@@ -646,7 +749,7 @@ export class LecturaAsistidaPage implements OnDestroy {
   }
 
   async activarNfc(automatico = false): Promise<void> {
-    if (this.loading || this.saving || this.qrActivo) {
+    if (this.loading || this.saving || this.qrActivo || this.ocrOcupado) {
       return;
     }
 
@@ -770,6 +873,7 @@ export class LecturaAsistidaPage implements OnDestroy {
     this.subscriptions.unsubscribe();
     void this.desconectarPuntoCarrusel();
     this.paginaActiva = false;
+    void this.cerrarOcr();
     this.limpiarRecuperacionNfc();
     void this.detenerLecturaNfc();
   }
@@ -857,7 +961,7 @@ export class LecturaAsistidaPage implements OnDestroy {
   }
 
   private async procesarLecturaNfc(event: NfcEvent): Promise<void> {
-    if (this.nfcProcesando || this.loading || this.saving) {
+    if (this.nfcProcesando || this.loading || this.saving || this.ocrOcupado) {
       return;
     }
 
@@ -1037,7 +1141,7 @@ export class LecturaAsistidaPage implements OnDestroy {
     const ultimaLecturaAntesDeRecuperar = this.ultimaLecturaNfcAt;
     await this.delay(1200);
 
-    if (!this.paginaActiva || !this.nfcHabilitadoPorUsuario || this.qrActivo) {
+    if (!this.paginaActiva || !this.nfcHabilitadoPorUsuario || this.qrActivo || this.ocrOcupado) {
       return;
     }
 
@@ -1060,6 +1164,7 @@ export class LecturaAsistidaPage implements OnDestroy {
       !this.paginaActiva
       || !this.nfcHabilitadoPorUsuario
       || this.qrActivo
+      || this.ocrOcupado
       || this.loading
       || this.saving
       || this.ultimaLecturaNfcAt !== ultimaLecturaAntesDeRecuperar
@@ -1116,6 +1221,9 @@ export class LecturaAsistidaPage implements OnDestroy {
   }
 
   private resetLectura(clearCode = true): void {
+    this.placaManual = '';
+    this.placaConfirmada = false;
+    this.guardarAutoFamiliar = true;
     this.lectura = null;
     this.identificacionManual = false;
     this.identidadManualSeleccionada = null;
